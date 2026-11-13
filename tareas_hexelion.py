@@ -28,7 +28,8 @@ reservation or its NO_DATA cause, no retry and no memory promotion. TTL is 0: it
 It adds no control, and the state stays uncertain and keeps blocking new work.
 
 A model's words never change a state: states come from typed receipt fields only, and permission is only ever
-reported as missing, never granted. Pure: no network, no clock, no writes.
+reported as missing, never granted. `project` is pure: no network, no clock, no writes. `live` asks the host's
+records source, when the host has set one.
 """
 from __future__ import annotations
 
@@ -308,10 +309,26 @@ def _counters(values, cause, complete_ref=None):
 # What the live route serves today: no P2 mirror feeds APP yet (it is Codex CLI's and the host's). One place, so the
 # route and the self-report can never read different sources.
 LIVE_CAUSE = "p2_mirror_not_built"
+# The records source (M2a): one callable(observed_at) -> {"records": [...], "complete_ref": hex64 | None} that the
+# HOST sets once when the server starts. No request, model reply or sentence can set it, and nothing in this app
+# does: until a host source is approved it is None and the route says LIVE_CAUSE. It is asked again on every read
+# (TTL 0, never cached). The shape is provisional until LAB states the M1a contract.
+RECORDS_SOURCE = None
 
 
 def live(observed_at):
-    return project(None, observed_at, source_cause=LIVE_CAUSE)
+    source = RECORDS_SOURCE
+    if source is None:
+        return project(None, observed_at, source_cause=LIVE_CAUSE)
+    try:
+        got = source(observed_at)
+    except Exception:
+        return project(None, observed_at, source_cause="records_source_failed")
+    if type(got) is not dict or set(got) != {"records", "complete_ref"} or type(got["records"]) is not list:
+        return project(None, observed_at, source_cause="records_source_invalid")
+    # A completeness ref the source states about itself is a claim, not the host's attestation: it is not passed
+    # on, so the counters stay "at least" and no zero is said (NO_DATA(completeness_not_attested)).
+    return project(got["records"], observed_at)
 
 
 def project(records, observed_at, source_cause=None, complete_ref=None):
