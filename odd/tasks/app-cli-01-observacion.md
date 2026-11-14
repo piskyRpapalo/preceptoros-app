@@ -169,3 +169,19 @@ Permanecen NO_DATA: authenticated_session_discovery, owner_session_binding real,
 host_generation real, live_output_binding, completeness_not_attested,
 session_recovery_not_demonstrated, physical_accessibility_not_measured,
 browser_E2E, PR_HEAD_CI y transporte de publicación autorizado.
+
+## ROUND 2 · Cierre del registro
+
+El Soberano amplía el ámbito únicamente para registrar las dos suites ya
+existentes en `bin/pruebas`. No se modifica contrato, interfaz ni pruebas de
+sesiones. El bloque se sitúa junto a test_notebook_receipts, separado de las
+adiciones pendientes de Claude P3/seed/M2a/MH-01; sus worktrees no se tocan.
+El diff histórico de lora-runner-fix permanece intacto y su registro ya está en
+main. Esta ampliación sustituye el bloqueo de ámbito descrito históricamente
+arriba, sin reescribir el recibo BUILD 1. CLAIM de ampliación en Mesa #3.
+
+Comandos sobre la cabeza congelada: dirigidas ×2 y `./bin/pruebas` ×2.
+Se esperan 1.959 pruebas / 167 suites / 6 corredores (1.882 + 77), con
+10 skips separados y 47 sabotajes en siete grupos. Son expectativas hasta
+medición: el recibo de cierre externo conserva resultados y SHA exactos.
+Ningún secreto privado se monta para convertir un skip en PASS.
