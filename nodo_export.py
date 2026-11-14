@@ -1,6 +1,7 @@
 """Explicit, human-triggered export of an already signed node credential."""
 from __future__ import annotations
 
+import hashlib
 import json
 import urllib.error
 import urllib.request
@@ -23,6 +24,33 @@ def _rechazo(codigo: str, http: int = 409) -> dict:
     return {"estado": "bloqueado", "codigo": codigo, "http": http}
 
 
+def _recibo_corresponde(cedula, respuesta):
+    """Bind to the serialized request; hash integrity is not an admission grant."""
+    recibo = respuesta.get("recibo")
+    if not isinstance(recibo, dict):
+        return False
+    expected = {"credential_sha256": cedula["sha256"], "node_id": cedula["nodo"],
+                "admin_sha256": cedula.get("admin"), "plan_sha256": cedula.get("plan_sha256")}
+    if (recibo.get("esquema") != "preceptoros.recibo-cedula/1"
+            or any(recibo.get(k) != v for k, v in expected.items())
+            or respuesta.get("estado") != recibo.get("estado")
+            or respuesta.get("causa") != recibo.get("causa")
+            or type(respuesta.get("recibidos")) is not int
+            or respuesta["recibidos"] != 1):
+        return False
+    base = {k: v for k, v in recibo.items() if k != "recibo_sha256"}
+    try:
+        def encoded(value):
+            return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                              ensure_ascii=True, allow_nan=False).encode("utf-8")
+        # Python equality aliases True and 1; compare exact JSON values instead.
+        if encoded(respuesta["paquete"]["pares"]) != encoded([cedula]):
+            return False
+        return recibo.get("recibo_sha256") == hashlib.sha256(encoded(base)).hexdigest()
+    except (TypeError, ValueError):
+        return False
+
+
 def enviar(datos, *, transport=None, signers=None) -> dict:
     """Validate and forward one signed credential; never create a signature.
 
@@ -43,6 +71,8 @@ def enviar(datos, *, transport=None, signers=None) -> dict:
 
     cuerpo = json.dumps({"cedula": cedula}, ensure_ascii=False,
                         sort_keys=True, separators=(",", ":")).encode("utf-8")
+    # Compare the response with bytes already sent, not mutable caller data.
+    enviada = json.loads(cuerpo)["cedula"]
     if transport is None:
         req = urllib.request.Request(
             ENDPOINT, data=cuerpo,
@@ -82,5 +112,7 @@ def enviar(datos, *, transport=None, signers=None) -> dict:
     # that state and its cause as they are; it never upgrades a pending cedula to trusted.
     if respuesta.get("estado") not in ESTADOS_ADUANA:
         return _rechazo("recibo_invalido", 502)
+    if not _recibo_corresponde(enviada, respuesta):
+        return _rechazo("recibo_no_corresponde", 502)
     return {"estado": respuesta["estado"], "codigo": "recibido",
             "causa": respuesta.get("causa"), "recibidos": respuesta.get("recibidos")}
