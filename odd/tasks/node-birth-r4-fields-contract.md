@@ -1,8 +1,10 @@
 # NODE-BIRTH R4 · pure export inspection contract
 
 2026-11-14. Existing mission NODE-BIRTH-R4-FIELDS-01/Mesa #3 claim6881839694;
-ROUND9 BUILD update6882515184. Read depth2. Scope only nodo_export_preview.py,
-test_nodo_export_preview.py,this technical contract. Mission stays in Mesa.
+ROUND9 BUILD update6882515184. Read depth2. Initial scope:nodo_export_preview.py,
+test_nodo_export_preview.py,this technical contract. Direct user HITL then authorized
+the single bin/pruebas registration line,recorded in amendment6882714674.
+Current scope is those four files. Mission stays in Mesa.
 Base APP7ac622872bdecb9d77569cb6d83a18be0b043745 includes R3 PR296 unchanged.
 Prior plan packet73325c19aeee4a272f8c2e7ac9bceafa8d19d5e2ebdedec9dc1bfb7b9e096493
 and its26 specifications/Q1-Q6 are reused,not reconstructed into another service.
@@ -81,15 +83,16 @@ canales baseline behavior. No baseline failure is relabeled a PASS.
 
 ## Scope and limits
 
-New suite is invoked directly/discover in this receipt. It is NOT registered in
-bin/pruebas:registration is a fourth file outside the authorized3-file scope and
-requires owner/scope amendment. Baseline gate totals therefore exclude this suite;
-never present them as its coverage. A separate proposed runner patch may accompany
-the receipt without applying it. Exporter/PWA transport gate is not activated.
+The initial3-file core was tested directly and both unregistered general gates
+failed test_superficie.py:181. Those RED controls are retained. The user explicitly
+authorized one bin/pruebas list-line amendment;new suite is now registered beside
+R3 and will be exercised by the final whole gate. No expectation was weakened.
+The 31 new tests are counted separately and included in final registered totals.
+Exporter/PWA transport gate is not activated.
 R4 transport RED from prior rounds and PWA document-state409 RED remain independent;
 this new inspection core does not fix or hide them. No live UI/HTTP/device proof.
 
-Next owner step:answer Q1-Q6,authorize runner registration and later existing
-exporter/consumer gate as separate scoped pieces. No new network/rack/signing/
+Next owner step:answer Q1-Q6 and authorize the later existing exporter/consumer
+gate as a separate scoped piece. Runner registration is already authorized. No new network/rack/signing/
 node/territorial permissions required. Publish only an isolated draft if core
 gates pass. No WEB/Aduana/signatures/services/permissions/main/merge/deploy changes.
