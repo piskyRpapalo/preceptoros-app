@@ -1,3 +1,4 @@
+from copy import deepcopy
 import hashlib
 import json
 import unittest
@@ -11,6 +12,7 @@ def cedula():
         "esquema": "preceptoros.cedula-nodo/1",
         "nodo": "nodo.1.prueba",
         "admin": "a1" * 32,
+        "plan_sha256": "c1" * 32,
         "dispositivos": [{"clave": "b2" * 32, "estado": "solicitado"}],
         "firma_ssh": "firma-de-prueba",
         "autenticidad": "NO_DATA · pendiente de verificación local",
@@ -19,7 +21,114 @@ def cedula():
     return c
 
 
+def receipt_hash(receipt):
+    base = {k: v for k, v in receipt.items() if k != "recibo_sha256"}
+    return hashlib.sha256(json.dumps(base, sort_keys=True, separators=(",", ":"),
+                                    ensure_ascii=True, allow_nan=False).encode()).hexdigest()
+
+
+def reseal(card):
+    card = deepcopy(card)
+    card["sha256"] = hashlib.sha256(json.dumps({k:v for k,v in card.items() if k!="sha256"},
+                                             sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return card
+
+
+def receipt_fixture(c, state="pendiente"):
+    base = {"esquema": "preceptoros.recibo-cedula/1", "credential_sha256": c["sha256"],
+            "node_id": c["nodo"], "admin_sha256": c["admin"], "plan_sha256": c["plan_sha256"],
+            "estado": state, "causa": "ancla_ausente" if state == "pendiente" else None, "recibido": "2026-11-14T12:00:00.000Z"}
+    base["recibo_sha256"] = receipt_hash(base)
+    return {"estado": state, "causa": base["causa"], "recibidos": 1, "recibo": base,
+            "paquete": {"esquema": "preceptoros/cedula-nodo/1", "pares": [c], "firma": None}}
+
+
 class ExportacionNodo(unittest.TestCase):
+    def test_foreign_credential_receipt_is_rejected(self):
+        other = cedula(); other["nodo"] = "nodo.2.other"
+        other["sha256"] = "d1" * 32
+        with patch("nodo_export.nodo_app.autenticidad", return_value=("OK", "TEST gate")):
+            r = nodo_export.enviar({"cedula": cedula()}, transport=lambda *_: receipt_fixture(other))
+        self.assertEqual(r["codigo"], "recibo_no_corresponde")
+
+    def test_corrupt_receipt_hash_is_rejected(self):
+        answer = receipt_fixture(cedula()); answer["recibo"]["recibo_sha256"] = "00" * 32
+        with patch("nodo_export.nodo_app.autenticidad", return_value=("OK", "TEST gate")):
+            r = nodo_export.enviar({"cedula": cedula()}, transport=lambda *_: answer)
+        self.assertEqual(r["codigo"], "recibo_no_corresponde")
+
+    def send_reply(self, card, answer):
+        with patch("nodo_export.nodo_app.autenticidad", return_value=("OK", "TEST local gate")):
+            return nodo_export.enviar({"cedula":card}, transport=lambda *_:deepcopy(answer))
+
+    def test_verified_foreign_receipt_never_becomes_success(self):
+        card = cedula()
+        foreign = reseal(dict(card, nodo="nodo.2.other"))
+        self.assertEqual(self.send_reply(card,receipt_fixture(foreign,"verificado"))["codigo"],
+                         "recibo_no_corresponde")
+
+    def test_binding_fields_cannot_be_rewritten_even_with_valid_receipt_hash(self):
+        for field,value in (("credential_sha256","d1"*32),("node_id","nodo.2.other"),
+                            ("admin_sha256","e1"*32),("plan_sha256","f1"*32)):
+            with self.subTest(field=field):
+                answer=receipt_fixture(cedula(),"verificado")
+                answer["recibo"][field]=value
+                answer["recibo"]["recibo_sha256"]=receipt_hash(answer["recibo"])
+                self.assertEqual(self.send_reply(cedula(),answer)["codigo"],"recibo_no_corresponde")
+
+    def test_missing_receipt_fails_closed(self):
+        for receipt in (None, [], "not-a-receipt", {}):
+            with self.subTest(receipt_type=type(receipt).__name__):
+                answer=receipt_fixture(cedula());answer["recibo"]=receipt
+                self.assertEqual(self.send_reply(cedula(),answer)["codigo"],"recibo_no_corresponde")
+
+    def test_receipt_schema_and_envelope_must_agree(self):
+        for field,value in (("estado","verificado"),("causa",None),("recibidos",True),
+                            ("recibidos",1.0),("recibidos",2)):
+            with self.subTest(field=field,value=value):
+                answer=receipt_fixture(cedula());answer[field]=value
+                self.assertEqual(self.send_reply(cedula(),answer)["codigo"],"recibo_no_corresponde")
+        answer=receipt_fixture(cedula());answer["recibo"]["esquema"]="other/1"
+        answer["recibo"]["recibo_sha256"]=receipt_hash(answer["recibo"])
+        self.assertEqual(self.send_reply(cedula(),answer)["codigo"],"recibo_no_corresponde")
+
+    def test_echoed_package_must_match_entire_sent_credential(self):
+        answer=receipt_fixture(cedula())
+        answer["paquete"]["pares"][0]["dispositivos"]=[]
+        self.assertEqual(self.send_reply(cedula(),answer)["codigo"],"recibo_no_corresponde")
+
+    def test_exact_json_comparison_does_not_alias_bool_and_int(self):
+        card=reseal(dict(cedula(),synthetic_counter=1))
+        answer=receipt_fixture(card)
+        answer["paquete"]["pares"][0]=dict(card,synthetic_counter=True)
+        self.assertEqual(self.send_reply(card,answer)["codigo"],"recibo_no_corresponde")
+
+    def test_caller_mutation_during_transport_does_not_change_request_identity(self):
+        card=cedula();original=deepcopy(card)
+        foreign=reseal(dict(card,nodo="nodo.2.other"))
+        def transport(_url,body):
+            self.assertEqual(json.loads(body)["cedula"],original)
+            card.clear();card.update(foreign)
+            return receipt_fixture(foreign,"verificado")
+        with patch("nodo_export.nodo_app.autenticidad",return_value=("OK","TEST local gate")):
+            result=nodo_export.enviar({"cedula":card},transport=transport)
+        self.assertEqual(result["codigo"],"recibo_no_corresponde")
+
+    def test_reordered_and_unicode_json_preserves_correlation(self):
+        card=reseal(dict(cedula(),synthetic_label="café"))
+        answer=receipt_fixture(card,"verificado")
+        answer["paquete"]["pares"][0]=dict(reversed(list(card.items())))
+        self.assertEqual(self.send_reply(card,answer)["estado"],"verificado")
+
+    def test_repeated_receipt_repeats_document_state_without_new_authority(self):
+        card=cedula();answer=receipt_fixture(card,"verificado")
+        first=self.send_reply(card,answer);again=self.send_reply(card,answer)
+        self.assertEqual(first,again)
+        self.assertEqual(set(first),{"estado","codigo","causa","recibidos"})
+        self.assertEqual(first["estado"],"verificado")
+        # No admission, territory, signature, capability grant or receipt minted.
+        self.assertEqual(first,{"estado":"verificado","codigo":"recibido","causa":None,"recibidos":1})
+
     def test_forma_invalida_se_rechaza_sin_red(self):
         llamada = []
         r = nodo_export.enviar({"cedula": {"esquema": "otro"}}, transport=lambda *a: llamada.append(a))
@@ -36,10 +145,9 @@ class ExportacionNodo(unittest.TestCase):
 
     def test_envio_solo_con_firma_validada_y_paquete_sin_firma_de_silicio(self):
         recibida = []
-        paquete = {"esquema": "preceptoros/cedula-nodo/1", "pares": [cedula()], "firma": None}
         def transport(url, body):
             recibida.append((url, json.loads(body)))
-            return {"estado": "pendiente", "causa": "ancla_ausente", "recibidos": 1, "paquete": paquete}
+            return receipt_fixture(cedula())
         with patch("nodo_export.nodo_app.autenticidad", return_value=("OK", "verificada")):
             r = nodo_export.enviar({"cedula": cedula()}, transport=transport)
         self.assertEqual(r, {"estado": "pendiente", "codigo": "recibido", "causa": "ancla_ausente", "recibidos": 1})
