@@ -19,7 +19,7 @@ class Cableado(unittest.TestCase):
     def test_la_pagina_carga_el_componente_antes_del_hilo(self):
         html = leer("interface/app.html")
         self.assertIn('<script src="/evidence_chip.js?v=1"></script>', html)
-        self.assertLess(html.index("/evidence_chip.js?v=1"), html.index("/conversacion.js?v=4"))
+        self.assertLess(html.index("/evidence_chip.js?v=1"), html.index("/conversacion.js?v=5"))
 
     def test_el_servidor_sirve_el_componente(self):
         self.assertIn('"/evidence_chip.js": ("evidence_chip.js"', leer("bin/preceptoros-pwa"))
