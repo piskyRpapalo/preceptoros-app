@@ -153,8 +153,10 @@
 // 2026-11-15 (the Talk cabin): Talk opens with the Brain band (which brain answers, the choice, heads NO_DATA until
 // their contract) and a link to the signatures Boundary read; every answer says which model wrote it or that none
 // did (cabin_brain.js v1, conversacion.js v5, app.css v24). Cache v195.
-const Cache = "preceptoros-armazon-v195";
-const Armazon = ["/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=24", "/app.js?v=39", "/notebook.js?v=19", "/acho_sonido.js?v=3", "/conversacion.js?v=5", "/cabin_brain.js?v=1", "/evidence_chip.js?v=1", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/zonas.js?v=1",
+// 2026-11-15 (fleet wiring): the merge of #304 into main dropped the Fleet's server route, its cache entry, its CSS
+// and its runner; restored (fleet_map.js v1 cached again, app.css v25). Cache v196.
+const Cache = "preceptoros-armazon-v196";
+const Armazon = ["/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=25", "/app.js?v=39", "/notebook.js?v=19", "/acho_sonido.js?v=3", "/conversacion.js?v=5", "/cabin_brain.js?v=1", "/fleet_map.js?v=1", "/evidence_chip.js?v=1", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/zonas.js?v=1",
                  "/transicion.js?v=2", "/sting.js?v=1", "/manifest.json",
                  // La brújula conserva su módulo y SVG. La hoja ornamental
                  // quedó en legacy; la estructura mínima no carga ese CSS.
