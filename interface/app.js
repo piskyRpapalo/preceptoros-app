@@ -1532,6 +1532,9 @@ const PreceptorFabrika = (function () {
   if (!before || !after) return;
   const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function ends() {
+    // the selected tab is always in sight, however the panel changed (tab, arrow, swipe, link): Claude 2026-11-15
+    const on = document.querySelector(".pestanas [aria-selected=true]");
+    if (on && on.scrollIntoView) on.scrollIntoView({ inline: "nearest", block: "nearest", behavior: calm ? "auto" : "smooth" });
     before.setAttribute("aria-disabled", String(panelActual === 0));
     after.setAttribute("aria-disabled", String(panelActual === paneles.length - 1));
   }
