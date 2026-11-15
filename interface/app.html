@@ -200,16 +200,16 @@
       <button type="button" class="refrescar" data-refrescar="harness" aria-label="Refresh the loops and the team" title="Refresh the loops and the team">↻</button></header>
     <div class="team" id="team"></div>
     <details class="grupo" id="harness-operator-visibility">
-      <summary><h3>Operator visibility · local agents</h3></summary>
-      <p class="pie">Use a tool you control, such as SentinelX or Desktop Commander, to give a paid or local agent scoped visibility into your own computer. The tool connection is separate from PreceptorOS and does not grant execution rights by itself.</p>
+      <summary><h3 id="harness-operator-visibility-title">Operator visibility · local agents</h3></summary>
+      <p class="pie" id="harness-operator-visibility-help">Use a tool you control, such as SentinelX or Desktop Commander, to give a paid or local agent scoped visibility into your own computer. The tool connection is separate from PreceptorOS and does not grant execution rights by itself.</p>
       <p class="pie" id="harness-operator-visibility-state" role="status" aria-live="polite">NO_DATA: no verified operator connection is reported by this panel.</p>
-      <ol aria-label="Connect an operator tool safely">
-        <li>Connect your computer in the tool you choose. Keep credentials private.</li>
-        <li>Grant the minimum required scope, and check which agent can read or act.</li>
-        <li>Verify a fresh, attributed receipt before calling an action complete.</li>
-        <li>Revoke access in the tool when the task is finished.</li>
+      <ol id="harness-operator-visibility-steps" aria-label="Connect an operator tool safely">
+        <li id="harness-operator-step-1">Connect your computer in the tool you choose. Keep credentials private.</li>
+        <li id="harness-operator-step-2">Grant the minimum required scope, and check which agent can read or act.</li>
+        <li id="harness-operator-step-3">Verify a fresh, attributed receipt before calling an action complete.</li>
+        <li id="harness-operator-step-4">Revoke access in the tool when the task is finished.</li>
       </ol>
-      <p class="pie">Read-only observation, messaging, remote execution and deployment are different permissions. A running CLI is not proof that it received a message. Harness must show NO_DATA until a trusted adapter supplies fresh evidence.</p>
+      <p class="pie" id="harness-operator-visibility-policy">Read-only observation, messaging, remote execution and deployment are different permissions. A running CLI is not proof that it received a message. Harness must show NO_DATA until a trusted adapter supplies fresh evidence.</p>
     </details>
     <details class="grupo" id="harness-cli">
       <summary><h3 id="harness-cli-title">Agent questions to Hexelion</h3></summary>
