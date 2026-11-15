@@ -204,6 +204,11 @@
     <header class="panel-cabecera"><h2 data-i18n="tab_harness" id="h-harness">Harness</h2>
       <p class="pie" id="harness-frescura" role="status" aria-live="polite" data-i18n="harness_cargando">Reading local cycles…</p>
       <button type="button" class="refrescar" data-refrescar="harness" aria-label="Refresh the loops and the team" title="Refresh the loops and the team">↻</button></header>
+    <section class="fleet-zona" aria-labelledby="fleet-h">
+      <h3 id="fleet-h">Fleet</h3>
+      <p class="pie" id="fleet-estado" role="status" aria-live="polite">Fleet · NO_DATA · not read yet.</p>
+      <div class="fleet" id="fleet"></div>
+    </section>
     <div class="team" id="team"></div>
     <details class="grupo" id="harness-operator-visibility">
       <summary><h3 id="harness-operator-visibility-title">Operator visibility · local agents</h3></summary>
@@ -488,6 +493,7 @@
 <script src="/cabin_brain.js?v=1"></script>
 <script src="/acho_motion.js?v=4"></script>
 <script src="/team.js?v=2"></script>
+<script src="/fleet_map.js?v=1"></script>
 <script src="/hitl.js?v=7"></script>
 <script src="/notebook.js?v=19"></script>
 <script src="/acho_sonido.js?v=3"></script>

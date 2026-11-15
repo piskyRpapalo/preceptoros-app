@@ -529,6 +529,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # Evidence chip (evidence_chip.js): the vocabulary of how much a figure can be trusted (VERIFIED,
         # OBSERVED, DECLARED, STALE, NO_DATA, REFUSED) and its Spanish input aliases. States, not policies.
         INTRINSECOS |= {"VERIFIED", "OBSERVED", "DECLARED", "STALE", "NO_DATA", "DATA", "REFUSED", "DENEGADO"}  # DATA is the second word of the visible NO DATA
+        # Fleet (fleet_map.js, 2026-11-15): SYNTHETIC marks facts made up to check the drawing (?fleet=synthetic), never a device.
+        INTRINSECOS |= {"SYNTHETIC"}
         for fichero in self.ficheros():
             contenido = fichero.read_text(encoding="utf-8")
             for nombrada in re.findall(r"\b[A-Z][A-Z_]{3,}\b", contenido):
