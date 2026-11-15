@@ -148,8 +148,10 @@
 // Talk is quiet only over a measured zero (notebook.js v18). Cache v192.
 // Acho: a simulated or unchecked result is `proposed`, never verified (acho_motion v4, acho_sonido v3,
 // notebook.js v19). Cache v193.
-const Cache = "preceptoros-armazon-v193";
-const Armazon = ["/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=22", "/app.js?v=38", "/notebook.js?v=19", "/acho_sonido.js?v=3", "/conversacion.js?v=4", "/evidence_chip.js?v=1", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/zonas.js?v=1",
+// 2026-11-15 (where am I): the selected tab wears its name, stays in sight however the panel changed, the rail's
+// edges fade instead of cutting an icon (app.js v39, app.css v23). Cache v194.
+const Cache = "preceptoros-armazon-v194";
+const Armazon = ["/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=23", "/app.js?v=39", "/notebook.js?v=19", "/acho_sonido.js?v=3", "/conversacion.js?v=4", "/evidence_chip.js?v=1", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/zonas.js?v=1",
                  "/transicion.js?v=2", "/sting.js?v=1", "/manifest.json",
                  // La brújula conserva su módulo y SVG. La hoja ornamental
                  // quedó en legacy; la estructura mínima no carga ese CSS.
