@@ -19,6 +19,15 @@
     return span;
   }
 
+  // provenance(m) -> who produced these words, in words (the Talk cabin): a model by its name, a door or a sensor
+  // as «not a model», anything else as not recorded. Pure; it shows what the thread says and never guesses a model.
+  function provenance(m) {
+    if (!m || m.kind === "person") return "";
+    if (typeof m.model === "string" && m.model) return "model · " + m.model;
+    if (m.kind === "door" || m.kind === "sensor") return "not a model";
+    return "model not recorded";
+  }
+
   function row(m) {
     const li = doc.createElement("li");
     li.dataset.n = String(m.n);
@@ -34,7 +43,8 @@
     // The seal is the evidence state of this message: a shape, one word and the colour, from the shared chip.
     const evidencia = root.PreceptorEvidence ? root.PreceptorEvidence.make(doc, m.seal) : doc.createTextNode(String(m.seal || "NO_DATA"));
     meta.appendChild(evidencia);
-    if (m.model) meta.appendChild(doc.createTextNode(" · " + m.model));
+    const prov = provenance(m);
+    if (prov) { const who = doc.createElement("span"); who.className = "hilo-prov"; who.textContent = " · " + prov; meta.appendChild(who); }
     li.appendChild(meta);
     (Array.isArray(m.sources) ? m.sources : []).forEach((s) => {
       const src = doc.createElement("span");
@@ -128,5 +138,6 @@
   }
 
   root.PreceptorConversacion = Object.freeze({ sync, send, watch, routes: () => Object.assign({}, routes),
-    name: (id) => names[id] || id });
-})(window);
+    name: (id) => names[id] || id, provenance });
+  if (typeof module === "object" && module.exports) module.exports = { provenance };
+})(typeof window !== "undefined" ? window : globalThis);

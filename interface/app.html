@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=23">
+<link rel="stylesheet" href="/app.css?v=24">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
@@ -91,6 +91,12 @@
           <p class="pie" id="comandos-hexelion-frases">Or just say it, no slash: «how is the rack?» · «what can you do?» · «what did you do?» · «what awaits my signature?» · «lab results» · «which preceptors are working?» · «what devices are connected?» · «what models do we have?» (also in Spanish and Portuguese). These only read.</p>
         </div>
       </details></header>
+    <div class="cabina-brain" id="cabina-brain" role="group" aria-label="Brain and signatures">
+      <p class="pie brain-uso" id="brain-uso" role="status" aria-live="polite">Brain · NO_DATA · not read yet.</p>
+      <div class="brain-opciones" id="brain-opciones" role="radiogroup" aria-label="Choose the brain"></div>
+      <p class="pie brain-heads" id="brain-heads"></p>
+      <button type="button" class="brain-firmas" id="brain-firmas">Signatures · not read yet →</button>
+    </div>
     <p class="pie" id="talk-tasks" role="status" aria-live="polite" hidden></p>
     <ol class="hilo" id="hilo" aria-live="polite" aria-label="Shared thread: you, Hexelion and the rack preceptors"></ol>
   </section>
@@ -478,7 +484,8 @@
 <script src="/modelos_web.js?v=3"></script>
 <script src="/insertor.js?v=2"></script>
 <script src="/evidence_chip.js?v=1"></script>
-<script src="/conversacion.js?v=4"></script>
+<script src="/conversacion.js?v=5"></script>
+<script src="/cabin_brain.js?v=1"></script>
 <script src="/acho_motion.js?v=4"></script>
 <script src="/team.js?v=2"></script>
 <script src="/hitl.js?v=7"></script>
