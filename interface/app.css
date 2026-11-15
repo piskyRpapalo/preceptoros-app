@@ -531,3 +531,25 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 @media (forced-colors: active) { .carril-pestanas > .pestanas { -webkit-mask-image: none; mask-image: none; } .pestanas button[aria-selected="true"]::after { color: CanvasText; } }
 .pestanas button:first-child[aria-selected="true"]::after { left: 0; transform: none; }
 .pestanas button:last-child[aria-selected="true"]::after { left: auto; right: 0; transform: none; }
+
+/* Fleet (Harness): six sides, six facts. Thick = measured on, thin = measured off, dashed = NO_DATA. The list under
+   the picture says the same in words; the picture is decoration for the eye. Nothing moves. */
+.fleet-zona h3 { margin: .2rem 0; font-size: 1rem; }
+.fleet-svg { display: block; width: 100%; max-width: 240px; max-height: 40vh; height: auto; margin: 0 auto; }
+.fleet-face { fill: var(--paper); stroke: none; }
+.fleet-cell { cursor: pointer; }
+.fleet-cell.is-synthetic .fleet-face { fill: var(--ground); }
+.fleet-side { stroke: var(--ink); stroke-linecap: round; }
+.fleet-side.side-on { stroke-width: 6; }
+.fleet-side.side-off { stroke-width: 2; }
+.fleet-side.side-nodata { stroke-width: 2; stroke-dasharray: 3 5; stroke: var(--ink-soft); }
+.fleet-label { font: 700 13px system-ui, sans-serif; fill: var(--ink); }
+.fleet-list { list-style: none; margin: .4rem 0; padding: 0; display: grid; gap: .3rem; }
+.fleet-list summary { min-height: 44px; display: flex; align-items: center; flex-wrap: wrap; gap: .3rem; font-weight: 600; cursor: pointer; }
+.fleet-list details[data-state="SYNTHETIC"] { border: 2px dashed var(--ink-soft); border-radius: var(--radio); padding: 0 .5rem; }
+.fleet-syn { font-size: .75rem; letter-spacing: .04em; }
+.fleet-facts { margin: 0 0 .4rem; font-size: .8rem; }
+.fleet-facts .fact-on::marker { content: "▬ "; }
+.fleet-facts .fact-off::marker { content: "─ "; }
+.fleet-facts .fact-nodata::marker { content: "┄ "; }
+@media (forced-colors: active) { .fleet-side { stroke: CanvasText; } .fleet-face { fill: Canvas; } .fleet-label { fill: CanvasText; } }
