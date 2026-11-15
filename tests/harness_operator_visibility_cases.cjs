@@ -1,0 +1,11 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const html = fs.readFileSync(path.join(__dirname, '..', 'interface', 'app.html'), 'utf8');
+const block = html.match(/<details class="grupo" id="harness-operator-visibility">([\s\S]*?)<\/details>/)?.[1];
+test('operator visibility is in existing Harness, not a second app', () => { assert.ok(block); assert.ok(html.indexOf('id="panel-harness"') < html.indexOf('id="harness-operator-visibility"')); assert.ok(html.indexOf('id="harness-operator-visibility"') < html.indexOf('id="panel-puerta"')); });
+test('no unverified live connection claim', () => { assert.match(block, /NO_DATA/); assert.match(block, /fresh evidence/); assert.match(block, /does not grant execution rights/); });
+test('scope, revocation and private credentials are explained', () => { for (const term of ['minimum required scope', 'Revoke access', 'Keep credentials private', 'SentinelX', 'Desktop Commander']) assert.ok(block.includes(term), term); });
+test('accessible status and disclosure controls', () => { assert.match(block, /<summary>/); assert.match(block, /role="status" aria-live="polite"/); assert.match(block, /aria-label="Connect an operator tool safely"/); });
+test('no remote scripts or hidden credential collection', () => { assert.doesNotMatch(block, /<script|<form|<input|onclick=|fetch\(/i); });
