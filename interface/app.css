@@ -495,6 +495,38 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
   .evidence-chip { forced-color-adjust: none; color: CanvasText; background: Canvas; border-color: CanvasText; }
 }
 
+/* Participant state (evidence_chip.js PreceptorEstado): one grammar for Talk, Lab, Notebook and Command.
+ * Glyph + word + tone + border line (solid, double, dashed, dotted); the word is always on screen. Only WORKING
+ * moves (a slow breath of the glyph), and nothing moves under prefers-reduced-motion. */
+.part-estado { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .5rem .1rem .35rem; min-height: 1.5rem;
+  border: 2px solid currentColor; border-radius: 999px; font-weight: 700; font-size: .7rem; letter-spacing: .03em;
+  line-height: 1.2; white-space: nowrap; vertical-align: middle; }
+.part-estado[data-line="double"] { border-style: double; border-width: 3px; }
+.part-estado[data-line="dashed"] { border-style: dashed; }
+.part-estado[data-line="dotted"] { border-style: dotted; }
+.part-estado .estado-glyph { position: relative; display: inline-grid; place-items: center; width: 1.05rem; height: 1.05rem; font-size: .85rem; line-height: 1; }
+.part-estado .estado-mark { position: absolute; inset: -.15rem; width: calc(100% + .3rem); height: calc(100% + .3rem); opacity: .35; }
+.part-estado .estado-mark path { fill: none; stroke: currentColor; stroke-width: .12; }
+.part-estado.estado-ok { color: var(--ok); background: var(--ok-soft); }
+.part-estado.estado-warn { color: var(--warn); background: var(--warn-soft); }
+.part-estado.estado-stop { color: var(--stop); background: var(--stop-soft); }
+.part-estado.estado-quiet { color: var(--ink-soft); background: transparent; }
+.part-estado.estado-working .estado-glyph { animation: part-estado-breath 2.4s ease-in-out infinite; }
+@keyframes part-estado-breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(.82); } }
+@media (prefers-reduced-motion: reduce) { .part-estado .estado-glyph { animation: none !important; } }
+@media (forced-colors: active) {
+  .part-estado { forced-color-adjust: none; color: CanvasText; background: Canvas; border-color: CanvasText; }
+}
+/* Talk: who is here, each preceptor with its state. Wraps on a phone; never scrolls sideways. */
+.conv-estados { list-style: none; margin: .35rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem .5rem; }
+.conv-estados li { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; }
+.conv-estados .conv-estado-nombre { font-weight: 600; }
+/* Command: what needs a human decision, each with a way to its evidence. */
+.mando-decide { margin: .5rem 0; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: .5rem; }
+.mando-decide ul { list-style: none; margin: .35rem 0 0; padding: 0; display: grid; gap: .35rem; }
+.mando-decide li { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.mando-decide button.ir { min-height: 44px; }
+
 /* Acho state expression (acho_motion.js express): line pattern + form + tone; never colour alone. */
 .acho-estado { width: 1.6rem; height: 1.6rem; flex: none; display: inline-grid; place-items: center; }
 .acho-estado svg { width: 100%; height: 100%; }

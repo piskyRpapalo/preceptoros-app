@@ -95,6 +95,15 @@
     if (description) article.append(elem("p", "notebook-fact", description));
     return article;
   }
+  // The shared participant state (evidence_chip.js PreceptorEstado) joins the card's top line next to its own badge;
+  // it reads only the typed row the card already shows, so the card and the state cannot disagree.
+  function estado(c, rows, name) {
+    const E = typeof window !== "undefined" && window.PreceptorEstado;
+    if (!E || !c) return c;
+    const top = c.querySelector(".notebook-top") || c;
+    top.append(E.make(document, E.fromEvidence(rows), name));
+    return c;
+  }
   async function request(path) {
     const r = await fetch(path, { cache: "no-store", credentials: "same-origin" });
     if (!r.ok) throw new Error("http_" + r.status);
@@ -128,16 +137,17 @@
     if (notes && notes.agents.length) {
       notes.agents.forEach(a => {
         const label = a.status === "OBSERVADO" ? t.observed : a.status === "STALE" ? t.stale : t.unavailable;
-        const c = card(a.name, a.status, a.role + " · " + label);
+        const c = estado(card(a.name, a.status, a.role + " · " + label), [{ source: "heartbeat", status: a.status, receipt: a.receipt, cause: a.cause }], a.name);
         field(c, t.last, a.last);
         field(c, t.source, a.receipt && a.receipt.slice(0, 16) + "…");
         if (a.cause) field(c, "Causa", a.cause);
         aList.append(c);
       });
     } else aList.append(card(t.emptyAgents, "NO_DATA", notes ? notes.cause : "notebook_endpoint_unavailable"));
+    // projectHarness returns rows only for a sensor read under 5 minutes old: that is what `fresh` states.
     if (loops.rows.length) {
       loops.rows.forEach(l => {
-        const c = card(l.name, t.timer, l.result || t.profile);
+        const c = estado(card(l.name, t.timer, l.result || t.profile), [{ source: "loop", fresh: true, result: l.result }], l.name);
         field(c, t.lastLoop, l.last);
         field(c, t.nextLoop, l.next);
         if (l.cause) field(c, "Causa", l.cause);
@@ -164,7 +174,8 @@
       const rows = notes ? notes.receipts : [];
       if (rows.length) {
         const last = rows[rows.length - 1];
-        const c = card(t.receipts + " · " + rows.length, last.status, t.receiptsNote);
+        const c = estado(card(t.receipts + " · " + rows.length, last.status, t.receiptsNote),
+          [{ source: "receipt", result: last.result, status: last.status, receipt: last.receipt }], (last.voice || "last") + " · " + last.tool);
         rows.slice(-6).reverse().forEach(r => c.append(elem("p", "notebook-fact",
           [r.stamp.replace("T", " ").replace("Z", " UTC"), (r.voice ? r.voice + " · " : "") + r.tool,
             r.result === "refused" ? "refused by the fence" : r.result, r.ms === null ? "NO_DATA" : r.ms + " ms",
@@ -303,7 +314,7 @@
     if (asked[listId] !== mine) return null;
     list.replaceChildren();
     (p ? p.tasks : []).forEach(x => {
-      const c = card("Task " + x.run, x.state, x.sentence);
+      const c = estado(card("Task " + x.run, x.state, x.sentence), [{ source: "task", state: x.state }], "Task " + x.run);
       c.dataset.state = x.state; c.dataset.acho = x.acho;
       if (x.next) field(c, "Next", x.next);
       // Compact first; the evidence and full references live one disclosure away, never cut.
@@ -340,7 +351,7 @@
   }
   function turnCard(x) {
     const when = x.asked.replace("T", " ").replace("Z", " UTC");
-    const c = card(x.by + " asked " + x.to + " · " + when, x.state, x.sentence);
+    const c = estado(card(x.by + " asked " + x.to + " · " + when, x.state, x.sentence), [{ source: "turn", state: x.state }], x.to);
     c.dataset.n = String(x.n); c.dataset.state = x.state; c.dataset.acho = x.acho;
     c.append(elem("p", "notebook-fact", "«" + x.question + "»"));
     field(c, "Answered by", x.who || "nobody recorded");
@@ -357,6 +368,7 @@
     const c = card((clean(r.model, 40) || "NO_DATA") + " · " + clean(r.date, 25).replace("T", " ").slice(0, 16) + " UTC",
       clean(r.state, 12) || "NO_DATA", clean(r.sentence, 420));
     c.dataset.receipt = clean(r.receipt, 16);
+    estado(c, [{ source: "bench", attempted: r.attempted, failed: r.failed }], clean(r.model, 40) || "run");
     field(c, "Receipt fingerprint", clean(r.fingerprint, 12) + " · " + clean(r.receipt, 16));
     field(c, "Comparison key (controls only)", clean(r.comparison_key, 12));
     field(c, "Source", "commit " + (clean(r.commit, 12) || "NO_DATA") + " · runner " + (clean(r.runner, 12) || "NO_DATA"));
@@ -406,12 +418,47 @@
     if (status && spoken[statusId] !== summary) { status.textContent = summary; spoken[statusId] = summary; }
     return p;
   }
+  /* Talk · who is here. Talk reads only its thread; the Notebook, which already reads these sources, paints
+   * each preceptor's state next to its name with the shared grammar (the same way talkTasks fills Talk). */
+  // evidenceFor(id, notebook) -> the typed rows that may say what this preceptor is doing. Only a declared heartbeat
+  // with the same id and the newest receipt written in its voice count. Speaking in this thread is NOT evidence of
+  // work, so `last_spoke` never enters (Sovereign's rule: no state from an open conversation, no timers).
+  function evidenceFor(id, nb) {
+    if (!nb || nb.schema !== "preceptoros.notebook-readonly/0") return [{ source: "absent", cause: "notebook_unreadable" }];
+    const rows = [];
+    (Array.isArray(nb.agents) ? nb.agents : []).filter((a) => a && a.id === id).forEach((a) =>
+      rows.push({ source: "heartbeat", status: a.status, receipt: a.receipt_sha256, cause: a.cause }));
+    const mine = (Array.isArray(nb.receipts) ? nb.receipts : []).filter((r) => r && r.voice === id);
+    const last = mine[mine.length - 1];
+    if (last) rows.push({ source: "receipt", result: last.result, status: last.status, receipt: last.receipt_sha256 });
+    return rows.length ? rows : [{ source: "absent", cause: "no heartbeat or receipt in this voice" }];
+  }
+  // talkStates(destinations) -> each preceptor's name with its state, from the Notebook projection (read-only).
+  let statesAsked = 0;
+  async function talkStates(list) {
+    const out = document.getElementById("conv-estados"), E = root.PreceptorEstado;
+    if (!out || !E || !Array.isArray(list)) return;
+    const mine = ++statesAsked, people = list.filter((d) => d.addressable);
+    if (!out.children.length) out.replaceChildren(...people.map((d) => item(d, E.fromEvidence([{ source: "loading" }]))));
+    let nb = null;
+    try { const r = await fetch("/api/notebook", { cache: "no-store" }); nb = r.ok ? await r.json() : null; } catch { nb = null; }
+    if (mine !== statesAsked) return;
+    out.replaceChildren(...people.map((d) => item(d, E.fromEvidence(evidenceFor(d.id, nb)))));
+    function item(d, x) {
+      const li = document.createElement("li");
+      li.dataset.id = d.id;
+      const n = document.createElement("span"); n.className = "conv-estado-nombre"; n.textContent = d.name;
+      li.append(n, E.make(document, x, d.name));
+      return li;
+    }
+  }
+
   function mount() {
     const refresh = document.getElementById("notebook-refresh");
     // Through the panel flow when the app shell is present, so a refresh speaks once like an opening.
     if (refresh) refresh.addEventListener("click", () => root.PreceptorPanelFlow ? root.PreceptorPanelFlow.load("cuaderno") : load().catch(() => {}));
   }
-  const api = Object.freeze({ load, projectNotebook, projectHarness, projectTurns, turnLine, achoClasses, projectTasks, taskSummary, loadTasks, talkTasks, loadTurns, loadBench });
+  const api = Object.freeze({ load, projectNotebook, projectHarness, projectTurns, turnLine, achoClasses, projectTasks, taskSummary, loadTasks, talkTasks, loadTurns, loadBench, evidenceFor, talkStates });
   root.PreceptorNotebook = api;
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document !== "undefined") mount();

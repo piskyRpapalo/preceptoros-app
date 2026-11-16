@@ -158,8 +158,11 @@
 // 2026-11-16 (update state, update-state slice): Settings shows the installed app, the rack's served shell and the real
 // update state; this worker answers its own number on request and caches install.js (v2). It still deletes only
 // its own old caches, never browser storage. Cache v197.
-const Cache = "preceptoros-armazon-v197";
-const Armazon = ["/install.js?v=2", "/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=25", "/app.js?v=39", "/notebook.js?v=19", "/acho_sonido.js?v=3", "/conversacion.js?v=5", "/cabin_brain.js?v=1", "/fleet_map.js?v=1", "/evidence_chip.js?v=1", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/zonas.js?v=1",
+// 2026-11-16 (participant state): one state grammar (PreceptorEstado in evidence_chip.js v2) for Talk
+// (who is here, conversacion.js v6), Lab and Notebook cards (notebook.js v20) and Command's «Needs your decision»
+// (app.js v40); its badge styles (app.css v26). States come only from typed rows of existing contracts. Cache v198.
+const Cache = "preceptoros-armazon-v198";
+const Armazon = ["/install.js?v=2", "/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=26", "/app.js?v=40", "/notebook.js?v=20", "/acho_sonido.js?v=3", "/conversacion.js?v=6", "/cabin_brain.js?v=1", "/fleet_map.js?v=1", "/evidence_chip.js?v=2", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/zonas.js?v=1",
                  "/transicion.js?v=2", "/sting.js?v=1", "/manifest.json",
                  // La brújula conserva su módulo y SVG. La hoja ornamental
                  // quedó en legacy; la estructura mínima no carga ese CSS.
