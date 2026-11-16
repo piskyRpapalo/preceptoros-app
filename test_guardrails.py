@@ -531,6 +531,9 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         INTRINSECOS |= {"VERIFIED", "OBSERVED", "DECLARED", "STALE", "NO_DATA", "DATA", "REFUSED", "DENEGADO"}  # DATA is the second word of the visible NO DATA
         # Fleet (fleet_map.js, 2026-11-15): SYNTHETIC marks facts made up to check the drawing (?fleet=synthetic), never a device.
         INTRINSECOS |= {"SYNTHETIC"}
+        # Participant state (evidence_chip.js PreceptorEstado, 2026-11-16): the words a state badge shows and the run
+        # contract word RUNNING it accepts. States of a participant, never redaction policies.
+        INTRINSECOS |= {"AVAILABLE", "WORKING", "WAITING", "BLOCKED", "NEEDS", "READING", "RUNNING"}
         for fichero in self.ficheros():
             contenido = fichero.read_text(encoding="utf-8")
             for nombrada in re.findall(r"\b[A-Z][A-Z_]{3,}\b", contenido):

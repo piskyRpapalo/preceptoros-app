@@ -1417,6 +1417,36 @@ if (exportForm) {
   });
 }
 
+// Command · what needs a human decision. Two readings the house already makes: the pending signatures (/api/firmas, the
+// same reading the Talk cabin links to Boundary) and the delegated tasks (/api/hexelion/tareas, its needs_you counter). Each line wears
+// the shared state and a button to where its evidence and the decision live. Nothing is signed or decided here.
+async function paintDecide() {
+  const E = window.PreceptorEstado, status = document.getElementById("mando-decide-estado");
+  const firmas = document.getElementById("mando-firmas-estado"), tareas = document.getElementById("mando-tareas-estado");
+  if (!E || !status || !firmas || !tareas) return;
+  const said = {};
+  const put = (slot, rows, name) => { const x = E.fromEvidence(rows); said[name] = E.sentence(name, x); slot.replaceChildren(E.make(document, x, name)); };
+  put(firmas, [{ source: "loading" }], "Signatures"); put(tareas, [{ source: "loading" }], "Tasks");
+  const read = async (path) => { try { const r = await fetch(path, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } };
+  // Counts come from the payloads (the interface never counts): /api/firmas carries the server's own `cuenta`.
+  const [h, t] = await Promise.all([read("/api/firmas"), read("/api/hexelion/tareas")]);
+  const sign = h && h.esquema === "preceptoros.firmas-pendientes/1" && h.cuenta && typeof h.cuenta === "object"
+    ? (Number.isSafeInteger(h.cuenta.sign) ? h.cuenta.sign : 0) : null;
+  put(firmas, sign !== null ? [{ source: "hitl", pending: sign, measured: true }]
+    : [{ source: "absent", cause: (h && h.causa) || "signature list unreadable" }], "Signatures");
+  // tareas_hexelion: `needs_you` is exact only when counters.state is MEASURED; otherwise a count is "at least" and a
+  // zero is no reading at all (its cause is said, never "nothing needs you").
+  const tasks = t && t.schema === "preceptoros.hexelion-tasks/1" ? t : null;
+  const exact = !!(tasks && tasks.counters && tasks.counters.state === "MEASURED");
+  const needs = tasks && Number.isSafeInteger(tasks.needs_you) ? tasks.needs_you : 0;
+  put(tareas, tasks && (exact || needs > 0) ? [{ source: "hitl", pending: needs, measured: exact }]
+    : [{ source: "absent", cause: (tasks && tasks.counters && tasks.counters.cause) || (tasks && tasks.cause) || "tasks unreadable" }], "Tasks");
+  const line = "Read now. " + said.Signatures + ". " + said.Tasks + ".";
+  if (status.textContent !== line) status.textContent = line;
+}
+document.getElementById("tab-mando")?.addEventListener("click", paintDecide);
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", paintDecide); else paintDecide();
+
 // Buttons that walk to another tab (Lab -> loops, Lab -> Notebook, Notebook -> 3DFabrika): they press the real tab.
 document.querySelectorAll("button.ir[data-ir]").forEach((b) => b.addEventListener("click", () => {
   const tab = document.getElementById("tab-" + b.dataset.ir); if (tab) tab.click();

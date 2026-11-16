@@ -36,11 +36,11 @@ class Flota(unittest.TestCase):
     def test_tamano_version_y_cache(self):
         self.assertLess(len(leer("interface/fleet_map.js").encode()), 8192)
         html = leer("interface/app.html")
-        self.assertLess(html.index("/evidence_chip.js?v=1"), html.index("/fleet_map.js?v=1"))
+        self.assertLess(html.index("/evidence_chip.js?v=2"), html.index("/fleet_map.js?v=1"))
         self.assertIn('"/fleet_map.js": ("fleet_map.js"', leer("bin/preceptoros-pwa"))
         sw = leer("interface/sw.js")
         self.assertIn('"/fleet_map.js?v=1"', sw)
-        self.assertIn("preceptoros-armazon-v197", sw)
+        self.assertIn("preceptoros-armazon-v198", sw)
 
     def test_forced_colors_y_44px(self):
         css = leer("interface/app.css")
