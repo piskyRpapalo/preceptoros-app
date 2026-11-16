@@ -80,6 +80,8 @@
       routes = {}; names = {};
       (d.destinations || []).forEach((x) => { routes[x.id] = x.route; names[x.id] = x.name; });
       paintDestinations(d.destinations);
+      // Who is here, and what the evidence says each is doing: the Notebook paints it (Talk reads only its thread).
+      if (root.PreceptorNotebook && root.PreceptorNotebook.talkStates) root.PreceptorNotebook.talkStates(d.destinations);
       if (d.state !== "MEASURED") {
         say(status, "NO_DATA: " + String(d.cause || "the shared thread could not be read").replace(/_/g, " ") + ".");
         return d;
