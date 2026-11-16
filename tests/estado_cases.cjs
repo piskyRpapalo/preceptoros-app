@@ -5,9 +5,9 @@ const E=require('../interface/evidence_chip.js').estado;
 const NOW=Date.parse('2026-11-16T12:00:00Z'), SHA='a'.repeat(64);
 const st=(rows)=>E.fromEvidence(rows,NOW).state;
 
-test('the table: ten states, each with a word, a glyph, a tone, a line and an Acho reading; triples are unique',()=>{
+test('the table: twelve states, each with a word, a glyph, a tone, a line and an Acho reading; triples are unique',()=>{
   const names=Object.keys(E.states);
-  assert.deepEqual(names.sort(),['available','blocked','done','hitl','loading','no_data','refused','stale','waiting','working']);
+  assert.deepEqual(names.sort(),['authorized','available','blocked','done','hitl','loading','no_data','proposed','refused','stale','waiting','working']);
   const seen=new Set();
   for(const n of names){const s=E.states[n];for(const k of ['word','glyph','tone','line','acho','says'])assert.ok(s[k],n+'.'+k);
     const key=s.glyph+'|'+s.word;assert(!seen.has(key),'duplicate '+key);seen.add(key);}
