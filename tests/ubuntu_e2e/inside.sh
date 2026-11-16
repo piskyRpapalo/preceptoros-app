@@ -23,6 +23,9 @@ step installed_head "$(git -C ~/preceptoros rev-parse --short=12 HEAD)"
 command -v desktop-file-validate >/dev/null && { desktop-file-validate ~/.local/share/applications/preceptoros.desktop >/tmp/dv.log 2>&1 && step desktop_validate PASS || step desktop_validate "WARN:$(head -c 80 /tmp/dv.log | tr '\n"' '  ')"; }
 step desktop_entry PASS
 [ -x ~/.local/bin/preceptoros-abrir ] || fail launcher
+# The model lives on another computer: the authorized node's door is a loopback port (on the rack, an SSH tunnel to
+# OneXStation). The person points the app at it; the app never learns the remote address.
+[ -n "${HEXELION_ENDPOINT:-}" ] && export PRECEPTOROS_HEXELION_ENDPOINT="$HEXELION_ENDPOINT"
 # the launcher itself (xdg-open has no display here: that part is NO_DATA)
 ~/.local/bin/preceptoros-abrir >/tmp/l.log 2>&1 || true
 waitup || fail launcher_starts_app
@@ -40,6 +43,26 @@ echo "$r" | grep -q DELIVERED_TO_THREAD || fail deliver
 step deliver_to_thread DELIVERED_TO_THREAD
 curl -fs "$U/api/conversacion?desde=0" | grep -q 'ubuntu e2e hello' || fail thread_reads_back
 step thread_reads_back PASS
+# 2b · a REAL model turn, told apart from delivery. Memory is created the way the onboarding does it after the
+#      person's explicit yes (memory.crear; the APP has no button for this yet: a gap, reported). One fact enters
+#      through the APP's own door (/api/anidar), then Hexelion is asked about it.
+if [ -n "${HEXELION_ENDPOINT:-}" ]; then
+  (cd ~/preceptoros && python3 -B -c "import casa,memory; memory.crear(str(casa.raiz()/'memory.db'))") || fail memory_created
+  step memory_created "PASS:explicit_onboarding_function"
+  curl -fs -X POST -H 'Content-Type: application/json' -H "Origin: $U" --data '{"texto":"The lighthouse keeper of the test island is named Marisol Quintero.","porque":"ubuntu e2e fact"}' "$U/api/anidar" | grep -q '"estado": "ok"' || fail fact_stored
+  step fact_stored PASS
+  # pause: the host walks every panel in a real browser and asks Hexelion through Talk itself
+  touch /sync/ready; for _ in $(seq 1 600); do [ -f /sync/go ] && break; sleep .5; done
+  [ -f /sync/go ] || fail browser_walk_timeout
+  step browser_walk "$(cat /sync/go)"
+  r="$(curl -s -m 300 -X POST -H 'Content-Type: application/json' -H "Origin: $U" --data '{"texto":"Who is the lighthouse keeper of the test island?"}' "$U/api/hexelion/chat")"
+  st="$(printf '%s' "$r" | python3 -c 'import sys,json;d=json.load(sys.stdin);t=d.get("turno") or {};r=d.get("respuesta") or {};m=(r.get("maquina") or {});print("%s|%s|%s|%d|%s"%(t.get("state"),m.get("modelo"),len(r.get("fuentes") or []),int(m.get("ms") or 0),"Marisol" in (r.get("texto") or "")))')" || fail model_reply
+  IFS='|' read -r tstate tmodel tsrc tms thas <<< "$st"
+  [ "$tstate" = ANSWERED ] && [ "$tmodel" = "hexelion:latest" ] && [ "$tsrc" -ge 1 ] && [ "$thas" = True ] || fail "model_reply:$tstate"
+  step model_reply "ANSWERED:$tmodel:${tms}ms:${tsrc}_verified_source"
+else
+  step model_reply "NO_DATA:no_authorized_node_endpoint"
+fi
 c="$(curl -fs "$U/api/cerebro" 2>/dev/null)" || fail model_discovery
 step model_discovery "READ:$(printf '%s' "$c" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(str(d.get("state") or d.get("estado") or "?")[:24])' 2>/dev/null || echo unparsed)"
 i="$(curl -s "$U/api/nodo/identity" 2>/dev/null | python3 -c 'import sys,json;d=json.load(sys.stdin);print(str(d.get("state") or d.get("estado") or "?")+":"+str(d.get("cause") or d.get("causa") or "")[:40])' 2>/dev/null)"; step node_identity "${i:-NO_DATA:unreadable}"
@@ -87,7 +110,7 @@ bash ~/uninstall.sh --si --borrar-datos </dev/null >/tmp/u1.log 2>&1
 step uninstall_removes_app PASS
 [ "$(datahash)" = "$keep" ] || fail uninstall_keeps_data
 step uninstall_keeps_data "PASS:no terminal, so --borrar-datos is refused"
-step offline_ai "NO_DATA:no_model_in_container"
+step offline_ai "NO_DATA:no_model_in_container_inference_is_remote"
 step native_package "NO_DATA:git_clone_installer_not_deb_snap_flatpak"
 step signed_update "NO_DATA:fast_forward_over_https_only_commits_unsigned"
 printf '{"schema":"preceptoros.ubuntu-e2e/1","result":"PASS","os":"%s",%s}\n' "$(. /etc/os-release; echo "$PRETTY_NAME")" "$(IFS=,; echo "${R[*]}")"
