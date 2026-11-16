@@ -50,13 +50,13 @@ class Cabina(unittest.TestCase):
     def test_version_y_cache(self):
         html = leer("interface/app.html")
         self.assertIn('<script src="/conversacion.js?v=6"></script>', html)
-        self.assertLess(html.index("/evidence_chip.js?v=2"), html.index("/cabin_brain.js?v=1"))
+        self.assertLess(html.index("/evidence_chip.js?v=3"), html.index("/cabin_brain.js?v=1"))
         self.assertIn('"/cabin_brain.js": ("cabin_brain.js"', leer("bin/preceptoros-pwa"))
         self.assertIn('"/cabin_brain.js?v=1"', leer("interface/sw.js"))
         self.assertLess(len(leer("interface/cabin_brain.js").encode()), 8192)
         sw = leer("interface/sw.js")
         self.assertIn('"/conversacion.js?v=6"', sw)
-        self.assertIn("preceptoros-armazon-v198", sw)
+        self.assertIn("preceptoros-armazon-v199", sw)
 
     @unittest.skipUnless(shutil.which("node"), "node no esta")
     def test_casos_puros(self):

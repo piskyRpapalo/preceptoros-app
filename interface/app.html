@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=26">
+<link rel="stylesheet" href="/app.css?v=27">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
@@ -64,6 +64,10 @@
         <li><span id="mando-tareas-texto">Delegated tasks that need your authorization</span> <span id="mando-tareas-estado"></span>
           <button type="button" class="ir" data-ir="cuaderno" id="mando-ir-tareas">Open the Notebook</button></li>
       </ul>
+      <h4 data-i18n="plan_tasks_title">Tasks of the plan</h4>
+      <p class="pie" id="mando-plan-estado" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <ul class="plan-decidir" id="mando-plan-tareas"></ul>
+      <p class="pie" id="mando-plan-nota" role="status" aria-live="polite" data-i18n="plan_grant_note">Authorizing makes a grant for that one task. Grants are not built yet: NO_DATA.</p>
     </section>
     <div id="compass-container">
       <div id="compass-svg-hueco"></div>
@@ -109,6 +113,15 @@
       <button type="button" class="brain-firmas" id="brain-firmas">Signatures · not read yet →</button>
     </div>
     <p class="pie" id="talk-tasks" role="status" aria-live="polite" hidden></p>
+    <div class="talk-plan" id="talk-plan" role="status" aria-live="polite" hidden></div>
+    <details class="grupo plan-escribir">
+      <summary><h3 data-i18n="plan_write_title">Write a plan</h3></summary>
+      <label for="plan-texto" data-i18n="plan_write_label">Your plan, as long as it needs to be. It is kept whole: never cut.</label>
+      <textarea id="plan-texto" rows="6" aria-describedby="plan-ref"></textarea>
+      <p class="pie" id="plan-ref" role="status" aria-live="polite">Empty.</p>
+      <button type="button" id="plan-guardar" class="plan-guardar" data-i18n="plan_store">Store the plan</button>
+      <p class="pie" id="plan-guardar-estado" role="status" aria-live="polite"></p>
+    </details>
     <ol class="hilo" id="hilo" aria-live="polite" aria-label="Shared thread: you, Hexelion and the rack preceptors"></ol>
   </section>
 
@@ -157,6 +170,11 @@
       <div id="notebook-tasks" class="notebook-grid"></div>
     </details>
     <details class="grupo" open>
+      <summary><h3 id="notebook-plans-title" data-i18n="plan_notebook_title">Plans and their tasks</h3></summary>
+      <p class="pie" id="notebook-plans-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <div id="notebook-plans" class="notebook-grid"></div>
+    </details>
+    <details class="grupo" open>
       <summary><h3 id="notebook-agents-title">Agents observed</h3></summary>
       <div id="notebook-agents" class="notebook-grid"></div>
     </details>
@@ -191,6 +209,11 @@
     <p class="pie" id="lab-rack-estado" role="status" aria-live="polite" hidden></p>
     <a id="lab-rack-enlace" href="#" target="_blank" rel="noopener noreferrer" hidden>Rack Lab</a>
     <p class="pie" id="lab-turno-pointer">Requests and their answers are kept in the Notebook; Talk shows the latest one.</p>
+    <details class="grupo" open>
+      <summary><h3 id="lab-runs-title" data-i18n="plan_lab_title">Runs from plans</h3></summary>
+      <p class="pie" id="lab-runs-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <div id="lab-runs" class="notebook-grid"></div>
+    </details>
     <details class="grupo">
       <summary><h3 id="lab-bench-title">Benchmarks · reproducible runs</h3></summary>
       <p class="pie" id="lab-bench-status" role="status" aria-live="polite">NO_DATA: the benchmark runs have not been read yet.</p>
@@ -219,6 +242,11 @@
       <h3 id="fleet-h">Fleet</h3>
       <p class="pie" id="fleet-estado" role="status" aria-live="polite">Fleet · NO_DATA · not read yet.</p>
       <div class="fleet" id="fleet"></div>
+    </section>
+    <section class="plan-agentes" aria-labelledby="harness-plan-h">
+      <h3 id="harness-plan-h" data-i18n="plan_harness_title">Agents and capabilities in the plan</h3>
+      <p class="pie" id="harness-plan-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <ul id="harness-plan-agents"></ul>
     </section>
     <div class="team" id="team"></div>
     <details class="grupo" id="harness-operator-visibility">
@@ -511,12 +539,16 @@
 <script src="/sting.js?v=1"></script>
 <script src="/modelos_web.js?v=3"></script>
 <script src="/insertor.js?v=2"></script>
-<script src="/evidence_chip.js?v=2"></script>
+<script src="/evidence_chip.js?v=3"></script>
 <script src="/conversacion.js?v=6"></script>
 <script src="/cabin_brain.js?v=1"></script>
 <script src="/acho_motion.js?v=4"></script>
 <script src="/team.js?v=2"></script>
 <script src="/fleet_map.js?v=1"></script>
+<script src="/plan_flow.js?v=1"></script>
+<script src="/plan_fixture.js?v=1"></script>
+<script src="/plan_panels.js?v=1"></script>
+<script src="/plan_composer.js?v=1"></script>
 <script src="/hitl.js?v=7"></script>
 <script src="/notebook.js?v=20"></script>
 <script src="/acho_sonido.js?v=3"></script>

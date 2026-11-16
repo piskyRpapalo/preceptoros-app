@@ -603,3 +603,23 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 .fleet-facts .fact-off::marker { content: "─ "; }
 .fleet-facts .fact-nodata::marker { content: "┄ "; }
 @media (forced-colors: active) { .fleet-side { stroke: CanvasText; } .fleet-face { fill: Canvas; } .fleet-label { fill: CanvasText; } }
+/* Plans in the panels (plan_panels.js): the plan's stages in Talk, per-task decisions in Command, cards elsewhere.
+   A SYNTHETIC drawing wears a dashed frame and a banner. Buttons keep the 44 px target. */
+.talk-plan { margin: .4rem 0; padding: .5rem .7rem; border: 1px solid var(--line); border-radius: var(--radio); background: var(--paper); }
+.talk-plan .plan-line, .talk-plan .plan-next-title { margin: 0 0 .3rem; font-weight: 600; }
+.talk-plan .plan-next { margin: 0 0 .3rem; padding-left: 1.2rem; }
+.talk-plan .plan-grounds, .talk-plan .plan-next-note { color: var(--ink-soft); font-size: .9em; }
+.plan-escribir textarea { box-sizing: border-box; width: 100%; min-height: 8rem; font: inherit; padding: .5rem; resize: vertical;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: var(--radio); }
+.plan-guardar, .plan-decidir button { min-height: 44px; min-width: 44px; padding: 0 .9rem; font: inherit; cursor: pointer;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; }
+.plan-decidir button:disabled { cursor: not-allowed; opacity: .6; }
+.plan-decidir { list-style: none; margin: .3rem 0 .8rem; padding: 0; display: grid; gap: .4rem; }
+.plan-decidir li { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.plan-decidir li > span:not(.part-estado) { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; order: -1; }
+.plan-decidir li > .part-estado { order: -2; }
+[data-synthetic="true"] { outline: 2px dashed var(--ink-soft); outline-offset: 3px; }
+.plan-synthetic { margin: 0 0 .4rem; font-weight: 600; color: var(--ink-soft); }
+.plan-agentes ul { margin: .2rem 0; padding-left: 1.2rem; }
+.plan-agentes li, .plan-task .notebook-fact { overflow-wrap: anywhere; }
+@media (forced-colors: active) { [data-synthetic="true"] { outline-color: CanvasText; } }

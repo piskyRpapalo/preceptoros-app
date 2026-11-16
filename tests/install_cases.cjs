@@ -96,7 +96,7 @@ test('untrusted or repeated check clicks do not double-check',async()=>{
 });
 test('the worker answers its own number and still deletes only caches',()=>{
   const src=fs.readFileSync('interface/sw.js','utf8');
-  assert.match(src,/const Cache = "preceptoros-armazon-v198";/);assert.match(src,/"\/install\.js\?v=2"/);
+  assert.match(src,/const Cache = "preceptoros-armazon-v199";/);assert.match(src,/"\/install\.js\?v=2"/);
   assert.match(src,/type: "shell-version", cache: Cache/);
   assert(!/indexedDB|localStorage|clients\.matchAll\(\)\.then\([^)]*navigate/.test(src),'worker must not touch browser storage or force navigation');
 });

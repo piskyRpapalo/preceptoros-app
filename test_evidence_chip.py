@@ -18,16 +18,16 @@ def leer(ruta):
 class Cableado(unittest.TestCase):
     def test_la_pagina_carga_el_componente_antes_del_hilo(self):
         html = leer("interface/app.html")
-        self.assertIn('<script src="/evidence_chip.js?v=2"></script>', html)
-        self.assertLess(html.index("/evidence_chip.js?v=2"), html.index("/conversacion.js?v=6"))
+        self.assertIn('<script src="/evidence_chip.js?v=3"></script>', html)
+        self.assertLess(html.index("/evidence_chip.js?v=3"), html.index("/conversacion.js?v=6"))
 
     def test_el_servidor_sirve_el_componente(self):
         self.assertIn('"/evidence_chip.js": ("evidence_chip.js"', leer("bin/preceptoros-pwa"))
 
     def test_el_service_worker_lo_instala_y_sube_la_cache(self):
         sw = leer("interface/sw.js")
-        self.assertIn('"/evidence_chip.js?v=2"', sw)
-        self.assertIn("preceptoros-armazon-v198", sw)
+        self.assertIn('"/evidence_chip.js?v=3"', sw)
+        self.assertIn("preceptoros-armazon-v199", sw)
         self.assertIn("2026-11-13 (evidence chip, visual-coherence commission)", sw)
 
     def test_el_pie_del_hilo_usa_el_componente_y_no_el_texto_crudo(self):
