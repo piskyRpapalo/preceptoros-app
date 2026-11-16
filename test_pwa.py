@@ -11,10 +11,12 @@ seria comodo que pasara.
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import os
 import pathlib
 import re
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -1141,11 +1143,11 @@ class PwaNodeBuildingBoundary(unittest.TestCase):
     def test_sensitive_node_routes_require_loopback_and_same_origin(self):
         handler = PWA.PWA.__new__(PWA.PWA)
         handler.client_address = ("127.0.0.1", 1234)
-        handler.headers = {"Origin": "https://pwa.example", "Host": "pwa.example"}
+        handler.headers = {"Origin": "http://127.0.0.1:8740", "Host": "127.0.0.1:8740"}
         self.assertTrue(handler._nodo_local_autorizado())
-        handler.headers = {"Origin": "https://evil.example", "Host": "pwa.example"}
+        handler.headers = {"Origin": "http://evil.example:8740", "Host": "evil.example:8740"}
         self.assertFalse(handler._nodo_local_autorizado())
-        handler.headers = {"Origin": "https://pwa.example", "Host": "pwa.example"}
+        handler.headers = {"Origin": "http://127.0.0.1:8740", "Host": "127.0.0.1:8740"}
         handler.client_address = ("192.0.2.9", 1234)
         self.assertFalse(handler._nodo_local_autorizado())
 
@@ -1760,3 +1762,131 @@ class TestVigiaEnHitl(unittest.TestCase):
 
     def test_sin_registro_la_fila_trae_vigia_null(self):
         self.assertIsNone(self._filas(None)[0]["vigia"])
+
+
+class TestEstadoMemoryReadonly(unittest.TestCase):
+    def _read(self, db_path):
+        handler = Fingida(str(db_path))
+        PWA.PWA._estado(handler)
+        return handler.cuerpo
+
+    @staticmethod
+    def _snapshot(root):
+        return {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in pathlib.Path(root).iterdir() if p.is_file()}
+
+    def test_missing_memory_file_is_not_created_by_status_read(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = pathlib.Path(root) / "memory.db"
+            result = self._read(db)
+            self.assertFalse(db.exists())
+            self.assertEqual(result["memoria_estado"], "MISSING")
+            self.assertEqual(result["causa"], "memory_db_unavailable_file_missing")
+
+    def test_valid_sqlite_without_memory_schema_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = pathlib.Path(root) / "memory.db"
+            with sqlite3.connect(db):
+                pass
+            before = self._snapshot(root)
+            result = self._read(db)
+            self.assertEqual(self._snapshot(root), before)
+            self.assertEqual(result["memoria_estado"], "UNINITIALIZED")
+            self.assertEqual(result["causa"], "memory_schema_absent")
+
+    def test_foreign_database_is_unknown_and_never_migrated(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = pathlib.Path(root) / "memory.db"
+            with sqlite3.connect(db) as con:
+                con.execute("CREATE TABLE private_notes (value TEXT)")
+                con.execute("INSERT INTO private_notes VALUES ('keep')")
+            before = self._snapshot(root)
+            result = self._read(db)
+            self.assertEqual(self._snapshot(root), before)
+            with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as con:
+                tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            self.assertEqual(tables, {"private_notes"})
+            self.assertEqual(result["memoria_estado"], "UNKNOWN")
+            self.assertEqual(result["causa"], "memory_schema_unrecognized")
+
+    def test_corrupt_database_is_unchanged_and_reports_corrupt(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = pathlib.Path(root) / "memory.db"
+            db.write_bytes(b"unrecognized private bytes\x00\xff")
+            before = self._snapshot(root)
+            result = self._read(db)
+            self.assertEqual(self._snapshot(root), before)
+            self.assertEqual(result["memoria_estado"], "CORRUPT")
+            self.assertEqual(result["causa"], "memory_database_invalid")
+
+    def test_ready_memory_is_readable_without_schema_changes(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = pathlib.Path(root) / "memory.db"
+            memory.crear(str(db))
+            before = self._snapshot(root)
+            result = self._read(db)
+            self.assertEqual(result["memoria_estado"], "READY")
+            self.assertEqual(result["estado"], "ok")
+            self.assertEqual(self._snapshot(root), before)
+
+    def test_nonempty_wal_is_declared_unknown_without_side_effects(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = pathlib.Path(root) / "memory.db"
+            memory.crear(str(db))
+            wal = pathlib.Path(str(db) + "-wal")
+            wal.write_bytes(b"pending wal evidence")
+            before = self._snapshot(root)
+            result = self._read(db)
+            self.assertEqual(result["memoria_estado"], "UNKNOWN")
+            self.assertEqual(result["causa"], "memory_wal_snapshot_unavailable")
+            self.assertEqual(self._snapshot(root), before)
+
+    def test_wal_created_during_read_invalidates_snapshot(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = pathlib.Path(root) / "memory.db"
+            memory.crear(str(db))
+            before = self._snapshot(root)
+            connect = sqlite3.connect
+
+            def create_wal_then_connect(*args, **kwargs):
+                pathlib.Path(str(db) + "-wal").write_bytes(b"concurrent writer")
+                return connect(*args, **kwargs)
+
+            with mock.patch.object(PWA.sqlite3, "connect", side_effect=create_wal_then_connect):
+                result = self._read(db)
+            self.assertEqual(result["memoria_estado"], "UNKNOWN")
+            self.assertEqual(result["causa"], "memory_changed_during_read")
+            self.assertEqual(self._snapshot(root)["memory.db"], before["memory.db"])
+            self.assertEqual((pathlib.Path(str(db) + "-wal")).read_bytes(), b"concurrent writer")
+
+    def test_legacy_memory_without_optional_profile_is_still_readable(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = pathlib.Path(root) / "memory.db"
+            with sqlite3.connect(db) as con:
+                con.executescript(memory.ESQUEMA)
+            before = self._snapshot(root)
+            result = self._read(db)
+            self.assertEqual(result["memoria_estado"], "READY")
+            self.assertEqual(result["estado"], "ok")
+            self.assertEqual(self._snapshot(root), before)
+
+
+class TestNodoLocalOriginRebinding(unittest.TestCase):
+    @staticmethod
+    def _allowed(origin, host):
+        handler = PWA.PWA.__new__(PWA.PWA)
+        handler.client_address = ("127.0.0.1", 4567)
+        handler.headers = {"Origin": origin, "Host": host}
+        return handler._nodo_local_autorizado()
+
+    def test_dns_rebinding_hostname_is_not_a_local_origin(self):
+        self.assertFalse(self._allowed("http://attacker.example:8740", "attacker.example:8740"))
+
+    def test_https_origin_is_not_the_local_http_app(self):
+        self.assertFalse(self._allowed("https://127.0.0.1:8740", "127.0.0.1:8740"))
+
+    def test_wrong_port_is_rejected_even_when_host_and_origin_match(self):
+        self.assertFalse(self._allowed("http://localhost:8741", "localhost:8741"))
+
+    def test_loopback_http_origin_on_app_port_remains_allowed(self):
+        self.assertTrue(self._allowed("http://localhost:8740", "localhost:8740"))
