@@ -495,6 +495,38 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
   .evidence-chip { forced-color-adjust: none; color: CanvasText; background: Canvas; border-color: CanvasText; }
 }
 
+/* Participant state (evidence_chip.js PreceptorEstado): one grammar for Talk, Lab, Notebook and Command.
+ * Glyph + word + tone + border line (solid, double, dashed, dotted); the word is always on screen. Only WORKING
+ * moves (a slow breath of the glyph), and nothing moves under prefers-reduced-motion. */
+.part-estado { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .5rem .1rem .35rem; min-height: 1.5rem;
+  border: 2px solid currentColor; border-radius: 999px; font-weight: 700; font-size: .7rem; letter-spacing: .03em;
+  line-height: 1.2; white-space: nowrap; vertical-align: middle; }
+.part-estado[data-line="double"] { border-style: double; border-width: 3px; }
+.part-estado[data-line="dashed"] { border-style: dashed; }
+.part-estado[data-line="dotted"] { border-style: dotted; }
+.part-estado .estado-glyph { position: relative; display: inline-grid; place-items: center; width: 1.05rem; height: 1.05rem; font-size: .85rem; line-height: 1; }
+.part-estado .estado-mark { position: absolute; inset: -.15rem; width: calc(100% + .3rem); height: calc(100% + .3rem); opacity: .35; }
+.part-estado .estado-mark path { fill: none; stroke: currentColor; stroke-width: .12; }
+.part-estado.estado-ok { color: var(--ok); background: var(--ok-soft); }
+.part-estado.estado-warn { color: var(--warn); background: var(--warn-soft); }
+.part-estado.estado-stop { color: var(--stop); background: var(--stop-soft); }
+.part-estado.estado-quiet { color: var(--ink-soft); background: transparent; }
+.part-estado.estado-working .estado-glyph { animation: part-estado-breath 2.4s ease-in-out infinite; }
+@keyframes part-estado-breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(.82); } }
+@media (prefers-reduced-motion: reduce) { .part-estado .estado-glyph { animation: none !important; } }
+@media (forced-colors: active) {
+  .part-estado { forced-color-adjust: none; color: CanvasText; background: Canvas; border-color: CanvasText; }
+}
+/* Talk: who is here, each preceptor with its state. Wraps on a phone; never scrolls sideways. */
+.conv-estados { list-style: none; margin: .35rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem .5rem; }
+.conv-estados li { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; }
+.conv-estados .conv-estado-nombre { font-weight: 600; }
+/* Command: what needs a human decision, each with a way to its evidence. */
+.mando-decide { margin: .5rem 0; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: .5rem; }
+.mando-decide ul { list-style: none; margin: .35rem 0 0; padding: 0; display: grid; gap: .35rem; }
+.mando-decide li { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.mando-decide button.ir { min-height: 44px; }
+
 /* Acho state expression (acho_motion.js express): line pattern + form + tone; never colour alone. */
 .acho-estado { width: 1.6rem; height: 1.6rem; flex: none; display: inline-grid; place-items: center; }
 .acho-estado svg { width: 100%; height: 100%; }
@@ -571,3 +603,23 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 .fleet-facts .fact-off::marker { content: "─ "; }
 .fleet-facts .fact-nodata::marker { content: "┄ "; }
 @media (forced-colors: active) { .fleet-side { stroke: CanvasText; } .fleet-face { fill: Canvas; } .fleet-label { fill: CanvasText; } }
+/* Plans in the panels (plan_panels.js): the plan's stages in Talk, per-task decisions in Command, cards elsewhere.
+   A SYNTHETIC drawing wears a dashed frame and a banner. Buttons keep the 44 px target. */
+.talk-plan { margin: .4rem 0; padding: .5rem .7rem; border: 1px solid var(--line); border-radius: var(--radio); background: var(--paper); }
+.talk-plan .plan-line, .talk-plan .plan-next-title { margin: 0 0 .3rem; font-weight: 600; }
+.talk-plan .plan-next { margin: 0 0 .3rem; padding-left: 1.2rem; }
+.talk-plan .plan-grounds, .talk-plan .plan-next-note { color: var(--ink-soft); font-size: .9em; }
+.plan-escribir textarea { box-sizing: border-box; width: 100%; min-height: 8rem; font: inherit; padding: .5rem; resize: vertical;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: var(--radio); }
+.plan-guardar, .plan-decidir button { min-height: 44px; min-width: 44px; padding: 0 .9rem; font: inherit; cursor: pointer;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; }
+.plan-decidir button:disabled { cursor: not-allowed; opacity: .6; }
+.plan-decidir { list-style: none; margin: .3rem 0 .8rem; padding: 0; display: grid; gap: .4rem; }
+.plan-decidir li { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.plan-decidir li > span:not(.part-estado) { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; order: -1; }
+.plan-decidir li > .part-estado { order: -2; }
+[data-synthetic="true"] { outline: 2px dashed var(--ink-soft); outline-offset: 3px; }
+.plan-synthetic { margin: 0 0 .4rem; font-weight: 600; color: var(--ink-soft); }
+.plan-agentes ul { margin: .2rem 0; padding-left: 1.2rem; }
+.plan-agentes li, .plan-task .notebook-fact { overflow-wrap: anywhere; }
+@media (forced-colors: active) { [data-synthetic="true"] { outline-color: CanvasText; } }

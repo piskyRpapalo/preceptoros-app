@@ -18,16 +18,16 @@ def leer(ruta):
 class Cableado(unittest.TestCase):
     def test_la_pagina_carga_el_componente_antes_del_hilo(self):
         html = leer("interface/app.html")
-        self.assertIn('<script src="/evidence_chip.js?v=1"></script>', html)
-        self.assertLess(html.index("/evidence_chip.js?v=1"), html.index("/conversacion.js?v=5"))
+        self.assertIn('<script src="/evidence_chip.js?v=3"></script>', html)
+        self.assertLess(html.index("/evidence_chip.js?v=3"), html.index("/conversacion.js?v=6"))
 
     def test_el_servidor_sirve_el_componente(self):
         self.assertIn('"/evidence_chip.js": ("evidence_chip.js"', leer("bin/preceptoros-pwa"))
 
     def test_el_service_worker_lo_instala_y_sube_la_cache(self):
         sw = leer("interface/sw.js")
-        self.assertIn('"/evidence_chip.js?v=1"', sw)
-        self.assertIn("preceptoros-armazon-v197", sw)
+        self.assertIn('"/evidence_chip.js?v=3"', sw)
+        self.assertIn("preceptoros-armazon-v199", sw)
         self.assertIn("2026-11-13 (evidence chip, visual-coherence commission)", sw)
 
     def test_el_pie_del_hilo_usa_el_componente_y_no_el_texto_crudo(self):
@@ -58,6 +58,38 @@ class Tabla(unittest.TestCase):
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn('"ok":true', r.stdout)
+
+
+
+class EstadoCompartido(unittest.TestCase):
+    """PreceptorEstado: one participant-state grammar for Talk, Lab, Notebook and Command (tests/estado_cases.cjs)."""
+
+    def test_los_casos_adversariales_en_node(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("NO_DATA · sin node no se ejecutan los casos del estado. Remedio: instalar Node")
+        r = subprocess.run([node, "--test", str(ROOT / "tests" / "estado_cases.cjs")], cwd=ROOT,
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertRegex(r.stdout, r"(?m)^ℹ pass ([1-9]\d*)$")
+        self.assertRegex(r.stdout, r"(?m)^ℹ fail 0$")
+
+    def test_las_cuatro_superficies_usan_la_misma_gramatica(self):
+        # Talk reads only its thread: its row of states is painted by the Notebook (talkStates), never fetched by Talk.
+        self.assertIn("PreceptorNotebook.talkStates(d.destinations)", leer("interface/conversacion.js"))
+        self.assertNotIn("/api/notebook", leer("interface/conversacion.js"))
+        self.assertIn("PreceptorEstado", leer("interface/notebook.js"))
+        self.assertIn("PreceptorEstado", leer("interface/app.js"))
+        for superficie in ("conversacion.js", "notebook.js", "app.js"):
+            texto = leer("interface/" + superficie)
+            with self.subTest(superficie=superficie):
+                self.assertNotRegex(texto, r"setInterval\([^)]*estado|estado[^\n]*Math\.random", "no timer or random state")
+
+    def test_el_css_respeta_movimiento_reducido_y_colores_forzados(self):
+        css = leer("interface/app.css")
+        self.assertIn("@media (prefers-reduced-motion: reduce) { .part-estado .estado-glyph { animation: none !important; } }", css)
+        self.assertRegex(css, r"forced-colors: active\) \{\n  \.part-estado \{")
+        self.assertEqual(css.count("animation: part-estado-breath"), 1, "only WORKING moves")
 
 
 if __name__ == "__main__":
