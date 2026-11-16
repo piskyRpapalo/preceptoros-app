@@ -73,6 +73,7 @@ import voz as _voz                                        # noqa: E402
 import consola as _consola                                  # noqa: E402
 import decisor as _decisor                                  # noqa: E402
 import canales as _canales                                  # noqa: E402
+import plan_store as _plan_store                            # noqa: E402
 import memory_lookup as _memory_lookup
 import lab as _lab                                          # noqa: E402
 import nodo_export as _nodo_export                         # noqa: E402
@@ -398,7 +399,7 @@ class PWA(BaseHTTPRequestHandler):
             self.send_header("ETag", etag)
             self.send_header("Cache-Control", "private, max-age=60, must-revalidate")
         self.send_header("Content-Length", str(len(crudo)))
-        if (ruta.startswith("/api/nodo/") or
+        if (ruta.startswith("/api/nodo/") or ruta.startswith("/api/plan") or
                 ruta.startswith("/api/hexelion/") or ruta in ("/api/bandeja", "/api/energia", "/api/notebook") or ruta == "/api/conversacion"
                 or ruta == "/api/federado"):
             self.send_header("Cache-Control", "no-store")
@@ -484,6 +485,20 @@ class PWA(BaseHTTPRequestHandler):
     # --- estáticos ---------------------------------------------------------
     def do_GET(self):
         ruta = self.path.split("?")[0]
+        if ruta == "/api/plan/flow":
+            if not self._plan_local_autorizado():
+                return self._json(403, {"state": "NO_DATA", "cause": "local_origin_required"})
+            return self._plan_flow()
+        match = re.fullmatch(r"/api/plan/([0-9a-f]{64})", ruta)
+        if match:
+            if not self._plan_local_autorizado():
+                return self._json(403, {"state": "NO_DATA", "cause": "local_origin_required"})
+            try:
+                doc, size = _plan_store.get(_casa.raiz(), match.group(1))
+            except _plan_store.PlanError as exc:
+                return self._json(404, {"state": "NO_DATA", "cause": exc.cause})
+            return self._json(200, {"schema": doc["schema"], "plan_sha256": match.group(1),
+                                    "bytes": size, "title": doc["title"], "text": doc["text"]})
         if ruta in ("/api/energia", "/api/hexelion/energia"):
             # Same metal, same snapshot for machine readers and the mini-HTML.
             # Reject LAN and browser cross-site access, including DNS rebinding.
@@ -653,6 +668,8 @@ class PWA(BaseHTTPRequestHandler):
 
     def _despachar_post(self):
         ruta = self.path.split("?")[0]
+        if ruta == "/api/plan":
+            return self._plan_store_post()
         if ruta == "/api/voz/lectura":
             return self._lectura_nativa()
         if ruta in ("/api/nodo/identity", "/api/nodo/edificio"):
@@ -800,6 +817,74 @@ class PWA(BaseHTTPRequestHandler):
                     and parsed.netloc.casefold() == host.casefold())
         except ValueError:
             return False
+
+    def _plan_local_autorizado(self):
+        """Private plan reads/writes stay on this loopback APP origin."""
+        if not self._es_loopback(self.client_address[0]):
+            return False
+        port = str(self.server.server_port)
+        if self.headers.get("Host", "").casefold() not in {
+                ("localhost:" + port).casefold(), ("127.0.0.1:" + port).casefold(),
+                ("[::1]:" + port).casefold()}:
+            return False
+        origin = self.headers.get("Origin")
+        site = self.headers.get("Sec-Fetch-Site")
+        if origin is not None:
+            return self._nodo_local_autorizado()
+        return site in ("same-origin", "none")
+
+    def _plan_store_post(self):
+        if not self._plan_local_autorizado():
+            self.close_connection = True
+            return self._json(403, {"state": "NO_DATA", "cause": "local_origin_required"})
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+            return self._json(415, {"state": "NO_DATA", "cause": "json_required"})
+        try:
+            size = int(self.headers.get("Content-Length") or 0)
+            if not 0 < size <= _plan_store.MAX_PLAN_BYTES:
+                raise _plan_store.PlanError("plan_body_out_of_range")
+            raw = self.rfile.read(size)
+            if len(raw) != size:
+                raise _plan_store.PlanError("invalid_json")
+            result = _plan_store.put(_casa.raiz(), raw)
+            # The append-only conversation receives a compact reference only.
+            ref = "PLAN_REF %s %d" % (result["plan_sha256"], result["bytes"])
+            channel = _canales.lee("orquesta", base=_casa.raiz(), tope=200)
+            already_referenced = any(
+                m.get("voz") == "superbot-plan-store" and m.get("rol") == "system"
+                and m.get("texto") == ref for m in channel.get("mensajes", []))
+            if not already_referenced:
+                _canales.di("orquesta", "superbot-plan-store", ref, sello="DECLARADO",
+                            rol="system", maquina={"schema": "preceptoros.plan-ref/1"}, base=_casa.raiz())
+        except (ValueError, _plan_store.PlanError) as exc:
+            cause = getattr(exc, "cause", "invalid_plan_request")
+            return self._json(422, {"state": "NO_DATA", "cause": cause})
+        except Exception:
+            # No trace or private plan content is exposed; the immutable blob may be retried.
+            return self._json(503, {"state": "NO_DATA", "cause": "plan_reference_append_failed"})
+        return self._json(201 if result["created"] else 200,
+                          {"schema": "preceptoros.plan-ref/1", **result,
+                           "stored": True, "authority": "none"})
+
+    def _plan_flow(self):
+        channel = _canales.lee("orquesta", base=_casa.raiz(), tope=200)
+        if channel.get("estado") != "MEDIDO":
+            return self._json(200, {"state": "NO_DATA", "cause": channel.get("causa", "plan_reference_unavailable")})
+        ref = _plan_store.flow_reference(channel.get("mensajes", []))
+        if not ref:
+            return self._json(200, {"state": "NO_DATA", "cause": "plan_not_stored"})
+        try:
+            doc, size = _plan_store.get(_casa.raiz(), ref["sha"])
+        except _plan_store.PlanError as exc:
+            return self._json(200, {"state": "NO_DATA", "cause": exc.cause})
+        if size != ref["bytes"]:
+            return self._json(200, {"state": "NO_DATA", "cause": "plan_reference_size_mismatch"})
+        return self._json(200, {"schema": "preceptoros.plan-flow/1", "synthetic": False,
+                                "plan": {"plan_sha256": ref["sha"], "bytes": size,
+                                         "title": doc["title"], "written_at": ref["written_at"]},
+                                "proposal": {"plan_sha256": ref["sha"], "orchestrator": "NO_DATA",
+                                             "cause": "proposal_not_built", "tasks": []},
+                                "authority": "none"})
 
     def _nodo_door1_preview(self, datos):
         """Loopback-only dry-run adapter; never reaches the public receiver."""
