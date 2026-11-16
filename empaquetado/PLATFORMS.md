@@ -1,6 +1,10 @@
 # PreceptorOS · platforms (APP-MESA-06)
 
-One APP, one sovereign identity, one OpenWorld building per person. The APP is the **console**. It becomes an
+One APP, one sovereign identity, one OpenWorld building per person. **Two configurations of the same APP:** the
+**base product** (public download) talks to an orchestrator the user chooses and does not depend on Hexelion; the
+**private APP** (the rack) is the project's own configuration, where Hexelion and the project's AIs coordinate.
+Choosing the orchestrator in the APP is NO_DATA today (the model door is fixed to the private model; Superbot
+contract #310, stage S0). The APP is the **console**. It becomes an
 **execution node** too when the device has the resources. The model may run on another, authorized computer.
 Nothing here adds a second APP, router, building system or Harness. Every cell names its evidence. A cell with
 no evidence is `NO_DATA` with its cause.
@@ -15,7 +19,7 @@ running), **DECLARED** (written, never run), **NO_DATA** (no evidence).
 | Download integrity | APK signer VERIFIED (see Android) | install.sh = GitHub release digest, PASS ×2 | install.ps1 digest published; run NO_DATA | — |
 | Install | OpenWorld APK: signed, assetlinks match (VERIFIED). APP: PWA/WebAPK of a node (OBSERVED on one phone via tunnel) | PASS ×2 (Ubuntu 24.04 container, no root) | DECLARED · NO_DATA pending external test | PWA install where the browser offers it |
 | Launcher / app window | WebAPK icon (OBSERVED) | .desktop validates + launcher starts the app: PASS ×2; opening a window (xdg-open, needs a display) NO_DATA | install.ps1 creates no shortcut: NO_DATA | standalone window when installed |
-| Console: talk to Hexelion | through a node's door over a tunnel (OBSERVED) | station door answers honestly with no model: `NO_DATA:memory_index_unavailable` PASS ×2 | NO_DATA | — |
+| Console: talk to the orchestrator (private APP: Hexelion) | through a node's door over a tunnel (OBSERVED) | station door answers honestly with no model: `NO_DATA:memory_index_unavailable` PASS ×2 | NO_DATA | — |
 | Console: shared thread (rack CLIs) | via node | DELIVERED_TO_THREAD + read back: PASS ×2 | NO_DATA | — |
 | Model discovery | via node | `/api/cerebro` READ: PASS ×2 | NO_DATA | — |
 | Local inference | NO_DATA (no local model runtime on Android) | NO_DATA in the container (no model); OBSERVED on the rack node (see Models) | NO_DATA | never |
@@ -35,7 +39,7 @@ Audited 2026-11-16 with apksigner and aapt2 (build-tools 36.1.0):
 - Signed v1+v2+v3, one signer `CN=PreceptorOS, O=PreceptorOS`, RSA 2048. Cert SHA-256 `16:76:1A:1E:…:4C:01:0F`. It equals the fingerprint in `https://preceptoros.org/.well-known/assetlinks.json` (VERIFIED).
 - It is a **Trusted Web Activity**. Launch URL `https://preceptoros.org/openworld/`, host `preceptoros.org`. It holds no permissions beyond the TWA receiver one, no model and no local server.
 
-**It is the OpenWorld wrapper, not the Hexelion APP.** The APP on a phone today is a Chrome WebAPK of a node's loopback origin, reached through a tunnel (how TANK 3 runs it). That WebAPK has a Chrome-minted package, distinct from `org.preceptoros.app`, so neither replaces the other.
+**It is the OpenWorld wrapper, not the PreceptorOS APP.** The APP on a phone today is a Chrome WebAPK of a node's loopback origin, reached through a tunnel (how TANK 3 runs it). That WebAPK has a Chrome-minted package, distinct from `org.preceptoros.app`, so neither replaces the other.
 
 **Decision for the Sovereign:** shipping the APP as an APK under `org.preceptoros.app` would replace the OpenWorld wrapper on every phone that has it. A new package id means a new install, not an update. Until decided, the website's Android choice offers the OpenWorld APK (as what it is) plus "use your node from the phone's browser".
 
