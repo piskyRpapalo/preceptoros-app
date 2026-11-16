@@ -155,8 +155,11 @@
 // did (cabin_brain.js v1, conversacion.js v5, app.css v24). Cache v195.
 // 2026-11-15 (fleet wiring): the merge of #304 into main dropped the Fleet's server route, its cache entry, its CSS
 // and its runner; restored (fleet_map.js v1 cached again, app.css v25). Cache v196.
-const Cache = "preceptoros-armazon-v196";
-const Armazon = ["/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=25", "/app.js?v=39", "/notebook.js?v=19", "/acho_sonido.js?v=3", "/conversacion.js?v=5", "/cabin_brain.js?v=1", "/fleet_map.js?v=1", "/evidence_chip.js?v=1", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/zonas.js?v=1",
+// 2026-11-16 (memory from the APP): Settings offers «Your private memory»: the person creates it with a tick and a
+// typed phrase, never twice, never over an existing file (memory_onboarding.js v1, app.css v28). Cache v200: v197-v199
+// are taken by drafts #307, #308 and #312, so this number cannot collide with any of them.
+const Cache = "preceptoros-armazon-v200";
+const Armazon = ["/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=28", "/app.js?v=39", "/notebook.js?v=19", "/acho_sonido.js?v=3", "/conversacion.js?v=5", "/cabin_brain.js?v=1", "/fleet_map.js?v=1", "/memory_onboarding.js?v=1", "/evidence_chip.js?v=1", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/zonas.js?v=1",
                  "/transicion.js?v=2", "/sting.js?v=1", "/manifest.json",
                  // La brújula conserva su módulo y SVG. La hoja ornamental
                  // quedó en legacy; la estructura mínima no carga ese CSS.
