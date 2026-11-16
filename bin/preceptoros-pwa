@@ -39,6 +39,8 @@ import re
 import secrets
 import datetime
 import sqlite3
+from contextlib import closing
+from pathlib import Path
 import subprocess
 import sys
 import threading
@@ -92,6 +94,84 @@ import conversacion_comun as _conversacion
 import turnos_hexelion as _turnos
 import tareas_hexelion as _tareas
 import indice_rack as _indice_rack
+def _lectura_estado_memoria(ruta):
+    """Read memory status without creating, migrating, or changing its file."""
+    path = Path(ruta).absolute()
+    if not path.exists():
+        return {"memoria_estado": "MISSING", "causa": "memory_file_missing"}
+    if not path.is_file():
+        return {"memoria_estado": "UNKNOWN", "causa": "memory_path_not_regular_file"}
+    wal = Path(str(path) + "-wal")
+
+    def snapshot_identity():
+        info = path.stat()
+        try:
+            sidecar = wal.stat()
+            wal_state = (sidecar.st_dev, sidecar.st_ino, sidecar.st_size,
+                         sidecar.st_mtime_ns, sidecar.st_ctime_ns)
+        except FileNotFoundError:
+            wal_state = None
+        return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
+                info.st_ctime_ns, wal_state)
+
+    try:
+        before = snapshot_identity()
+        if before[-1] is not None and before[-1][2]:
+            return {"memoria_estado": "UNKNOWN", "causa": "memory_wal_snapshot_unavailable"}
+    except OSError:
+        return {"memoria_estado": "UNKNOWN", "causa": "memory_read_unavailable"}
+    # `immutable=1` prevents SQLite from creating -wal/-shm sidecars while
+    # inspecting a file. A non-empty WAL above is reported as NO_DATA rather
+    # than ignored, so the endpoint never serves a stale snapshot as current.
+    uri = path.as_uri() + "?mode=ro&immutable=1"
+    result = None
+    try:
+        with closing(sqlite3.connect(uri, uri=True, timeout=1.0)) as db:
+            db.execute("PRAGMA query_only=ON")
+            check = db.execute("PRAGMA quick_check").fetchone()
+            if not check or check[0] != "ok":
+                result = {"memoria_estado": "CORRUPT", "causa": "memory_database_invalid"}
+            else:
+                tables = {row[0] for row in db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+                if not tables:
+                    result = {"memoria_estado": "UNINITIALIZED", "causa": "memory_schema_absent"}
+                elif "engrams" not in tables:
+                    result = {"memoria_estado": "UNKNOWN", "causa": "memory_schema_unrecognized"}
+                else:
+                    engram_columns = {row[1] for row in db.execute("PRAGMA table_info(engrams)")}
+                    if not {"id", "what", "why", "where_ref", "learned", "origin", "status"} <= engram_columns:
+                        result = {"memoria_estado": "UNKNOWN", "causa": "memory_schema_unrecognized"}
+                    else:
+                        profile_columns = ({row[1] for row in db.execute("PRAGMA table_info(profile)")}
+                                           if "profile" in tables else None)
+                        turn_columns = ({row[1] for row in db.execute("PRAGMA table_info(turnos)")}
+                                         if "turnos" in tables else None)
+                        if (profile_columns is not None and not {"key", "value"} <= profile_columns
+                                or turn_columns is not None and not {"id", "consent", "correccion"} <= turn_columns):
+                            result = {"memoria_estado": "UNKNOWN", "causa": "memory_schema_unrecognized"}
+                        else:
+                            profile = M.leer_perfil(db)
+                            counts = (db.execute("SELECT count(*), coalesce(sum(consent), 0), count(correccion) FROM turnos").fetchone()
+                                      if turn_columns is not None else (0, 0, 0))
+                            result = {"memoria_estado": "READY", "perfil": profile,
+                                      "turnos": {"turnos": counts[0], "consentidos": counts[1],
+                                                 "corregidos": counts[2]}}
+    except sqlite3.DatabaseError as exc:
+        if getattr(exc, "sqlite_errorcode", None) == getattr(sqlite3, "SQLITE_CANTOPEN", -1):
+            result = {"memoria_estado": "UNKNOWN", "causa": "memory_read_unavailable"}
+        else:
+            result = {"memoria_estado": "CORRUPT", "causa": "memory_database_invalid"}
+    except OSError:
+        result = {"memoria_estado": "UNKNOWN", "causa": "memory_read_unavailable"}
+    try:
+        if snapshot_identity() != before:
+            return {"memoria_estado": "UNKNOWN", "causa": "memory_changed_during_read"}
+    except OSError:
+        return {"memoria_estado": "UNKNOWN", "causa": "memory_changed_during_read"}
+    return result
+
+
 AGENT_VOICES = frozenset({"claude", "codex", "gemini", "mistral"})                                     # noqa: E402
 import creacion_import as _creacion_import                   # noqa: E402
 import creacion_publicacion as _creacion_publicacion         # noqa: E402
@@ -797,7 +877,7 @@ class PWA(BaseHTTPRequestHandler):
         self.wfile.write(audio)
 
     def _nodo_local_autorizado(self):
-        """Protect local identity/credential actions from remote and cross-site calls."""
+        """Allow only the APP's own loopback HTTP origin for local node actions."""
         if not self._es_loopback(self.client_address[0]):
             return False
         origin = self.headers.get("Origin")
@@ -805,12 +885,23 @@ class PWA(BaseHTTPRequestHandler):
         if not origin or not host:
             return False
         try:
-            from urllib.parse import urlsplit
-            parsed = urlsplit(origin)
-            return (parsed.scheme in ("http", "https") and bool(parsed.hostname)
-                    and not parsed.username and not parsed.password
-                    and not parsed.path and not parsed.query and not parsed.fragment
-                    and parsed.netloc.casefold() == host.casefold())
+            parsed_origin = urllib.parse.urlsplit(origin)
+            parsed_host = urllib.parse.urlsplit("//" + host)
+            allowed_hosts = {"localhost", "127.0.0.1", "::1"}
+            server = getattr(self, "server", None)
+            expected_port = getattr(server, "server_port", PUERTO)
+            valid_origin = (parsed_origin.scheme == "http" and parsed_origin.hostname in allowed_hosts
+                            and parsed_origin.port == expected_port
+                            and not parsed_origin.username and not parsed_origin.password
+                            and parsed_origin.path == "" and not parsed_origin.query
+                            and not parsed_origin.fragment)
+            valid_host = (parsed_host.hostname in allowed_hosts and parsed_host.port == expected_port
+                          and not parsed_host.username and not parsed_host.password
+                          and parsed_host.path == "" and not parsed_host.query
+                          and not parsed_host.fragment)
+            return (valid_origin and valid_host
+                    and parsed_origin.hostname == parsed_host.hostname
+                    and parsed_origin.port == parsed_host.port)
         except ValueError:
             return False
 
@@ -1931,15 +2022,17 @@ class PWA(BaseHTTPRequestHandler):
         return self._json(200, paquete)
 
     def _estado(self):
-        # A home without its memory file is a reading with a cause, not a dropped connection: the page must not
-        # say "cannot reach the server" while the server answers every other panel (visual coherence audit).
-        try:
-            with M.abrir(self.server.ruta_db) as c:
-                perfil = M.leer_perfil(c)
-                cuenta = C.recuento(c)
-        except Exception as e:  # sqlite3.OperationalError on a fresh or unreadable home
-            return self._json(200, {"estado": "NO_DATA", "causa": "memory_db_unavailable_" + type(e).__name__,
-                                    "turnos": None})
+        lectura = _lectura_estado_memoria(self.server.ruta_db)
+        if lectura["memoria_estado"] != "READY":
+            causa = lectura["causa"]
+            if lectura["memoria_estado"] == "MISSING":
+                # Keep the established cause namespace while exposing the
+                # precise state separately as `memoria_estado`.
+                causa = "memory_db_unavailable_file_missing"
+            return self._json(200, {"estado": "NO_DATA", "causa": causa,
+                                    "memoria_estado": lectura["memoria_estado"], "turnos": None})
+        perfil = lectura["perfil"]
+        cuenta = lectura["turnos"]
         motor = _charla.motor_disponible()
         ruta = self.server.modelo
         hay = bool(ruta and os.path.isfile(ruta))
@@ -1983,6 +2076,7 @@ class PWA(BaseHTTPRequestHandler):
         }
         return self._json(200, {
             "estado": "ok",
+            "memoria_estado": "READY",
             "idioma": perfil.get("language", "es"),
             "motor": bool(motor and hay),
             "cerebro": cerebro,
