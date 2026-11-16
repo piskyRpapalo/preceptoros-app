@@ -130,6 +130,8 @@
     "/api/notebook",
     "/api/orquestador",
     "/api/perfil",
+    "/api/plan",
+    "/api/plan/flow",
     "/api/proyectos",
     "/api/soberano",
     "/api/team",
