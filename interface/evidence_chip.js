@@ -70,6 +70,8 @@
     working: { word: "WORKING", glyph: "◉", tone: "ok", line: "double", acho: "answer", says: "a run declared in progress, with its receipt, seconds ago" },
     waiting: { word: "WAITING", glyph: "◌", tone: "quiet", line: "dotted", acho: "waiting", says: "claimed or asked, and no result is recorded yet" },
     blocked: { word: "BLOCKED", glyph: "⊘", tone: "stop", line: "dashed", acho: "refused", says: "it stopped and cannot continue on its own" },
+    proposed: { word: "PROPOSED", glyph: "◇", tone: "quiet", line: "dashed", acho: "proposed", says: "suggested by the orchestrator; nobody authorized it" },
+    authorized: { word: "AUTHORIZED", glyph: "◈", tone: "ok", line: "solid", acho: "answer", says: "you authorized this task; it has not been dispatched yet" },
     hitl: { word: "NEEDS YOU", glyph: "◆", tone: "warn", line: "solid", acho: "needs_you", says: "waiting for your signature or decision" },
     done: { word: "DONE", glyph: "■", tone: "ok", line: "double", acho: "verified", says: "a result is recorded" },
     refused: { word: "REFUSED", glyph: "✕", tone: "stop", line: "solid", acho: "refused", says: "asked for, and the rule said no" },
@@ -82,7 +84,7 @@
   var turnWords = { ANSWERED: ["done", "OBSERVED"], ACTED: ["done", "VERIFIED"], REPLIED: ["done", "OBSERVED"], LOCAL_SENSOR: ["done", "OBSERVED"],
     ACTION_REFUSED: ["refused", "OBSERVED"] };
   var hex64 = /^[0-9a-f]{64}$/, stampRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
-  var order = ["working", "hitl", "refused", "blocked", "waiting", "done", "available", "stale", "loading", "no_data"];
+  var order = ["working", "hitl", "refused", "blocked", "waiting", "authorized", "proposed", "done", "available", "stale", "loading", "no_data"];
 
   function nodata(cause, source) { return { state: "no_data", cause: String(cause || "no_source").slice(0, 72), source: source || "", evidence: "NO_DATA" }; }
   function when(e, now) {
