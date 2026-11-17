@@ -4,6 +4,12 @@ plugins { id 'com.android.application' }
 def secretDir = new File(System.getProperty("user.home"), ".config/preceptoros/android")
 def passFile = new File(secretDir, "pass")
 def mvpVersionCode = (project.hasProperty('mvpVersionCode') ? project.property('mvpVersionCode') : '1') as Integer
+// The Sovereign's installed TWA uses org.preceptoros.app. An authorized local
+// upgrade can reuse its app id and signing key, without uninstalling user data.
+def mvpAppId = project.hasProperty('mvpAppId') ? project.property('mvpAppId') : 'org.preceptoros.mvp'
+if (!(mvpAppId in ['org.preceptoros.mvp', 'org.preceptoros.app'])) {
+    throw new GradleException('Unexpected Android package id')
+}
 
 tasks.register('copyPanels', Copy) {
     from(rootProject.file('../interface')) {
@@ -11,6 +17,12 @@ tasks.register('copyPanels', Copy) {
     }
     // Android-only capability: do not change or cache the browser/PWA shell.
     from(rootProject.file('android_review_bridge.js'))
+    from(rootProject.file('offline_mini.js'))
+    if (project.hasProperty('offlineMiniModel')) {
+        from(project.file(project.property('offlineMiniModel'))) {
+            rename { 'offline-mini.gguf' }
+        }
+    }
     into file('src/main/assets')
 }
 afterEvaluate { tasks.named('preBuild') { dependsOn 'copyPanels' } }
@@ -19,11 +31,11 @@ android {
     namespace "org.preceptoros.mvp"
     compileSdk 36
     defaultConfig {
-        applicationId "org.preceptoros.mvp"
+        applicationId mvpAppId
         minSdk 26
         targetSdk 36
         versionCode mvpVersionCode
-        versionName "0.1.0-mvp"
+        versionName (mvpAppId == 'org.preceptoros.app' ? '0.2.0-tank3-mini' : '0.1.0-mvp')
     }
     signingConfigs {
         release {
