@@ -232,15 +232,23 @@ def di(canal, voz, texto, sello="DECLARADO", rol="", maquina=None, base=None):
     return _anexar(canal, voz, texto, sello, rol, maquina, base)
 
 
-def di_soberano(canal, texto, sello="DECLARADO", base=None, para=None):
+def di_soberano(canal, texto, sello="DECLARADO", base=None, para=None, request_id=None):
     """La persona escribe desde la app. Solo la llama la puerta de la PWA.
     Tampoco esto concede nada: una frase no es una firma. `para` nombra a quién
-    va dirigido (un slug); dirigir un mensaje no da permiso a nadie."""
+    va dirigido (un slug); `request_id` correlaciona una respuesta futura, no prueba
+    recepción ni da permiso a nadie."""
     maquina = {"via": "app"}
     if para is not None:
         if not isinstance(para, str) or not _SLUG.match(para) or es_soberano(para):
             raise CanalRechazado("`para` es el slug de un agente")
         maquina["para"] = para
+        if request_id is not None:
+            if (not isinstance(request_id, str) or
+                    not re.fullmatch(r"app-[0-9a-f]{32}", request_id)):
+                raise CanalRechazado("`request_id` must be an app-generated opaque id")
+            maquina["request_id"] = request_id
+    elif request_id is not None:
+        raise CanalRechazado("`request_id` requires an addressed recipient")
     return _anexar(canal, VOZ_RESERVADA, texto, sello, "persona", maquina, base)
 
 

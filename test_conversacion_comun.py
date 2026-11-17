@@ -41,7 +41,9 @@ def reading(*msgs):
 
 class Projection(unittest.TestCase):
     def test_every_voice_gets_an_explicit_identity_and_kind(self):
-        r = reading({"n": 1, "t": "2026-11-12T11:00:00Z", "voz": "soberano", "texto": "hi", "maquina": {"via": "app", "para": "claude"}},
+        request_id = "app-" + "1" * 32
+        r = reading({"n": 1, "t": "2026-11-12T11:00:00Z", "voz": "soberano", "texto": "hi",
+                     "maquina": {"via": "app", "para": "claude", "request_id": request_id}},
                     {"n": 2, "t": "2026-11-12T11:01:00Z", "voz": "claude", "texto": "read it"},
                     {"n": 3, "t": "2026-11-12T11:02:00Z", "voz": "hexelion", "texto": "quote",
                      "maquina": {"modelo": "hexelion:latest", "fuentes": [{"id": 9, "updated_at": "2026-11-06T00:00:00Z", "sha256": "a" * 64}]}},
@@ -54,6 +56,8 @@ class Projection(unittest.TestCase):
                          [("soberano", "person"), ("claude", "rack-cli"), ("hexelion", "private"),
                           ("orquestador", "sensor"), ("stranger", "unknown")])
         self.assertEqual(p["messages"][0]["to"], "claude")
+        self.assertEqual(p["messages"][0]["request_id"], request_id)
+        self.assertEqual(p["authority"], "none: a message grants no permission and is not a signature")
         self.assertEqual(p["messages"][2]["sources"], ["#9 · 2026-11-06T00:00:00Z · aaaaaaaaaaaa"])
         self.assertEqual(p["messages"][2]["model"], "hexelion:latest")
         self.assertEqual(p["last"], 5)
@@ -139,13 +143,25 @@ class Door(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             sent = self.call("POST", "/api/conversacion", {"para": "codex", "texto": "check LAB #172"}, tmp=tmp)
             self.assertEqual((sent["code"], sent["body"]["state"], sent["body"]["to"]), (200, "DELIVERED_TO_THREAD", "codex"))
-            self.assertTrue(sent["body"]["reply"].startswith("NO_DATA"))
+            self.assertTrue(sent["body"]["reply"].startswith("PENDING"))
+            self.assertRegex(sent["body"]["request_id"], r"^app-[0-9a-f]{32}$")
             canales.di("orquesta", "codex", "LAB #172 read", base=tmp)
             got = self.call("GET", "/api/conversacion?desde=0", tmp=tmp)["body"]
             self.assertEqual([(m["name"], m["kind"], m.get("to")) for m in got["messages"]],
                              [("You", "person", "codex"), ("Codex", "rack-cli", None)])
+            self.assertEqual(got["messages"][0]["request_id"], sent["body"]["request_id"])
             since = self.call("GET", "/api/conversacion?desde=%d" % got["messages"][0]["n"], tmp=tmp)["body"]
             self.assertEqual([m["from"] for m in since["messages"]], ["codex"])
+
+    def test_concurrent_same_recipient_requests_get_distinct_ids(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = self.call("POST", "/api/conversacion", {"para": "codex", "texto": "first"}, tmp=tmp)
+            b = self.call("POST", "/api/conversacion", {"para": "codex", "texto": "second"}, tmp=tmp)
+            self.assertEqual((a["code"], b["code"]), (200, 200))
+            self.assertNotEqual(a["body"]["request_id"], b["body"]["request_id"])
+            messages = canales.lee("orquesta", base=tmp)["mensajes"]
+            self.assertEqual([m["maquina"]["request_id"] for m in messages],
+                             [a["body"]["request_id"], b["body"]["request_id"]])
 
     def test_refusals_write_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:

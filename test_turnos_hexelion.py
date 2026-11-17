@@ -64,7 +64,8 @@ class Pairing(unittest.TestCase):
         self.assertEqual(by[1]["sentence"], "Hexelion answered in 20.5 s with 1 verified source (hexelion:latest).")
         self.assertEqual((by[3]["state"], by[3]["answered_by_name"]), ("LOCAL_SENSOR", "Local sensor"))
         self.assertEqual((by[5]["state"], by[5]["answered_by"], by[5]["cause"]), ("NO_ANSWER", None, "station_unavailable"))
-        self.assertEqual((by[7]["state"], by[7]["to_name"], by[7]["answered_by_name"]), ("REPLIED", "Claude", "Claude"))
+        self.assertEqual((by[7]["state"], by[7]["to_name"], by[7]["answered_by_name"]),
+                         ("NO_REPLY_RECORDED", "Claude", None))
 
     def test_a_voice_that_was_not_addressed_closes_nothing(self):
         self.assertEqual(states([msg(1, "soberano"), msg(2, "claude", "unrelated note"), msg(3, "codex", "also")]),
@@ -72,13 +73,79 @@ class Pairing(unittest.TestCase):
         self.assertEqual(states([msg(1, "soberano", via="app", para="codex"), msg(2, "claude", "not codex")]),
                          {1: "NO_REPLY_RECORDED"})
 
+    def test_cli_replies_correlate_by_explicit_request_not_fifo(self):
+        req_a = "app-" + "a" * 32
+        req_b = "app-" + "b" * 32
+        rows = T.turns([
+            msg(1, "soberano", "first", para="codex", request_id=req_a),
+            msg(2, "soberano", "second", para="codex", request_id=req_b),
+            msg(3, "codex", "reply to second", reply_to_request_id=req_b),
+            msg(4, "codex", "reply to first", reply_to_request_id=req_a),
+        ])
+        by = {t["n"]: t for t in rows}
+        self.assertEqual((by[1]["reply_candidate_n"], by[2]["reply_candidate_n"]), (4, 3))
+        self.assertTrue(all(t["state"] == "NO_REPLY_RECORDED" for t in rows))
+        self.assertTrue(all(t["answered_by"] is None for t in rows))
+        self.assertTrue(all(t["process_ack"]["state"] == "NO_DATA" for t in rows))
+
+    def test_missing_or_foreign_request_id_never_matches_by_voice(self):
+        rid = "app-" + "c" * 32
+        for response in (msg(2, "codex", "legacy"),
+                         msg(2, "codex", "foreign", reply_to_request_id="app-" + "d" * 32),
+                         msg(2, "codex", "contradictory", reply_to_request_id="app-" + "d" * 32,
+                             pregunta_n=1)):
+            turn = T.turns([msg(1, "soberano", "question", para="codex", request_id=rid), response])[0]
+            self.assertEqual(turn["state"], "NO_REPLY_RECORDED")
+            self.assertNotIn("reply_candidate_n", turn)
+            self.assertIsNone(turn["answered_by"])
+
+    def test_legacy_exact_question_number_is_read_but_stays_pending(self):
+        turn = T.turns([msg(1, "soberano", "legacy request", para="codex"),
+                        msg(2, "codex", "explicit legacy reply", pregunta_n=1)])[0]
+        self.assertEqual(turn["reply_candidate_n"], 2)
+        self.assertEqual(turn["state"], "NO_REPLY_RECORDED")
+        self.assertEqual(turn["process_ack"]["state"], "NO_DATA")
+
+    def test_disconnected_agent_has_no_ack_and_no_progress_state(self):
+        turn = T.turns([msg(1, "soberano", "offline", para="codex", request_id="app-" + "1" * 32)])[0]
+        self.assertEqual(turn["state"], "NO_REPLY_RECORDED")
+        self.assertIsNone(turn.get("reply_candidate_n"))
+        self.assertEqual(turn["process_ack"]["cause"], "authenticated_process_ack_unavailable")
+
+    def test_duplicate_reply_and_forged_or_stale_ack_remain_pending(self):
+        rid = "app-" + "e" * 32
+        rows = T.turns([
+            msg(1, "soberano", "question", para="codex", request_id=rid),
+            msg(2, "codex", "first", reply_to_request_id=rid, ack="READ", session_id="s1", generation="g1",
+                ack_expires_at="2026-11-16T00:00:00Z"),
+            msg(3, "codex", "replay", reply_to_request_id=rid, ack="RESULT", session_id="old", generation="old",
+                ack_expires_at="2020-01-01T00:00:00Z"),
+        ])
+        turn = rows[0]
+        self.assertEqual(turn["state"], "NO_REPLY_RECORDED")
+        self.assertEqual(turn["reply_candidate_n"], 2)
+        self.assertTrue(turn["duplicate_reply_candidate"])
+        self.assertEqual(turn["session_binding"], {"state": "NO_DATA", "cause": "authenticated_session_binding_unavailable"})
+        self.assertEqual(turn["process_ack"], {"state": "NO_DATA", "cause": "authenticated_process_ack_unavailable"})
+        self.assertIsNone(turn["answered_by"])
+
+    def test_wrong_declared_voice_does_not_correlate(self):
+        rid = "app-" + "f" * 32
+        turn = T.turns([
+            msg(1, "soberano", "for codex", para="codex", request_id=rid),
+            msg(2, "claude", "spoofed codex answer", reply_to_request_id=rid, ack="READ"),
+        ])[0]
+        self.assertEqual(turn["state"], "NO_REPLY_RECORDED")
+        self.assertNotIn("reply_candidate_n", turn)
+        self.assertEqual(turn["agent_identity"], {"state": "DECLARED", "voice": "codex"})
+
     def test_a_rack_agent_asking_hexelion_is_a_turn_in_its_own_name(self):
         rows = T.turns([msg(1, "claude", "q", rol="rack CLI agent"),
                         msg(2, "hexelion", "a", pregunta_n=1, modelo="m", ms=5, fuentes=[])])
         self.assertEqual((rows[0]["asked_by_name"], rows[0]["state"]), ("Claude", "ANSWERED"))
 
     def test_malformed_events_do_not_invent_answers(self):
-        self.assertEqual(states([msg(1, "soberano"), msg(2, "hexelion", "words")]), {1: "ANSWERED_UNVERIFIED"})
+        self.assertEqual(states([msg(1, "soberano"), msg(2, "hexelion", "words")]), {1: "NO_REPLY_RECORDED"})
         self.assertEqual(states([msg(1, "soberano"), msg(2, "hexelion", "a", pregunta_n=99, modelo="m", ms=5)]),
                          {1: "NO_REPLY_RECORDED"})
         bad = [{"n": "1", "voz": "soberano"}, None, {"n": 2, "voz": "soberano", "maquina": "not a dict", "t": NOW},

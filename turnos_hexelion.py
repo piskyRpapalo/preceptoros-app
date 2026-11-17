@@ -8,7 +8,7 @@ conversacion_comun, and pairs every request with what followed it:
   ANSWERED_UNVERIFIED words in Hexelion's voice without model or time: shown, but not counted as evidence
   LOCAL_SENSOR        a local tool answered (energy); no model ran
   NO_ANSWER           the door recorded that no answer came, and its cause
-  REPLIED             an addressed rack preceptor wrote back in its own voice
+  REPLIED             reserved for a future authenticated reply; a voice alone is not enough
   ACTED               an action whose receipt carries the proof its tool's contract names (never `ok` alone)
   ACTION_REFUSED      the fence or the tool said no, with its cause
   ACTION_UNVERIFIED   an action receipt that does not prove success: missing proof, contradiction or no contract
@@ -37,7 +37,7 @@ NEXT = {
     "ACTION_UNVERIFIED": "Check the result yourself before relying on it; the receipt does not prove it.",
     "NO_ANSWER": "Fix the cause or ask again later; nothing is working on this request now.",
     "REPLIED": "Read the reply; it is a message, not a permission.",
-    "NO_REPLY_RECORDED": "Nothing is recorded as working on it. Ask again, or ask on the Mesa.",
+    "NO_REPLY_RECORDED": "No authenticated process acknowledgement is recorded; this request remains pending.",
 }
 
 
@@ -197,7 +197,7 @@ def _bound(turn):
 
 def turns(messages, now_iso=""):
     """Thread messages (canales.lee shape, in order) -> the last MAX_TURNS turns, newest first."""
-    out, open_hexelion, open_addressed = [], {}, {}
+    out, open_hexelion, addressed_by_n, addressed_by_id = [], {}, {}, {}
     for m in messages:
         if not isinstance(m, dict) or not isinstance(m.get("n"), int):
             continue
@@ -211,23 +211,47 @@ def turns(messages, now_iso=""):
             turn = {"n": m["n"], "asked_at": m.get("t"), "asked_by": voice, "asked_by_name": _name(voice),
                     "to": to or "hexelion", "to_name": _name(to or "hexelion"), "question": str(m.get("texto") or "")[:160],
                     "state": "NO_REPLY_RECORDED", "evidence": "none", "answered_by": None, "answered_by_name": None,
-                    "sentence": "No reply is recorded for this request."}
+                    "sentence": "No authenticated process acknowledgement is recorded; this request remains pending."}
+            if to:
+                rid = machine.get("request_id")
+                turn.update(request_id=rid if _valid_request_id(rid) else None,
+                            agent_identity={"state": "DECLARED", "voice": to},
+                            session_binding={"state": "NO_DATA", "cause": "authenticated_session_binding_unavailable"},
+                            process_ack={"state": "NO_DATA", "cause": "authenticated_process_ack_unavailable"})
             out.append(turn)
             if to:
-                open_addressed.setdefault(to, []).append(turn)
+                addressed_by_n[m["n"]] = turn
+                if turn.get("request_id"):
+                    addressed_by_id[turn["request_id"]] = turn
             else:
                 open_hexelion[m["n"]] = turn
             continue
         if voice in REPLIERS:
             target = machine.get("pregunta_n")
             turn = open_hexelion.pop(target, None) if isinstance(target, int) else None
-            if turn is None and not isinstance(target, int) and open_hexelion:   # older replies: the latest open one
-                turn = open_hexelion.pop(max(open_hexelion))
             if turn is not None:
                 _close(turn, m)
             continue
-        if voice in open_addressed and open_addressed[voice]:
-            _close(open_addressed[voice].pop(0), m)
+        # A CLI voice is only a declaration. Correlate an explicit reference for inspection, but
+        # do not close the request or claim READ/WORKING/RESULT without a trusted process witness.
+        if voice in C.BY_ID and C.BY_ID[voice]["kind"] == "rack-cli":
+            has_id = "reply_to_request_id" in machine
+            target = machine.get("reply_to_request_id")
+            turn = addressed_by_id.get(target) if _valid_request_id(target) else None
+            if not has_id:
+                target_n = machine.get("pregunta_n")
+                if type(target_n) is int:
+                    turn = addressed_by_n.get(target_n)
+            elif turn is not None and "pregunta_n" in machine and machine.get("pregunta_n") != turn["n"]:
+                turn = None
+            if turn is not None and turn.get("to") == voice:
+                if "reply_candidate_n" not in turn:
+                    turn.update(reply_candidate_n=m["n"],
+                                reply_candidate={"state": "CORRELATED_UNAUTHENTICATED",
+                                                 "cause": "authenticated_process_ack_unavailable"},
+                                sentence="A message names this request, but its CLI session is not authenticated; the request remains pending.")
+                else:
+                    turn["duplicate_reply_candidate"] = True
     for t in out:
         t["next"] = NEXT[t["state"]]
         t["reader"] = "%s asked %s. %s %s" % (t["asked_by_name"], t["to_name"], t["sentence"], t["next"])
@@ -236,6 +260,10 @@ def turns(messages, now_iso=""):
                      "words": "reader"}
         _bound(t)
     return list(reversed(out))[:MAX_TURNS]
+
+
+def _valid_request_id(value):
+    return isinstance(value, str) and bool(re.fullmatch(r"app-[0-9a-f]{32}", value))
 
 
 def project(lectura, now_iso):
