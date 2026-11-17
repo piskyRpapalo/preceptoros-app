@@ -52,12 +52,18 @@
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       title: title || 'Untitled',
       content: content || '',
-      state: 'saved',
+      state: 'draft',
       created: new Date().toISOString(),
       modified: new Date().toISOString()
     };
     docs.push(doc);
-    saveDocuments(docs);
+    var ok = saveDocuments(docs);
+    if (!ok) {
+      doc.state = 'draft';
+      doc._saveError = true;
+    } else {
+      doc.state = 'saved';
+    }
     return doc;
   }
 
@@ -68,8 +74,13 @@
     docs[idx].title = title || docs[idx].title;
     docs[idx].content = content !== undefined ? content : docs[idx].content;
     docs[idx].modified = new Date().toISOString();
-    docs[idx].state = 'saved';
-    saveDocuments(docs);
+    var ok = saveDocuments(docs);
+    if (!ok) {
+      docs[idx].state = 'draft';
+      docs[idx]._saveError = true;
+    } else {
+      docs[idx].state = 'saved';
+    }
     return docs[idx];
   }
 
@@ -190,21 +201,28 @@
         if (editorEstado) editorEstado.textContent = 'Content too long. Max ' + MAX_CONTENT + ' characters.';
         return;
       }
+      var result;
       if (currentDocId) {
-        updateDocument(currentDocId, title, content);
-        if (editorEstado) {
-          editorEstado.textContent = 'Saved: ' + title + '. State: saved.';
-          editorEstado.dataset.state = 'saved';
-        }
+        result = updateDocument(currentDocId, title, content);
       } else {
-        var d = createDocument(title, content);
-        currentDocId = d.id;
+        result = createDocument(title, content);
+        currentDocId = result.id;
+      }
+      if (result && result._saveError) {
+        if (editorEstado) {
+          editorEstado.textContent = 'Save failed: localStorage quota exceeded. Draft kept in memory. Download to preserve.';
+          editorEstado.dataset.state = 'draft';
+        }
+        if (descargarBtn) descargarBtn.disabled = false;
+        return;
+      }
+      if (result && result.state === 'saved') {
         if (editorEstado) {
           editorEstado.textContent = 'Saved: ' + title + '. State: saved.';
           editorEstado.dataset.state = 'saved';
         }
+        if (descargarBtn) descargarBtn.disabled = false;
       }
-      if (descargarBtn) descargarBtn.disabled = false;
       renderList();
     }
 
@@ -262,7 +280,11 @@
           reader.onload = function (ev) {
             var text = ev.target.result;
             var d = createDocument(file.name.replace(/\.[^.]+$/, ''), text);
-            if (estadoGeneral) estadoGeneral.textContent = 'Imported: ' + file.name + '. State: saved.';
+            if (d._saveError) {
+              if (estadoGeneral) estadoGeneral.textContent = 'Import failed for ' + file.name + ': localStorage quota exceeded. Re-import after freeing space.';
+            } else {
+              if (estadoGeneral) estadoGeneral.textContent = 'Imported: ' + file.name + '. State: saved.';
+            }
             renderList();
           };
           reader.readAsText(file);

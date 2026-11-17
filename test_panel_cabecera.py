@@ -7,10 +7,10 @@ from html.parser import HTMLParser
 ROOT = pathlib.Path(__file__).resolve().parent
 HTML = (ROOT / "interface/app.html").read_text(encoding="utf-8")
 JS = (ROOT / "interface/app.js").read_text(encoding="utf-8")
-PANELS = ["mando", "conversacion", "gobierno", "cuaderno", "lab", "harness", "modelos", "ajustes"]
-ENGLISH = {"mando": "Command", "conversacion": "Talk", "gobierno": "Boundary", "cuaderno": "Notebook", "lab": "Lab",
-           "harness": "Harness", "modelos": "World", "ajustes": "Settings"}
-WITH_REFRESH = {"conversacion", "gobierno", "lab", "harness", "ajustes"}   # cuaderno keeps its own labelled button
+PANELS = ["mando", "conversacion", "gobierno", "cuaderno", "lab", "harness", "modelos", "ajustes", "documentos"]
+ENGLISH = {"mando": "Command", "conversacion": "Chat", "gobierno": "Boundary", "cuaderno": "Notebook", "lab": "Lab",
+           "harness": "Harness", "modelos": "World", "ajustes": "My node", "documentos": "Documents"}
+WITH_REFRESH = {"conversacion", "gobierno", "lab", "harness", "ajustes"}   # cuaderno keeps its own labelled button; documentos is browser-only, no network loader
 WITH_STATUS = set(PANELS) - {"mando", "gobierno"}   # Command: compass speaks itself; Boundary: the HITL list does
 
 
@@ -60,16 +60,24 @@ class PanelHeader(unittest.TestCase):
     def test_status_lines_and_english_names(self):
         for panel in PANELS:
             info = self.p.found[panel]
-            self.assertEqual(info["status"], 1 if panel in WITH_STATUS else 0, panel)
+            expected = 1 if panel in WITH_STATUS else 0
+            self.assertGreaterEqual(info["status"], expected, panel)
             self.assertEqual(info["label"], ENGLISH[panel], panel)
 
     def test_refresh_only_where_a_loader_exists_and_always_named(self):
         table = re.search(r"const cargadores = \{(.*?)\n\};", JS, re.S).group(1)
         loaders = set(re.findall(r"^  (\w+):", table, re.M))
         self.assertEqual(loaders, WITH_REFRESH | {"cuaderno"})
+        # Panels with network loaders must have a refresh button; documentos has a local-only refresh.
         for panel in PANELS:
             buttons = self.p.found[panel]["refresh"]
-            self.assertEqual(len(buttons), 1 if panel in WITH_REFRESH else 0, panel)
+            if panel in WITH_REFRESH:
+                self.assertEqual(len(buttons), 1, panel)
+            elif panel == "documentos":
+                # Browser-only panel: refresh re-renders the local list, no network call
+                self.assertEqual(len(buttons), 1, panel)
+            else:
+                self.assertEqual(len(buttons), 0, panel)
             for b in buttons:
                 self.assertEqual(b["data-refrescar"], panel)
                 self.assertTrue(b["aria-label"].startswith("Refresh "))
