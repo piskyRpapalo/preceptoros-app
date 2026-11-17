@@ -37,6 +37,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 
 NOMBRE_REGISTRO = "cerebro.json"
@@ -108,11 +109,20 @@ def elegir(raiz, ruta_base):
         return Eleccion(ruta_base, "base", "rollback pedido en el registro")
 
     afinado = reg.get("afinado") or {}
+    if not isinstance(afinado, dict):
+        return Eleccion(ruta_base, "base", "el registro del afinado no es válido")
     destino, sello = afinado.get("destino"), afinado.get("sha256")
-    if not (destino and sello):
+    if not (isinstance(destino, str) and destino and isinstance(sello, str)
+            and re.fullmatch(r"[0-9a-f]{64}", sello)):
+        if afinado:
+            return Eleccion(ruta_base, "base", "el registro del afinado no es válido")
         return Eleccion(ruta_base, "base", "no hay cerebro afinado declarado")
 
     ruta = raiz / destino
+    try:
+        ruta.resolve().relative_to(raiz.resolve())
+    except (OSError, ValueError):
+        return Eleccion(ruta_base, "base", "la ruta del afinado sale de la casa local")
     if not ruta.is_file():
         return Eleccion(ruta_base, "base", "el afinado está declarado y no está en disco")
 

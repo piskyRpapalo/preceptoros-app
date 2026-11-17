@@ -1090,13 +1090,45 @@ $("form-chat").addEventListener("submit", async (e) => {
   if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), null, "waiting");
   esperando.lang = "en";
   try {
-    const r = await fetch("/api/hexelion/chat", {
+    const configResponse = await fetch("/api/cerebro", { cache: "no-store" });
+    const config = configResponse.ok ? await configResponse.json() : null;
+    const talkMode = config && config.estado === "ok" ? config.talk_mode : null;
+    const localMode = "local_gguf", privateMode = "private_hexelion";
+    if (talkMode !== localMode && talkMode !== privateMode) {
+      throw new Error("talk_mode_unavailable");
+    }
+    const localTalk = talkMode === localMode;
+    const request = {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.assign({ texto, panel: ruta.panel },
+      body: localTalk ? JSON.stringify({ texto }) : JSON.stringify(Object.assign({ texto, panel: ruta.panel },
         window.PreceptorTeam && window.PreceptorTeam.active() ? { agente: window.PreceptorTeam.active().id } : {})),
-    });
+    };
+    const r = await fetch(localTalk ? "/api/charla" : "/api/hexelion/chat", request);
     const d = await r.json();
     esperando.remove();
+    if (localTalk) {
+      const modelo = d && d.modelo;
+      if (r.ok && d.estado === "ok" && typeof d.texto === "string" && d.texto.trim() &&
+          modelo && (modelo.cual === "base" || modelo.cual === "afinado") &&
+          typeof modelo.nombre === "string" && modelo.nombre.trim() &&
+          Number.isSafeInteger(d.id_salida) && Number.isFinite(d.ms) && d.ms > 0) {
+        $("estado").dataset.state = "local_reply";
+        $("estado").dataset.acho = "ok";
+        $("estado").textContent = `Local model · ${modelo.nombre} · ${d.ms} ms · no tools invoked`;
+        if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), "ok", "ANSWERED");
+        modelosWeb.setActiveModel(modelo.nombre, d.ms, "local_inference_reply");
+        const fila = burbuja(d.texto);
+        fila.lang = "en";
+      } else {
+        const causa = d && (d.causa || d.motivo) || "local_model_reply_unverified";
+        $("estado").dataset.state = "NO_DATA";
+        $("estado").dataset.acho = "silent";
+        $("estado").textContent = `NO_DATA: ${causa}`;
+        if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), null, "silent");
+        modelosWeb.setActiveModel(null, null, causa);
+        if (!$("dicho").value.trim()) $("dicho").value = escrito;
+      }
+    } else {
     // Autonomy parity: once the question is in the thread, the reply carries its projected turn and Talk's status line
     // is that turn's sentence and next step, the same words the Notebook card shows. No turn (refused before the
     // thread) keeps the door's own cause, because then there is no event for any reader.
@@ -1152,9 +1184,13 @@ $("form-chat").addEventListener("submit", async (e) => {
       modelosWeb.setActiveModel(null, null, causa);
       if (!$("dicho").value.trim()) $("dicho").value = escrito;
     }
+    }
   } catch {
     esperando.remove();
-    $("estado").textContent = t.chat_sin_respuesta(t.chat_edad_nd);
+    $("estado").dataset.state = "NO_DATA";
+    $("estado").dataset.acho = "silent";
+    $("estado").textContent = "NO_DATA: talk_configuration_or_transport_unavailable";
+    if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), null, "silent");
     modelosWeb.setActiveModel(null, null, "hexelion_chat_transport_unavailable");
     if (!$("dicho").value.trim()) $("dicho").value = escrito;
   }

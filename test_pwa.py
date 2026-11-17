@@ -984,16 +984,23 @@ if __name__ == "__main__":
     unittest.main(verbosity=2)
 
 class TestHablarConHexelion(unittest.TestCase):
-    def test_formulario_hablar_usa_hexelion_y_pide_fuentes(self):
+    def test_formulario_hablar_selecciona_modo_del_servidor_y_conserva_puerta_privada(self):
         app = pathlib.Path(AQUI, "interface", "app.js").read_text(encoding="utf-8")
         formulario = app.split('$("form-chat").addEventListener', 1)[1].split('/* --- frontera', 1)[0]
-        self.assertIn('fetch("/api/hexelion/chat"', formulario)
-        self.assertNotIn('fetch("/api/charla"', formulario)
+        self.assertIn('fetch("/api/cerebro", { cache: "no-store" })', formulario)
+        self.assertIn('talkMode !== localMode && talkMode !== privateMode', formulario)
+        self.assertIn('fetch(localTalk ? "/api/charla" : "/api/hexelion/chat"', formulario)
+        self.assertIn('JSON.stringify(Object.assign({ texto, panel: ruta.panel },', formulario)
         self.assertIn('respuesta.voz === "hexelion"', formulario)
         self.assertIn('Array.isArray(respuesta.fuentes)', formulario)
         self.assertIn('t.chat_sin_respuesta(causa)', formulario)
         self.assertIn('t.chat_modelo(modelo)', formulario)
         self.assertIn('t.chat_fuente(f.id, f.updated_at, f.sha256)', formulario)
+        local = formulario.split('if (localTalk) {', 1)[1].split('} else {', 1)[0]
+        self.assertIn('Number.isSafeInteger(d.id_salida)', local)
+        self.assertIn('no tools invoked', local)
+        self.assertNotIn('fuentes', local)
+        self.assertNotIn('agente', local)
         self.assertNotIn("if (filtroCaido) return", formulario)
 
 class TestVistaLab(unittest.TestCase):
@@ -1589,7 +1596,7 @@ class InsertorAncladoContrato(unittest.TestCase):
         self.assertIn('id="ayuda-efimera"', html)
         self.assertIn('id="form-chat" aria-describedby="insertor-instrucciones"', html)
         self.assertIn("min-height: 44px", css)
-        self.assertIn('body: JSON.stringify(Object.assign({ texto, panel: ruta.panel },', js)  # + the active team agent, if any
+        self.assertIn('JSON.stringify(Object.assign({ texto, panel: ruta.panel },', js)  # private route + active team agent, if any
 
     def test_insertor_es_pieza_estatica_versionada_y_en_cache(self):
         root = pathlib.Path(AQUI)

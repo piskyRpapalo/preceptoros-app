@@ -56,7 +56,7 @@ class Cabina(unittest.TestCase):
         self.assertLess(len(leer("interface/cabin_brain.js").encode()), 8192)
         sw = leer("interface/sw.js")
         self.assertIn('"/conversacion.js?v=6"', sw)
-        self.assertIn("preceptoros-armazon-v206", sw)
+        self.assertIn("preceptoros-armazon-v207", sw)
 
     @unittest.skipUnless(shutil.which("node"), "node no esta")
     def test_casos_puros(self):
