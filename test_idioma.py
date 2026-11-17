@@ -438,6 +438,26 @@ BLANCA = {
     "Español", "English", "Português",
 }
 
+# APP-EN-FREEZE-01: la APP nueva es inglés ÚNICO durante el MVP. La
+# cara dashboard (legacy) mantiene las garantías de traducción. La APP
+# admite SOLO estas frases inglesas conocidas, ya presentes al congelar
+# sus cuatro zonas. Todo texto estático nuevo y sin enganche hará fallar
+# esta suite. Al reactivar idiomas, retirar esta excepción y traducir.
+APP_ENGLISH_FROZEN_COPY = {
+    "Technical Options",
+    "Advanced tools for operators. These panels are hidden by def",
+    "Sensor of your memory, never an actor",
+    "Signatures and authorization",
+    "Operational receipts and evidence",
+    "Loops, team and operator visibility",
+    "OpenWorld map and Acho language",
+    "⚠ Documents are stored in your browser's localStorage, which",
+    "This setting controls what the Chat shows. It is stored loca",
+    "Personal MVP",
+    "Private rack",
+}
+APP_DORMANT_DOCUMENT_KEYS = {"documentos_contenido", "documentos_titulo"}
+
 
 def _textos_sueltos(ruta):
     """Texto visible que NO cuelga de un enganche de traduccion."""
@@ -456,14 +476,24 @@ def _textos_sueltos(ruta):
     return sueltos
 
 
-@caso("la cara no lleva texto suelto sin enganche de traduccion")
+@caso("la cara no añade texto sin traducción fuera del inglés único MVP")
 def t_cara_sin_texto_suelto():
-    sueltos = []
-    for ruta in HTML_CARAS:
-        sueltos += _textos_sueltos(ruta)
+    # APP: inglés único por decisión explícita; no se anuncian nueve
+    # traducciones activas. El legacy dashboard conserva el gate original.
+    app = open(os.path.join(AQUI, "interface/app.html"), encoding="utf-8").read()
+    js = open(os.path.join(AQUI, "interface/app.js"), encoding="utf-8").read()
+    assert re.search(r'^<html lang="en">', app, re.M), \
+        "APP dejó de declarar inglés único: reactivar gate bilingüe"
+    assert "let t = textos.en;" in js, \
+        "APP dejó de fijar el diccionario inglés: reactivar traducciones"
+    assert "t = textos.en;" in js[js.index("async function fijarIdioma()"):], \
+        "APP dejó de forzar inglés: reactivar gate bilingüe"
+    sueltos = _textos_sueltos("interface/dashboard.html")
+    sueltos += [(ruta, texto) for ruta, texto in _textos_sueltos("interface/app.html")
+                if texto not in APP_ENGLISH_FROZEN_COPY]
     assert not sueltos, (
-        "texto visible sin forma de traducirse (engancharlo con data-rotulo o "
-        "data-i18n, o anadirlo a BLANCA si es nombre propio):\n  " +
+        "texto nuevo sin enganche; en APP solo se admite inglés congelado "
+        "y un catálogo cerrado de excepciones:\n  " +
         "\n  ".join(f"{r}: {t!r}" for r, t in sueltos))
 
 
@@ -503,10 +533,19 @@ def t_claves_usadas_existen():
             f"{sorted(faltan)} -- saldran vacias en pantalla")
 
 
-@caso("todos los diccionarios de la cara tienen las MISMAS claves")
+@caso("diccionarios activos simétricos; los inactivos no se anuncian")
 def t_diccionarios_simetricos():
-    """Una clave que existe en un idioma y no en el otro es una fuga con fecha."""
+    """El dashboard traduce; la APP mantiene inglés activo y el resto dormido.
+
+    Las 2 claves Documents pendientes están inventariadas *solo* en idiomas
+    no activos. Una tercera ausencia, una clave extra o descongelar APP sin
+    restaurar la simetría vuelve a dar ROJO.
+    """
     import json as _json
+    app_js = open(os.path.join(AQUI, "interface/app.js"), encoding="utf-8").read()
+    assert "let t = textos.en;" in app_js and \
+        "t = textos.en;" in app_js[app_js.index("async function fijarIdioma()"):], \
+        "APP no está congelada en inglés; exigir simetría completa"
     for fichero in ("interface/dashboard.js", "interface/app.js"):
         crudo = open(os.path.join(AQUI, fichero), encoding="utf-8").read()
         claves = {}
@@ -536,6 +575,11 @@ def t_diccionarios_simetricos():
                     continue
                 faltan = claves["es"] - suyas
                 sobran = suyas - claves["es"]
+                if fichero == "interface/app.js" and idioma not in ("es", "en"):
+                    # El MVP APP mantiene el inglés activo; Documents aún no
+                    # tiene esas dos traducciones dormidas. No añadir frases
+                    # inventadas para fingir nueve idiomas completos.
+                    faltan -= APP_DORMANT_DOCUMENT_KEYS
                 assert not faltan and not sobran, (
                     f"{fichero} · {idioma}: claves asimetricas contra es · "
                     f"faltan={sorted(faltan)} · sobran={sorted(sobran)}")
