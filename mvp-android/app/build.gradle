@@ -9,6 +9,8 @@ tasks.register('copyPanels', Copy) {
     from(rootProject.file('../interface')) {
         exclude 'legacy/**'
     }
+    // Android-only capability: do not change or cache the browser/PWA shell.
+    from(rootProject.file('android_review_bridge.js'))
     into file('src/main/assets')
 }
 afterEvaluate { tasks.named('preBuild') { dependsOn 'copyPanels' } }
