@@ -19,6 +19,7 @@
   var maxTitle = 80;
   var maxSummary = 600;
   var maxAgent = 80;
+  var reviewRepo = 'https://github.com/piskyRpapalo/preceptoros-companion';
 
   /* Patterns that look like secrets — reject them in any field. */
   var secretPattern = /(?:password|passwd|secret|token|api[\s_-]*key|private[\s_-]*key|ssh[\s_-]*key|access[\s_-]*token)/i;
@@ -112,6 +113,21 @@
       lines.push('- **Agent/Provider (data):** ' + JSON.stringify(agent));
     }
     lines.push('');
+    lines.push('## One building · one Companion');
+    lines.push('');
+    lines.push('- Proposed building count: 1');
+    lines.push('- Proposed building id: ' + slug);
+    lines.push('- Map position: NO_DATA(architect_has_not_approved_a_hex)');
+    lines.push('- Agent connection: NO_DATA(connection_not_verified)');
+    lines.push('');
+    lines.push('## Human-reviewed public files');
+    lines.push('');
+    lines.push('- `companions/' + slug + '/DECLARATION.md` — project and author');
+    lines.push('- `companions/' + slug + '/STATE.md` — reproducible measurements');
+    lines.push('- `companions/' + slug + '/BUILDING.md` — exactly one building and its public doorway');
+    lines.push('- `companions/' + slug + '/KNOWLEDGE_INDEX.md` — public RAG references and provenance');
+    lines.push('Public knowledge references are not uploaded or ingested by the WEB.');
+    lines.push('');
     lines.push('## Measurement');
     lines.push('');
     lines.push('- Tests: NO_DATA(declaration_not_submitted)');
@@ -125,10 +141,12 @@
     lines.push('   https://github.com/piskyRpapalo/preceptoros-companion');
     lines.push('   — open GUIDE.md, CONTRIBUTING.md, and GROUNDTRUTH.md first.');
     lines.push('2. Read AGENT_CARD.md for the initial agent-card proposal (PROPOSED, not authenticated).');
-    lines.push('3. PROPOSE a docs-only declaration (the human opens the PR):');
+    lines.push('3. PROPOSE a docs-only declaration for exactly one building (the human opens the PR):');
     lines.push('   - Branch: `contrib/' + slug + '/declaration`');
     lines.push('   - Path: `companions/' + slug + '/DECLARATION.md` (human-owned)');
     lines.push('   - Path: `companions/' + slug + '/STATE.md` (human-owned)');
+    lines.push('   - Path: `companions/' + slug + '/BUILDING.md` (one building)');
+    lines.push('   - Path: `companions/' + slug + '/KNOWLEDGE_INDEX.md` (public RAG only)');
     lines.push('4. Do NOT fabricate measurements, private keys, or self-register.');
     lines.push('5. Do NOT write to core repos; only the contrib/ PR is allowed.');
     lines.push('6. The agent may propose tests and an agent card, but the card is not');
@@ -141,6 +159,28 @@
     lines.push('Draft generated locally.  Nothing has been sent or published.');
 
     return { ok: true, text: lines.join('\n') };
+  }
+
+  // Public-only human review link. No draft text or private RAG material enters a URL.
+  function reviewRequestUrl(form, prUrl) {
+    if (!renderDraft(form).ok) return { ok: false, cause: 'draft_invalid' };
+    var pr = sanitize(prUrl);
+    if (!/^https:\/\/github\.com\/piskyRpapalo\/preceptoros-companion\/pull\/[1-9][0-9]{0,8}$/.test(pr)) {
+      return { ok: false, cause: 'public_companion_pr_required' };
+    }
+    var slug = sanitize(form.slug);
+    var body = [
+      'Public Companion: ' + slug,
+      'Human-reviewed docs-only PR: ' + pr,
+      'One building only; public knowledge stays in KNOWLEDGE_INDEX.md.',
+      'Status: PENDING_HUMAN_REVIEW.',
+      'Agent connection: NO_DATA(connection_not_verified).',
+      'World publication: NO_DATA(world_publication_not_verified).',
+      'I understand that I must press Submit new issue myself, and this is not a grant.'
+    ].join('\n\n');
+    return { ok: true, url: reviewRepo + '/issues/new?template=one-building-review.md'
+      + '&title=' + encodeURIComponent('HITL · One building review · ' + slug)
+      + '&body=' + encodeURIComponent(body) };
   }
 
   /* ------------------------------------------------------------------ */
@@ -162,10 +202,18 @@
     var copyBtn = doc.getElementById('companion-copy');
     var downloadBtn = doc.getElementById('companion-download');
     var resetBtn = doc.getElementById('companion-reset');
+    var prInput = doc.getElementById('companion-pr-url');
+    var reviewBtn = doc.getElementById('companion-request-review');
 
     if (!slugInput || !titleInput || !summaryInput || !statusEl || !draftArea) return;
 
     var currentDraft = '';
+    var currentData = null;
+
+    function updateReviewButton() {
+      if (reviewBtn) reviewBtn.disabled = !currentDraft || !currentData ||
+        !reviewRequestUrl(currentData, prInput && prInput.value).ok;
+    }
 
     function showStatus(msg) {
       if (!statusEl) return;
@@ -179,6 +227,7 @@
     function showDraft(text) {
       if (draftArea) draftArea.textContent = text;
       currentDraft = text;
+      updateReviewButton();
       if (copyBtn) copyBtn.disabled = !text;
       if (downloadBtn) downloadBtn.disabled = !text;
     }
@@ -186,6 +235,8 @@
     function clearDraft() {
       showDraft('');
       currentDraft = '';
+      currentData = null;
+      updateReviewButton();
     }
 
     function generate() {
@@ -202,7 +253,9 @@
         return;
       }
       showStatus('DRAFT_ONLY · ready to copy or download');
+      currentData = data;
       showDraft(result.text);
+      updateReviewButton();
     }
 
     /* Prevent form submission (ENTER key) — no network, no HTTP GET. */
@@ -222,6 +275,20 @@
         });
       }
     }
+
+    if (prInput) prInput.addEventListener('input', updateReviewButton);
+    if (reviewBtn) reviewBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var request = currentDraft && currentData && reviewRequestUrl(currentData, prInput && prInput.value);
+      if (!request || !request.ok) {
+        showStatus('DRAFT_ONLY · a public Companion PR is required');
+        updateReviewButton();
+        return;
+      }
+      // Explicit user click opens GitHub; the human must submit the issue there.
+      if (typeof root.open === 'function') root.open(request.url, '_blank', 'noopener,noreferrer');
+      showStatus('DRAFT_ONLY · GitHub review form requested; only submitting it on GitHub can notify the architect');
+    });
 
     /* Generate button */
     var genBtn = doc.getElementById('companion-generate');
@@ -273,6 +340,7 @@
         if (titleInput) titleInput.value = '';
         if (summaryInput) summaryInput.value = '';
         if (agentInput) agentInput.value = '';
+        if (prInput) prInput.value = '';
         clearDraft();
         showStatus('DRAFT_ONLY · form cleared');
       });
@@ -286,6 +354,7 @@
   if (typeof module === 'object' && module.exports) {
     module.exports = Object.freeze({
       renderDraft: renderDraft,
+      reviewRequestUrl: reviewRequestUrl,
       mount: mount,
       looksLikeSecret: looksLikeSecret,
 
@@ -293,6 +362,7 @@
   } else {
     root.PreceptorCompanionOnboarding = Object.freeze({
       renderDraft: renderDraft,
+      reviewRequestUrl: reviewRequestUrl,
       mount: mount
     });
   }

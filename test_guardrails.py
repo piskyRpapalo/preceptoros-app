@@ -548,6 +548,9 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # Plans in the panels (plan_flow.js, Superbot contract #310): the five stage words and the person's no.
         # Stages of a task, never redaction policies.
         INTRINSECOS |= {"PROPOSED", "AUTHORIZED", "DISPATCHED", "RESULT", "DENIED"}
+        # Public Companion document filenames are not scrubbing policies. The validator must still reject unknown labels.
+        INTRINSECOS |= {"DECLARATION", "STATE", "BUILDING", "KNOWLEDGE_INDEX"}
+        INTRINSECOS |= {"PENDING_HUMAN_REVIEW"}  # public request status; never an authorization
         for fichero in self.ficheros():
             contenido = fichero.read_text(encoding="utf-8")
             for nombrada in re.findall(r"\b[A-Z][A-Z_]{3,}\b", contenido):

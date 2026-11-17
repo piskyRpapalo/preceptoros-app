@@ -545,6 +545,14 @@
       <button type="button" class="probar" id="companion-copy" disabled style="min-height:44px">Copy draft</button>
       <button type="button" class="probar" id="companion-download" disabled style="min-height:44px">Download draft</button>
       <button type="button" class="probar" id="companion-reset" style="min-height:44px">Clear form</button>
+      <label data-rotulo="companion-pr-url-label" for="companion-pr-url">Public PR with your four reviewed documents</label>
+      <input id="companion-pr-url" type="url" autocomplete="off"
+             placeholder="https://github.com/piskyRpapalo/preceptoros-companion/pull/123"
+             aria-describedby="companion-review-help">
+      <button type="button" class="probar" id="companion-request-review" disabled
+              aria-describedby="companion-review-help" style="min-height:44px">Request architect review on GitHub</button>
+      <p class="pie" id="companion-review-help">One Companion proposes one building. Prepare DECLARATION, STATE, BUILDING and KNOWLEDGE_INDEX with your external agent; submit a human-reviewed public PR. This button opens GitHub: you must submit the request there. It never connects or publishes a building.</p>
+
 
       <p class="pie" id="companion-note">This draft guides an external agent to propose a docs-only declaration. It does not register a node, grant authority, or publish a project. You review and submit the PR. Public visibility in OpenWorld requires a separate verified step: NO_DATA(world_publication_not_verified).</p>
       <p class="pie"><a data-rotulo="companion-guide" href="https://github.com/piskyRpapalo/preceptoros-companion" target="_blank" rel="noopener noreferrer">Open the public Companion guide</a> · <a data-rotulo="companion-download-page" href="https://preceptoros.org/get-the-app/" target="_blank" rel="noopener noreferrer">Get the app</a></p>
@@ -614,7 +622,7 @@
 <script src="/creation_publish.js?v=2"></script>
 <script src="/node_building.js?v=1"></script>
 <script src="/node_registration.js?v=1"></script>
-<script src="/companion_onboarding.js?v=2"></script>
+<script src="/companion_onboarding.js?v=3"></script>
 <script>PreceptorNodeRegistration.mount(document);</script>
 <script>PreceptorCompanionOnboarding.mount(document);</script>
 <script>
