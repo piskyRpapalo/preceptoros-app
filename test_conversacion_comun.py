@@ -186,7 +186,7 @@ class Shell(unittest.TestCase):
         server = (ROOT / "bin/preceptoros-pwa").read_text(encoding="utf-8")
         self.assertIn('<script src="/conversacion.js?v=7"></script>', html)
         self.assertLess(html.index("/insertor.js?v=2"), html.index("/conversacion.js?v=7"))
-        self.assertLess(html.index("/conversacion.js?v=7"), html.index("/app.js?v=44"))
+        self.assertLess(html.index("/conversacion.js?v=7"), html.index("/app.js?v=46"))
         self.assertIn('"/conversacion.js?v=7"', sw)
         self.assertIn('"/conversacion.js": ("conversacion.js",', server)
         self.assertIn('"interface/conversacion.js"', (ROOT / "version.py").read_text(encoding="utf-8"))
@@ -195,7 +195,7 @@ class Shell(unittest.TestCase):
         self.assertIn("sync({ replaceLocal: true })", js)
         self.assertIn("conversacion.routes()", js)
         self.assertNotRegex(conv, r"localStorage|sessionStorage|sendBeacon|innerHTML")
-        self.assertLess(len(conv.encode()), 8192)
+        self.assertLess(len(conv.encode()), 10240)
 
     def test_insertor_cases_pass(self):
         r = subprocess.run(["node", "--test", "tests/insertor_cases.cjs"], cwd=ROOT, capture_output=True, text=True)

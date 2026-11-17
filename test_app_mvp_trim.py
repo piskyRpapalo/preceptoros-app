@@ -13,9 +13,9 @@ SW = (R/"interface/sw.js").read_text()
 class Mvp(unittest.TestCase):
     def test_four_visible_tabs_and_four_hidden_advanced(self):
         tabs = re.findall(r'<button id="tab-([^"]+)"([^>]*)>', HTML)
-        self.assertEqual(len(tabs), 8)
-        core = ["mando", "conversacion", "modelos", "ajustes"]
-        advanced = ["gobierno", "cuaderno", "lab", "harness"]
+        self.assertEqual(len(tabs), 9)
+        core = ["conversacion", "documentos", "lab", "ajustes"]
+        advanced = ["mando", "gobierno", "cuaderno", "harness", "modelos"]
         visible = [name for name, attrs in tabs if " hidden" not in attrs]
         self.assertEqual(visible, core)
         for name, attrs in tabs:
@@ -39,7 +39,7 @@ class Mvp(unittest.TestCase):
         self.assertIn('showAdvancedTools(true)', JS)
         self.assertIn('mvp-tabs-changed', JS)
         self.assertIn('aria-expanded="false"', HTML)
-        self.assertIn('aria-controls="tab-gobierno tab-cuaderno tab-lab tab-harness"', HTML)
+        self.assertIn('aria-controls="pestanas"', HTML)
     def test_node_setup_is_existing_read_not_false_deploy(self):
         self.assertIn('id="mvp-open-node"', HTML)
         self.assertIn('id="ajustes-nodo"', HTML)
@@ -47,8 +47,8 @@ class Mvp(unittest.TestCase):
         self.assertIn('button.click(); // Existing read-only identity operation', JS)
         self.assertNotIn('id="node-deploy"', HTML)
     def test_worker_is_not_stale(self):
-        self.assertIn('preceptoros-armazon-v209', SW)
-        for path in ('/app.js?v=44', '/app.css?v=33', '/zonas.js?v=2'):
+        self.assertIn('preceptoros-armazon-v210', SW)
+        for path in ('/app.js?v=46', '/app.css?v=34', '/zonas.js?v=3'):
             self.assertIn(path, HTML)
             self.assertIn(path, SW)
 

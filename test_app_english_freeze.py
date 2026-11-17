@@ -40,14 +40,14 @@ class EnglishOnlyApp(unittest.TestCase):
         self.assertIn('lengua === "ar" ? "rtl" : "ltr"', self.js)
 
     def test_fresh_shell_asset_versions_match_pinned_service_worker(self):
-        self.assertIn('src="/app.js?v=44"', self.html)
-        self.assertIn('"/app.js?v=44"', self.sw)
-        self.assertIn('preceptoros-armazon-v209', self.sw)
-        self.assertIn('src="/energia_ui.js?v=3"', self.html)
-        self.assertIn('"/energia_ui.js?v=3"', self.sw)
+        self.assertIn('src="/app.js?v=46"', self.html)
+        self.assertIn('"/app.js?v=46"', self.sw)
+        self.assertIn('preceptoros-armazon-v210', self.sw)
+        self.assertIn('src="/energia_ui.js?v=2"', self.html)
+        self.assertIn('"/energia_ui.js?v=2"', self.sw)
 
-    def test_page_has_one_talk_and_eight_tabs(self):
-        self.assertEqual(len(re.findall(r'role="tab"', self.html)), 8)
+    def test_page_has_one_talk_and_nine_tabs(self):
+        self.assertEqual(len(re.findall(r'role="tab"', self.html)), 9)
         self.assertIn('id="form-chat"', self.html)
         self.assertIn('id="energy-status" role="status" aria-live="polite"', self.html)
 

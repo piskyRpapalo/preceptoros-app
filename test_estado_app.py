@@ -38,7 +38,7 @@ class ContratoSuperficie(unittest.TestCase):
 
     def test_solo_acepta_zonas_del_catalogo_y_destino_coincidente(self):
         self.assertEqual(set(ZONAS), {"mando", "conversacion", "gobierno", "cuaderno",
-                                     "lab", "harness", "puerta", "modelos", "ajustes"})
+                                     "lab", "harness", "puerta", "modelos", "ajustes", "documentos"})
         estado = estado_base()
         estado["zona"] = "externa"
         with self.assertRaises(ValueError):
