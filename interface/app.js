@@ -833,6 +833,15 @@ function showAdvancedTools(open) {
     mostrar(paneles.findIndex((z) => z.id === "ajustes"));
   }
   document.querySelectorAll('.pestanas [data-mvp="advanced"]').forEach((tab) => { tab.hidden = !open; });
+  // The back control remains visible after the popover is dismissed: closing
+  // a menu must not trap a visitor among nine technical tabs.
+  const back = $("technical-options-close");
+  if (back) back.hidden = !open;
+  if (!open) {
+    const menu = $("technical-options-menu"), toggle = $("technical-options-toggle");
+    if (menu) menu.hidden = true;
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+  }
   const status = $("mvp-tools-status");
   if (status) {
     const state = open ? "AVAILABLE" : "HIDDEN";
@@ -842,6 +851,17 @@ function showAdvancedTools(open) {
   }
   document.dispatchEvent(new Event("mvp-tabs-changed"));
 }
+function returnToMvp() {
+  showAdvancedTools(false);
+  // Return keyboard focus to the selected primary tab, not to a hidden
+  // technical button or a menu item that has just disappeared.
+  const primary = document.querySelector('.pestanas [role="tab"][aria-selected="true"]');
+  if (primary) primary.focus();
+}
+["technical-options-close", "technical-options-dismiss"].forEach((id) => {
+  const button = $(id);
+  if (button) button.addEventListener("click", returnToMvp);
+});
 
 /* Technical Options toggle: always visible in header, never hidden inside hidden tools
  * Accessibility: Escape closes and returns focus, Tab wraps within menu,
