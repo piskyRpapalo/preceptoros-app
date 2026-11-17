@@ -46,6 +46,7 @@ import sys
 import threading
 import urllib.error
 import urllib.parse
+import uuid
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -1403,12 +1404,14 @@ class PWA(BaseHTTPRequestHandler):
         if cause:
             return refuse(409 if cause in ("no_transport", "use_station_door") else 400, cause)
         try:
-            m = _canales.di_soberano(_conversacion.THREAD, texto, base=_casa.raiz(), para=para)
+            request_id = "app-" + uuid.uuid4().hex
+            m = _canales.di_soberano(_conversacion.THREAD, texto, base=_casa.raiz(), para=para,
+                                     request_id=request_id)
         except _canales.CanalRechazado:
             return refuse(503, "thread_append_refused")
-        return self._json(200, {"state": "DELIVERED_TO_THREAD", "n": m["n"], "to": para,
+        return self._json(200, {"state": "DELIVERED_TO_THREAD", "n": m["n"], "request_id": request_id, "to": para,
                                 "delivery": _conversacion.BY_ID[para]["transport"],
-                                "reply": "NO_DATA: not promised; the recipient reads the thread on its own turn"})
+                                "reply": "PENDING: no authenticated process receipt is available"})
 
     def _hexelion_chat(self):
         """Append the person's turn, then proxy one bounded local station call."""

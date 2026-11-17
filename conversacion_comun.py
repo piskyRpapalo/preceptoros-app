@@ -17,12 +17,14 @@ A message is data, never authority: addressing someone does not give them permis
 from __future__ import annotations
 
 import datetime as dt
+import re
 
 SCHEMA = "preceptoros.multipreceptor/1"
 THREAD = "orquesta"
 MAX_TEXT = 600            # what the person may send (the chat door has the same ceiling)
 MAX_SHOWN = 1200          # what one projected message may show
 MAX_MESSAGES = 40
+_REQUEST_ID = re.compile(r"app-[0-9a-f]{32}\Z")
 
 # The table of preceptors. Order is the order the app shows. `route`: station (Hexelion's door), thread (the message
 # is delivered to the shared thread; the recipient reads it on its own turn), none (not addressable from here).
@@ -127,6 +129,9 @@ def project(lectura, now, since=0, limit=MAX_MESSAGES):
         to = machine.get("para")
         if isinstance(to, str) and to in BY_ID:
             row["to"] = to
+        request_id = machine.get("request_id")
+        if isinstance(request_id, str) and _REQUEST_ID.fullmatch(request_id):
+            row["request_id"] = request_id
         if isinstance(machine.get("modelo"), str):
             row["model"] = machine["modelo"][:60]
         if isinstance(machine.get("fuentes"), list):
