@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=29">
+<link rel="stylesheet" href="/app.css?v=30">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
@@ -516,6 +516,39 @@
       </form>
       <p id="node-building-status" role="status" aria-live="polite" data-i18n="node_building_none">No se ha declarado ningún edificio desde esta pantalla.</p>
     </section>
+    <section class="tarjeta" lang="en" aria-labelledby="companion-onboard-title">
+      <h3 id="companion-onboard-title">Join as a Companion · prepare a project</h3>
+      <p class="pie" id="companion-onboard-help">Fill in your project details to generate a portable handoff draft. The draft stays in your browser until you copy or download it. Nothing is sent, published, or registered here.</p>
+      <form id="companion-onboard-form" autocomplete="off">
+        <label id="companion-slug-label" for="companion-slug">Companion slug</label>
+        <input id="companion-slug" name="slug" required maxlength="24" pattern="[a-z0-9][a-z0-9-]{0,23}"
+               aria-describedby="companion-slug-hint" autocomplete="off">
+        <p class="pie" id="companion-slug-hint">Lowercase letters, digits, and hyphens. Must start with a letter or digit. 1–24 characters.</p>
+
+        <label id="companion-title-label" for="companion-title">Project title</label>
+        <input id="companion-title" name="title" required maxlength="80" autocomplete="off">
+
+        <label id="companion-summary-label" for="companion-summary">Short project summary</label>
+        <textarea id="companion-summary" name="summary" required rows="3" maxlength="600"></textarea>
+
+        <label id="companion-agent-label" for="companion-agent">External agent or provider name <span class="pie" data-rotulo="companion-agent-optional">(optional)</span></label>
+        <input id="companion-agent" name="agent" maxlength="80" autocomplete="off">
+        <p class="pie" id="companion-agent-hint">Name only — never credentials, keys, or tokens.</p>
+
+        <button type="button" class="probar" id="companion-generate" style="min-height:44px">Generate draft</button>
+      </form>
+
+      <p id="companion-status" role="status" aria-live="polite" aria-atomic="true" data-state="DRAFT_ONLY" data-acho="DRAFT_ONLY">DRAFT_ONLY · fill the form and click Generate.</p>
+
+      <pre id="companion-draft" class="companion-draft" aria-label="Handoff draft text"></pre>
+
+      <button type="button" class="probar" id="companion-copy" disabled style="min-height:44px">Copy draft</button>
+      <button type="button" class="probar" id="companion-download" disabled style="min-height:44px">Download draft</button>
+      <button type="button" class="probar" id="companion-reset" style="min-height:44px">Clear form</button>
+
+      <p class="pie" id="companion-note">This draft guides an external agent to propose a docs-only declaration. It does not register a node, grant authority, or publish a project. You review and submit the PR. Public visibility in OpenWorld requires a separate verified step: NO_DATA(world_publication_not_verified).</p>
+      <p class="pie"><a data-rotulo="companion-guide" href="https://github.com/piskyRpapalo/preceptoros-companion" target="_blank" rel="noopener noreferrer">Open the public Companion guide</a> · <a data-rotulo="companion-download-page" href="https://preceptoros.org/get-the-app/" target="_blank" rel="noopener noreferrer">Get the app</a></p>
+    </section>
     </details>
     <details class="grupo ajustes-grupo" id="ajustes-puerta">
       <summary><h3 id="ajustes-puerta-titulo">Public gate and local tray</h3></summary>
@@ -581,7 +614,9 @@
 <script src="/creation_publish.js?v=2"></script>
 <script src="/node_building.js?v=1"></script>
 <script src="/node_registration.js?v=1"></script>
+<script src="/companion_onboarding.js?v=1"></script>
 <script>PreceptorNodeRegistration.mount(document);</script>
+<script>PreceptorCompanionOnboarding.mount(document);</script>
 <script>
 document.getElementById('tray-read').addEventListener('click', async function () {
   const out = document.getElementById('tray-result');
