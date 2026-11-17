@@ -634,3 +634,277 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 #mvp-start { display: grid; gap: .5rem; }
 #mvp-start .probar { min-height: 44px; justify-self: start; }
 #mvp-tools-status[data-state="HIDDEN"] { color: var(--ink); }
+
+/* Technical Options: always visible in header, never hidden inside hidden tools */
+.header-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 100;
+}
+.technical-options-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+.technical-options-toggle:hover,
+.technical-options-toggle:focus-visible {
+  background: var(--hover);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.technical-options-menu {
+  position: absolute;
+  top: 3rem;
+  right: 0.5rem;
+  z-index: 101;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+  padding: 1rem;
+  max-width: 320px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.technical-options-menu h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+.technical-options-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.technical-options-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.technical-options-list li:last-child {
+  border-bottom: none;
+}
+.technical-options-list .ir {
+  min-height: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  padding: 0;
+}
+.technical-options-list .ir:hover,
+.technical-options-list .ir:focus-visible {
+  text-decoration: underline;
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.technical-options-list .pie {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Chat Superbot: interlocutor header */
+.conv-interlocutor {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  min-height: 44px;
+}
+.conv-interlocutor-glyph {
+  font-size: 1.4rem;
+  width: 1.5rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+.conv-interlocutor-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.conv-interlocutor-type {
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 0.2rem 0.5rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+}
+.conv-interlocutor[data-state="private"] .conv-interlocutor-glyph {
+  color: var(--ok);
+}
+.conv-interlocutor[data-state="personal"] .conv-interlocutor-glyph {
+  color: var(--warn);
+}
+.conv-interlocutor[data-state="no_data"] .conv-interlocutor-glyph {
+  color: var(--muted);
+}
+
+/* Documents panel */
+.documentos-acciones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.documentos-acciones .probar {
+  min-height: 44px;
+}
+.documentos-editor {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+}
+.documentos-editor label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.documentos-editor input[type="text"],
+.documentos-editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+}
+.documentos-editor textarea {
+  min-height: 200px;
+  resize: vertical;
+}
+.documentos-botones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.documentos-botones .probar {
+  min-height: 44px;
+}
+.documentos-lista {
+  margin: 1rem 0;
+}
+.documentos-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+  margin-bottom: 0.5rem;
+}
+.documentos-item-title {
+  font-weight: 600;
+}
+.documentos-item-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+  grid-column: 1 / -1;
+}
+.documentos-item-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.documentos-item-actions .probar {
+  min-height: 44px;
+  padding: 0.25rem 0.75rem;
+}
+
+/* My node journey steps */
+.mvp-journey {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+.mvp-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+  min-height: 44px;
+}
+.mvp-step:last-child {
+  border-bottom: none;
+}
+.mvp-step-glyph {
+  font-size: 1.2rem;
+  width: 1.5rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+.mvp-step[data-state="done"] .mvp-step-glyph {
+  color: var(--ok);
+}
+.mvp-step[data-state="working"] .mvp-step-glyph {
+  color: var(--warn);
+}
+.mvp-step[data-state="pending"] .mvp-step-glyph {
+  color: var(--muted);
+}
+.mvp-step[data-state="refused"] .mvp-step-glyph {
+  color: var(--stop);
+}
+
+/* Accessibility: forced colors mode */
+@media (forced-colors: active) {
+  .technical-options-toggle {
+    border-color: CanvasText;
+  }
+  .technical-options-menu {
+    border-color: CanvasText;
+  }
+  .documentos-editor {
+    border-color: CanvasText;
+  }
+  .documentos-item {
+    border-color: CanvasText;
+  }
+  .mvp-step {
+    border-color: CanvasText;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .technical-options-menu {
+    box-shadow: none;
+  }
+}
+
+/* Narrow screens: 360px and 420px */
+@media (max-width: 420px) {
+  .technical-options-menu {
+    max-width: 280px;
+    right: 0;
+  }
+  .documentos-item {
+    grid-template-columns: 1fr;
+  }
+  .documentos-item-actions {
+    justify-content: flex-start;
+  }
+  .header-actions {
+    top: 0.25rem;
+    right: 0.25rem;
+  }
+}

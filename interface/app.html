@@ -33,17 +33,39 @@
       <ul class="turnos" id="modelos-lista"></ul>
     </section>
   </div>
+  <!-- Technical Options: always visible in header, never hidden inside hidden tools -->
+  <div class="header-actions">
+    <button type="button" id="technical-options-toggle" class="technical-options-toggle" type="button"
+            aria-haspopup="menu" aria-expanded="false" aria-controls="technical-options-menu">
+      <span>⚙</span>
+      <span class="sr">Technical Options</span>
+    </button>
+  </div>
+  <section id="technical-options-menu" class="technical-options-menu" role="menu" aria-label="Technical Options" tabindex="-1" hidden>
+    <h2>Technical Options</h2>
+    <p class="pie">Advanced tools for operators. These panels are hidden by default, not removed.</p>
+    <ul class="technical-options-list">
+      <li><button type="button" class="ir" data-ir="mando" id="tech-opt-mando">Command</button><span class="pie">Sensor of your memory, never an actor</span></li>
+      <li><button type="button" class="ir" data-ir="gobierno" id="tech-opt-gobierno">Boundary</button><span class="pie">Signatures and authorization</span></li>
+      <li><button type="button" class="ir" data-ir="cuaderno" id="tech-opt-cuaderno">Notebook</button><span class="pie">Operational receipts and evidence</span></li>
+      <li><button type="button" class="ir" data-ir="harness" id="tech-opt-harness">Harness</button><span class="pie">Loops, team and operator visibility</span></li>
+      <li><button type="button" class="ir" data-ir="modelos" id="tech-opt-modelos">World</button><span class="pie">OpenWorld map and Acho language</span></li>
+    </ul>
+  </section>
 <div class="carril-pestanas">
 <button type="button" class="flecha" id="panel-anterior" aria-label="Previous panel" title="Previous panel" aria-controls="pestanas">←</button>
 <nav class="pestanas" id="pestanas" role="tablist" aria-orientation="horizontal" aria-label="Zonas">
-  <button id="tab-mando" role="tab" aria-controls="panel-mando" aria-selected="false" tabindex="-1" data-panel="mando" data-i18n="tab_mando" aria-label="Command" title="Command">Command</button>
-  <button id="tab-conversacion" role="tab" aria-controls="panel-conversacion" aria-selected="true" tabindex="0" data-panel="conversacion" data-i18n="tab_chat" aria-label="Talk" title="Talk">Talk</button>
+  <!-- Four main zones: Chat · Documents · Lab · My node -->
+  <button id="tab-conversacion" role="tab" aria-controls="panel-conversacion" aria-selected="true" tabindex="0" data-panel="conversacion" data-i18n="tab_chat" aria-label="Chat" title="Chat">▱ Chat</button>
+  <button id="tab-documentos" role="tab" aria-controls="panel-documentos" aria-selected="false" tabindex="-1" data-panel="documentos" data-i18n="tab_documents" aria-label="Documents" title="Documents">▤ Documents</button>
+  <button id="tab-lab" role="tab" aria-controls="panel-lab" aria-selected="false" tabindex="-1" data-panel="lab" data-i18n="tab_lab" aria-label="Lab" title="Lab">⚗ Lab</button>
+  <button id="tab-ajustes" role="tab" aria-controls="panel-ajustes" aria-selected="false" tabindex="-1" data-panel="ajustes" data-i18n="tab_mynode" aria-label="My node" title="My node">⌂ My node</button>
+  <!-- Advanced zones: hidden by default, accessible via Technical Options -->
+  <button id="tab-mando" role="tab" aria-controls="panel-mando" aria-selected="false" tabindex="-1" data-panel="mando" data-i18n="tab_mando" aria-label="Command" title="Command" data-mvp="advanced" hidden>Command</button>
   <button id="tab-gobierno" role="tab" aria-controls="panel-gobierno" aria-selected="false" tabindex="-1" data-panel="gobierno" data-i18n="tab_frontera" aria-label="Boundary" title="Boundary" data-mvp="advanced" hidden>Boundary</button>
   <button id="tab-cuaderno" role="tab" aria-controls="panel-cuaderno" aria-selected="false" tabindex="-1" data-panel="cuaderno" data-i18n="tab_cuaderno" aria-label="Notebook" title="Notebook" data-mvp="advanced" hidden>Notebook</button>
-  <button id="tab-lab" role="tab" aria-controls="panel-lab" aria-selected="false" tabindex="-1" data-panel="lab" data-i18n="tab_lab" aria-label="Lab" title="Lab" data-mvp="advanced" hidden>Lab</button>
   <button id="tab-harness" role="tab" aria-controls="panel-harness" aria-selected="false" tabindex="-1" data-panel="harness" data-i18n="tab_harness" aria-label="Harness" title="Harness" data-mvp="advanced" hidden>Harness</button>
-    <button id="tab-modelos" role="tab" aria-controls="panel-modelos" aria-selected="false" tabindex="-1" data-panel="modelos" data-i18n="tab_mundo" aria-label="World" title="World">World</button>
-  <button id="tab-ajustes" role="tab" aria-controls="panel-ajustes" aria-selected="false" tabindex="-1" data-panel="ajustes" data-i18n="tab_ajustes" aria-label="Settings" title="Settings">Settings</button>
+  <button id="tab-modelos" role="tab" aria-controls="panel-modelos" aria-selected="false" tabindex="-1" data-panel="modelos" data-i18n="tab_mundo" aria-label="World" title="World" data-mvp="advanced" hidden>World</button>
 </nav>
 <button type="button" class="flecha" id="panel-siguiente" aria-label="Next panel" title="Next panel" aria-controls="pestanas">→</button>
 </div>
@@ -80,10 +102,17 @@
   </section>
 
   <!-- hablar -->
-  <section class="panel" id="panel-conversacion" role="tabpanel" aria-labelledby="tab-conversacion" tabindex="0" aria-label="Talk">
-    <header class="panel-cabecera"><h2 class="sr" id="h-conversacion">Talk</h2>
+  <section class="panel" id="panel-conversacion" role="tabpanel" aria-labelledby="tab-conversacion" tabindex="0" aria-label="Chat">
+    <header class="panel-cabecera">
+      <h2 class="sr" id="h-conversacion">Chat</h2>
+      <!-- Interlocutor header: shows name and type of conversation partner -->
+      <div class="conv-interlocutor" id="conv-interlocutor" role="status" aria-live="polite" data-state="loading" data-acho="waiting">
+        <span class="conv-interlocutor-glyph" id="conv-interlocutor-glyph" aria-hidden="true">◇</span>
+        <span class="conv-interlocutor-name" id="conv-interlocutor-name">Loading…</span>
+        <span class="conv-interlocutor-type" id="conv-interlocutor-type"></span>
+      </div>
       <p class="pie conv-destinos" id="conv-destinos" role="status" aria-live="polite">NO_DATA: the shared thread has not been read yet.</p>
-      <ul class="conv-estados" id="conv-estados" aria-label="Preceptors and what the evidence says each is doing"></ul>
+      <ul class="conv-estados" id="conv-estados" aria-label="Agents and what the evidence says each is doing"></ul>
       <button type="button" class="refrescar" data-refrescar="conversacion" aria-label="Refresh the shared thread" title="Refresh the shared thread">↻</button>
       <details class="comandos" id="comandos-hexelion">
         <summary class="refrescar" id="comandos-hexelion-abrir" aria-label="Hexelion commands" title="Hexelion commands">?</summary>
@@ -127,6 +156,39 @@
       <details id="plan-leido" hidden><summary data-i18n="plan_read_back_title">The stored text</summary><pre id="plan-leido-texto" class="plan-leido"></pre></details>
     </details>
     <ol class="hilo" id="hilo" aria-live="polite" aria-label="Shared thread: you, Hexelion and the rack preceptors"></ol>
+  </section>
+
+  <!-- Documents: personal documents, local-first, explicit consent -->
+  <section class="panel" id="panel-documentos" role="tabpanel" aria-labelledby="tab-documentos" tabindex="0" aria-label="Documents" hidden>
+    <header class="panel-cabecera">
+      <h2 class="sr" id="h-documentos">Documents</h2>
+      <p class="pie" id="documentos-estado" role="status" aria-live="polite">Your documents stay local until you explicitly share them.</p>
+      <button type="button" class="refrescar" data-refrescar="documentos" aria-label="Refresh Documents" title="Refresh Documents">↻</button>
+    </header>
+    <section class="documentos-acciones" aria-labelledby="documentos-acciones-titulo">
+      <h3 id="documentos-acciones-titulo">Actions</h3>
+      <input type="file" id="documentos-importar" accept=".txt,.md,.json,.csv,.html,.xml" multiple aria-label="Import a document" hidden>
+      <button type="button" id="documentos-importar-btn" class="probar" aria-controls="documentos-importar">Import document</button>
+      <button type="button" id="documentos-nuevo-btn" class="probar">New document</button>
+    </section>
+    <section class="documentos-editor" id="documentos-editor" aria-labelledby="documentos-editor-titulo" hidden>
+      <h3 id="documentos-editor-titulo">Editor</h3>
+      <p class="pie" id="documentos-editor-estado" role="status" aria-live="polite" data-state="draft" data-acho="waiting">Draft in memory. Not saved yet.</p>
+      <label for="documentos-titulo" data-i18n="documentos_titulo">Title</label>
+      <input type="text" id="documentos-titulo" autocomplete="off" maxlength="80" aria-describedby="documentos-editor-estado">
+      <label for="documentos-contenido" data-i18n="documentos_contenido">Content</label>
+      <textarea id="documentos-contenido" rows="12" aria-describedby="documentos-editor-estado"></textarea>
+      <div class="documentos-botones">
+        <button type="button" id="documentos-guardar" class="probar" disabled>Save locally</button>
+        <button type="button" id="documentos-descargar" class="probar" disabled>Download</button>
+        <button type="button" id="documentos-cancelar" class="probar">Cancel</button>
+      </div>
+    </section>
+    <section class="documentos-lista" id="documentos-lista" aria-labelledby="documentos-lista-titulo">
+      <h3 id="documentos-lista-titulo">Your documents</h3>
+      <p class="pie" id="documentos-lista-vacio" role="status" aria-live="polite">No documents yet. Import or create one to get started.</p>
+      <ul id="documentos-items" aria-label="Document list"></ul>
+    </section>
   </section>
 
   <!-- frontera -->
@@ -281,16 +343,28 @@
             allow="autoplay; fullscreen" hidden></iframe>
     <a class="openworld-fallback" data-i18n="world_open_new" href="https://preceptoros.org/openworld/" target="_blank" rel="noopener noreferrer">Abrir OpenWorld en otra pestaña</a>
   </section>
-  <section class="panel" id="panel-ajustes" role="tabpanel" aria-labelledby="tab-ajustes" tabindex="0" aria-label="Settings" hidden>
-    <header class="panel-cabecera"><h2 data-i18n="tab_ajustes" id="h-ajustes">Settings</h2>
+  <section class="panel" id="panel-ajustes" role="tabpanel" aria-labelledby="tab-ajustes" tabindex="0" aria-label="My node" hidden>
+    <header class="panel-cabecera"><h2 data-i18n="tab_mynode" id="h-ajustes">My node</h2>
       <p class="pie" id="ajustes-estado" role="status" aria-live="polite">NO_DATA: Settings are read when this tab opens.</p>
-      <button type="button" class="refrescar" data-refrescar="ajustes" aria-label="Refresh Settings" title="Refresh Settings">↻</button></header>
+      <button type="button" class="refrescar" data-refrescar="ajustes" aria-label="Refresh My node" title="Refresh My node">↻</button></header>
+    <!-- My node journey: 10 visible steps from install to revoke access -->
     <section class="tarjeta mvp-start" id="mvp-start" aria-labelledby="mvp-start-title">
-      <h3 id="mvp-start-title">Set up your node</h3>
+      <h3 id="mvp-start-title">My node journey</h3>
+      <ol class="mvp-journey" id="mvp-journey" aria-label="Setup steps">
+        <li class="mvp-step" data-step="1" data-state="pending"><span class="mvp-step-glyph">○</span> Install PreceptorOS</li>
+        <li class="mvp-step" data-step="2" data-state="pending"><span class="mvp-step-glyph">○</span> Name your mini orchestrator</li>
+        <li class="mvp-step" data-step="3" data-state="pending"><span class="mvp-step-glyph">○</span> Select a model</li>
+        <li class="mvp-step" data-step="4" data-state="pending"><span class="mvp-step-glyph">○</span> Configure agents</li>
+        <li class="mvp-step" data-step="5" data-state="pending"><span class="mvp-step-glyph">○</span> Prepare personal building</li>
+        <li class="mvp-step" data-step="6" data-state="pending"><span class="mvp-step-glyph">○</span> Generate declaration</li>
+        <li class="mvp-step" data-step="7" data-state="pending"><span class="mvp-step-glyph">○</span> Request admission</li>
+        <li class="mvp-step" data-step="8" data-state="pending"><span class="mvp-step-glyph">○</span> Check acceptance or rejection</li>
+        <li class="mvp-step" data-step="9" data-state="pending"><span class="mvp-step-glyph">○</span> Verify presence in OpenWorld</li>
+        <li class="mvp-step" data-step="10" data-state="pending"><span class="mvp-step-glyph">○</span> Revoke access</li>
+      </ol>
       <p id="mvp-node-state" role="status" aria-live="polite" data-state="NO_DATA" data-acho="NO_DATA">Local identity setup is available below. Deployment to another computer is not connected here: NO_DATA(node_deployment_E2E_not_verified).</p>
       <button type="button" id="mvp-open-node" class="probar" aria-controls="ajustes-nodo">Open node identity setup</button>
-      <button type="button" id="mvp-more-tools" class="probar" aria-expanded="false" aria-controls="tab-gobierno tab-cuaderno tab-lab tab-harness">Show advanced tools</button>
-      <p class="pie" id="mvp-tools-status" role="status" aria-live="polite" data-state="HIDDEN" data-acho="HIDDEN">Four main panels. Advanced tools are hidden, not removed.</p>
+      <p class="pie" id="mvp-tools-status" role="status" aria-live="polite" data-state="HIDDEN" data-acho="HIDDEN">Advanced tools are available via Technical Options in the header.</p>
     </section>
     <details class="grupo ajustes-grupo" id="ajustes-dispositivo" open>
       <summary><h3 id="ajustes-dispositivo-titulo">This device and privacy</h3></summary>
@@ -567,8 +641,10 @@
 <script src="/node_building.js?v=1"></script>
 <script src="/node_registration.js?v=1"></script>
 <script src="/companion_onboarding.js?v=3"></script>
+<script src="/documents.js?v=1"></script>
 <script>PreceptorNodeRegistration.mount(document);</script>
 <script>PreceptorCompanionOnboarding.mount(document);</script>
+<script>PreceptorDocuments.mount(document);</script>
 <script>
 document.getElementById('tray-read').addEventListener('click', async function () {
   const out = document.getElementById('tray-result');
