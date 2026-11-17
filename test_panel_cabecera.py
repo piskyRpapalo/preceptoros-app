@@ -7,9 +7,9 @@ from html.parser import HTMLParser
 ROOT = pathlib.Path(__file__).resolve().parent
 HTML = (ROOT / "interface/app.html").read_text(encoding="utf-8")
 JS = (ROOT / "interface/app.js").read_text(encoding="utf-8")
-PANELS = ["mando", "conversacion", "gobierno", "cuaderno", "lab", "harness", "puerta", "modelos", "ajustes"]
+PANELS = ["mando", "conversacion", "gobierno", "cuaderno", "lab", "harness", "modelos", "ajustes"]
 ENGLISH = {"mando": "Command", "conversacion": "Talk", "gobierno": "Boundary", "cuaderno": "Notebook", "lab": "Lab",
-           "harness": "Harness", "puerta": "3DFabrika", "modelos": "World", "ajustes": "Settings"}
+           "harness": "Harness", "modelos": "World", "ajustes": "Settings"}
 WITH_REFRESH = {"conversacion", "gobierno", "lab", "harness", "ajustes"}   # cuaderno keeps its own labelled button
 WITH_STATUS = set(PANELS) - {"mando", "gobierno"}   # Command: compass speaks itself; Boundary: the HITL list does
 

@@ -18,7 +18,7 @@ def leer(ruta):
 class Flota(unittest.TestCase):
     def test_la_flota_abre_harness_antes_del_equipo(self):
         html = leer("interface/app.html")
-        h = html[html.index('id="panel-harness"'):html.index('id="panel-puerta"')]
+        h = html[html.index('id="panel-harness"'):html.index('id="panel-modelos"')]
         self.assertLess(h.index('id="fleet"'), h.index('id="team"'))
         self.assertIn('id="fleet-estado" role="status" aria-live="polite"', h)
 
@@ -40,7 +40,7 @@ class Flota(unittest.TestCase):
         self.assertIn('"/fleet_map.js": ("fleet_map.js"', leer("bin/preceptoros-pwa"))
         sw = leer("interface/sw.js")
         self.assertIn('"/fleet_map.js?v=1"', sw)
-        self.assertIn("preceptoros-armazon-v204", sw)
+        self.assertIn("preceptoros-armazon-v205", sw)
 
     def test_forced_colors_y_44px(self):
         css = leer("interface/app.css")

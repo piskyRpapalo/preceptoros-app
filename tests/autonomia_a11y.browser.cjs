@@ -172,7 +172,7 @@ async function waitServer(child) {
     await page.locator('#tab-mando').click();
     await page.locator('#tab-mando').focus();
     const tabs = await page.$$eval('.pestanas [role=tab]', (ts) => ts.map((t) => [t.id, t.getAttribute('aria-controls')]));
-    assert.equal(tabs.length, 9, 'nine panels');
+    assert.equal(tabs.length, 9, 'eight panels');
     const at = () => page.evaluate(() => { const a = document.activeElement;
       const shown = [...document.querySelectorAll('[role=tabpanel]')].filter((p) => !p.hidden && p.offsetParent !== null).map((p) => p.id);
       return [a.id, a.getAttribute('aria-selected'), a.tabIndex, shown]; });
@@ -365,10 +365,12 @@ async function waitServer(child) {
     assert.deepEqual(moves, { waiting: 0, uncertain: 0, verified: 1, verified_again: 0 }, 'moves once, only for a confirmed result');
     receipt.checks.acho_expression = moves;
 
+    // Specialist accessibility pass explicitly opens the advanced navigation.
+    await page.evaluate(() => document.getElementById('mvp-more-tools').click());
     // 15 · Panel flow: opening a panel speaks once. Its sections keep painting their own lines (visible, readable),
     // but only the panel's own line is spoken when the reading settles. A refresh keeps focus on its button.
     const openSaid = {};
-    for (const tab of ['#tab-mando', '#tab-gobierno', '#tab-cuaderno', '#tab-lab', '#tab-harness', '#tab-puerta', '#tab-modelos', '#tab-ajustes', '#tab-conversacion']) {
+    for (const tab of ['#tab-mando', '#tab-gobierno', '#tab-cuaderno', '#tab-lab', '#tab-harness', '#tab-modelos', '#tab-ajustes', '#tab-conversacion']) {
       await page.evaluate(() => { window.__said = []; });
       await page.locator(tab).click(); await page.waitForTimeout(1500);
       openSaid[tab.slice(5)] = await page.evaluate(() => window.__said.map((x) => x[0]));
@@ -387,7 +389,7 @@ async function waitServer(child) {
     for (const [panel, where] of Object.entries(focusAfterRefresh)) assert(where === 'kept' || where.startsWith('NO_DATA'), `refresh in ${panel} lost focus to ${where}`);
 
     // 16-19 · Accessibility proof (measure).
-    const TABS = ['#tab-mando', '#tab-conversacion', '#tab-gobierno', '#tab-cuaderno', '#tab-lab', '#tab-harness', '#tab-puerta', '#tab-modelos', '#tab-ajustes'];
+    const TABS = ['#tab-mando', '#tab-conversacion', '#tab-gobierno', '#tab-cuaderno', '#tab-lab', '#tab-harness', '#tab-modelos', '#tab-ajustes'];
     const proof = {};
     // 16 · Forced colours: focus still visible, marks drawn in system colours, line patterns kept.
     const fc = await browser.newPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
@@ -406,7 +408,7 @@ async function waitServer(child) {
       const big = await browser.newPage({ viewport: { width: w, height: h }, reducedMotion: 'reduce' });
       await big.goto(ORIGIN + '/app'); await big.waitForTimeout(600);
       proof.sizes[w + 'x' + h] = await big.evaluate(() => ({ scroll: document.documentElement.scrollWidth,
-        tabsOff: [...document.querySelectorAll('.pestanas [role=tab]')].filter((t) => { const r = t.getBoundingClientRect(); return r.right > innerWidth || r.left < 0 || r.width === 0; }).map((t) => t.id),
+        tabsOff: [...document.querySelectorAll('.pestanas [role=tab]:not([hidden])')].filter((t) => { const r = t.getBoundingClientRect(); return r.right > innerWidth || r.left < 0 || r.width === 0; }).map((t) => t.id),
         lineMax: Math.max(...[...document.querySelectorAll('[role=tabpanel]:not([hidden]) p')].map((p) => p.getBoundingClientRect().width)) }));
       await big.close();
     }
@@ -415,11 +417,12 @@ async function waitServer(child) {
     for (const api of ['notebook', 'harness', 'lab', 'lab-rack', 'hexelion/turnos', 'hexelion/tareas', 'lab/bench', 'conversacion', 'estado', 'captura', 'empieza-aqui', 'hitl'])
       await down.route('**/api/' + api + '*', (r) => r.fulfill({ status: 500, contentType: 'text/plain', body: 'down' }));
     await down.goto(ORIGIN + '/app'); await down.waitForTimeout(800);
+    await down.evaluate(() => document.getElementById('mvp-more-tools').click());
     proof.failure_text = {};
     for (const tab of TABS) { await down.locator(tab).click(); await down.waitForTimeout(1200);
       proof.failure_text[tab.slice(5)] = await down.evaluate(() => [...document.querySelectorAll('[role=tabpanel]:not([hidden]) [role=status], #estado')].map((e) => e.id + ': ' + e.textContent.trim().slice(0, 90))); }
     await down.close();
-    // 19 · State words as they read across the nine panels (the normal page).
+    // 19 · State words as they read across the eight panels (the normal page).
     proof.state_words = {};
     for (const tab of TABS) { await page.locator(tab).click(); await page.waitForTimeout(700);
       const text = await page.evaluate(() => document.querySelector('[role=tabpanel]:not([hidden])').innerText);
@@ -436,11 +439,11 @@ async function waitServer(child) {
     assert(!failed.some((l) => /\b(No se|Sin consultar|Leyendo|conexion|respuesta_invalida)\b/.test(l)), 'Spanish under failure');
     assert.deepEqual(Object.keys(proof.state_words).filter((w) => !['NO_DATA', 'DECLARED', 'OBSERVED', 'MEASURED', 'VERIFIED', 'REFUSED', 'UNKNOWN', 'STALE'].includes(w)), [], 'a state word read in a second spelling');
 
-    // 13 · English only, first paint included: no Spanish words visible in any of the nine panels.
+    // 13 · English only, first paint included: no Spanish words visible in any of the eight panels.
     // `canal:<thread>` is lab.py's source identifier (data, pinned by test_lab), not prose; it is not matched.
     const spanish = /\b(Bucles|Consultando|aún|comprobando|Zona activa|Hablar|mensajes|Publicar|creación|Identidad|edificio|Redacción|Modelos locales|Canales recientes|Elige|ninguna)\b/;
     const leaks = [];
-    for (const tab of ['#tab-mando', '#tab-conversacion', '#tab-gobierno', '#tab-cuaderno', '#tab-lab', '#tab-harness', '#tab-puerta', '#tab-modelos', '#tab-ajustes']) {
+    for (const tab of ['#tab-mando', '#tab-conversacion', '#tab-gobierno', '#tab-cuaderno', '#tab-lab', '#tab-harness', '#tab-modelos', '#tab-ajustes']) {
       await page.locator(tab).click(); await page.waitForTimeout(700);
       const text = await page.evaluate(() => document.querySelector('[role=tabpanel]:not([hidden])').innerText + ' ' + document.querySelector('#estado').textContent);
       for (const line of text.split('\n')) if (spanish.test(line)) leaks.push(tab + ': ' + line.trim().slice(0, 60));

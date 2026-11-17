@@ -48,8 +48,8 @@ class TabsMoveFromFocus(unittest.TestCase):
 
     def test_arrows_count_from_the_focused_tab(self):
         js = (Path(__file__).resolve().parent / "interface/app.js").read_text(encoding="utf-8")
-        self.assertIn('if (e.key === "ArrowRight") siguiente = (n + 1) % paneles.length;', js)
-        self.assertIn('if (e.key === "ArrowLeft") siguiente = (n + paneles.length - 1) % paneles.length;', js)
+        self.assertIn('if (e.key === "ArrowRight") siguiente = visibleNeighbor(n, 1, true);', js)
+        self.assertIn('if (e.key === "ArrowLeft") siguiente = visibleNeighbor(n, -1, true);', js)
         self.assertNotIn("(panelActual + 1) % paneles.length", js)
 
 

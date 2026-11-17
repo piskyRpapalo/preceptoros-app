@@ -413,28 +413,6 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 .flecha[aria-disabled="true"] { opacity: .45; cursor: default; }
 @media (forced-colors: active) { .flecha { border: 2px solid ButtonText; } .flecha[aria-disabled="true"] { border-style: dashed; opacity: 1; } }
 
-/* 3DFabrika: three steps down the page; the state line is the loudest thing after the title. */
-.fab-linea { font-weight: 600; border-left: 4px solid var(--ink); padding: 8px 12px; background: var(--paper); border-radius: 0 12px 12px 0; }
-.fab-pasos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-.fab-paso { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--paper); display: flex; flex-direction: column; gap: 8px; }
-.fab-paso h3 { margin: 0; }
-.fab-paso h3:focus-visible, #fab-maquina:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-#fab-form { display: flex; flex-direction: column; gap: 8px; }
-#fab-form label, .fab-medidas legend { font-weight: 600; }
-#fab-desc { width: 100%; min-height: 88px; font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); }
-.fab-medidas { border: 1px solid var(--line); border-radius: 8px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 12px; align-items: center; padding: 8px 12px; min-width: 0; }
-.fab-medidas input { min-height: 44px; min-width: 0; font: inherit; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); }
-#fab-form [aria-invalid="true"] { border: 2px solid var(--warn); }
-.fab-error { font-weight: 600; border: 2px solid var(--warn); border-radius: 8px; padding: 8px 12px; margin: 0; }
-.fab-error::before { content: "Fix this: "; }
-#fab-form button, #fab-detalle button, #fab-voz { min-height: 44px; }
-.fab-proyectos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.fab-proyecto { width: 100%; min-height: 44px; text-align: left; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: inherit; font: inherit; overflow-wrap: anywhere; }
-.fab-proyecto[aria-pressed="true"] { border: 2px solid var(--ink); font-weight: 600; }
-.fab-proyecto[aria-pressed="true"]::before { content: "Selected · "; }
-#fab-pedido { font-family: ui-monospace, monospace; overflow-wrap: anywhere; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 8px; user-select: all; }
-.fab-siguiente { font-weight: 600; }
-
 /* Notebook operativo · read-only projections from local receipts, not an agent controller. */
 #panel-cuaderno .notebook-heading, #panel-cuaderno .notebook-section {
   display: grid; gap: .55rem; margin: 0;
@@ -650,3 +628,9 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 /* Companion handoff: keep the same readable draft on narrow screens and in Acho. */
 .companion-draft { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; overflow-x: auto; }
 #companion-status { overflow-wrap: anywhere; }
+
+/* MVP: fewer navigation choices without dropping specialist functionality. */
+.pestanas [hidden] { display: none !important; }
+#mvp-start { display: grid; gap: .5rem; }
+#mvp-start .probar { min-height: 44px; justify-self: start; }
+#mvp-tools-status[data-state="HIDDEN"] { color: var(--ink); }
