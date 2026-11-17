@@ -15,6 +15,31 @@ test('valid user-owned draft and explicit NO_DATA web state', () => {
   assert.match(r.text, /human reviews and submits the PR/i);
   assert.doesNotMatch(r.text, /\bAUTHORIZED\b|\bPUBLISHED\b/);
 });
+test('one building and RAG/defense review route remain a human-owned proposal', () => {
+  const r = app.renderDraft(good());
+  assert.equal(r.ok, true);
+  assert.match(r.text, /Building count:\*\* 1/);
+  assert.match(r.text, /companions\/team-7\/knowledge\.md/);
+  assert.match(r.text, /companions\/team-7\/defense\.md/);
+  assert.match(r.text, /NO_DATA\(architect_notification_delivery_not_verified\)/);
+  assert.match(r.text, /NO_DATA\(node_admission_not_approved\)/);
+  assert.match(r.text, /ONE building/);
+  assert.match(r.text, /docs-only PR into preceptoros-companion/);
+  assert.match(r.text, /NPC ownership returns/);
+  assert.doesNotMatch(r.text, /Status: PUBLISHED|Status: LIVE|automatic deploy/i);
+});
+
+test('review link opens only a user-controlled issue composer; no direct notification is asserted', () => {
+  const u = app.architectReviewUrl('team-7');
+  const url = new URL(u);
+  assert.equal(url.origin, 'https://github.com');
+  assert.equal(url.pathname, '/piskyRpapalo/preceptoros-companion/issues/new');
+  assert.match(url.searchParams.get('title'), /team-7/);
+  assert.match(url.searchParams.get('body'), /@piskyRpapalo/);
+  assert.match(url.searchParams.get('body'), /pending review/);
+  assert.equal(app.architectReviewUrl('../bad'), null);
+});
+
 test('required fields and slugs are validated in the actual JS', () => {
   for (const k of ['slug','title','summary']) {
     const x = good(); delete x[k]; assert.equal(app.renderDraft(x).ok, false, k);
@@ -80,7 +105,7 @@ test('render stays in memory without fetch or storage', () => {
   finally {globalThis.fetch=oldFetch;}
 });
 function fixture(){
-  const ids=['companion-onboard-form','companion-slug','companion-title','companion-summary','companion-agent','companion-status','companion-draft','companion-copy','companion-download','companion-reset','companion-generate'];
+  const ids=['companion-onboard-form','companion-slug','companion-title','companion-summary','companion-agent','companion-status','companion-draft','companion-copy','companion-download','companion-reset','companion-generate','companion-request-review'];
   const n={};
   for(const id of ids){
     n[id]={value:'',textContent:'',disabled:id==='companion-copy'||id==='companion-download',handlers:{},attrs:{},
@@ -96,6 +121,23 @@ function fixture(){
   app.mount({getElementById:id=>n[id]||null});
   return n;
 }
+test('review link is hidden until draft, invalidated on edits and reset', () => {
+  const n = fixture(), review = n['companion-request-review'];
+  assert.equal(review.hidden, true);
+  assert.equal(review.href, '');
+  n['companion-generate'].fire('click');
+  assert.equal(review.hidden, false);
+  assert.match(review.href, /issues\/new/);
+  assert.equal(review.href.includes('A public human-owned project'), false);
+  n['companion-summary'].value = 'Changed';
+  n['companion-summary'].fire('input');
+  assert.equal(review.hidden, true);
+  assert.equal(review.href, '');
+  n['companion-generate'].fire('click');
+  n['companion-reset'].fire('click');
+  assert.equal(review.hidden, true);
+});
+
 test('browser initialization is silent and never exports a draft', () => {
   const n=fixture();
   assert.equal(n['companion-draft'].textContent,'');
