@@ -491,9 +491,14 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # La terminal zombie oxida su metal con la banda SIMULATED: el mapa de
         # la cara ES una simulacion, asi que el color dice la verdad literal.
         INTRINSECOS |= {"SIMULATED"}
+        # Settings · Your private memory says its state in the APP's own words (memory_onboarding.js).
+        INTRINSECOS |= {"READY", "CREATED", "BLOCKED", "NEEDS", "YOU", "WORKING", "REFUSED"}
         # El busto canon del Codex lleva su ojo violeta en la banda FIRMADO:
         # en esta casa el violeta significa firmado. Banda, no politica.
         INTRINSECOS |= {"FIRMADO"}
+        # Talk · storing a plan (plan_composer.js) says the store's own verifiable state word, PLAN_STORED, and the
+        # same state words as the rest of the APP: state sentences, not policy names.
+        INTRINSECOS |= {"PLAN_STORED", "WORKING", "REFUSED", "BLOCKED"}
         # Las cabeceras del panel de la cara llevan su sello como el marco de
         # la terminal canon (LIVE, STALE o NO_DATA): estado, no politica.
         INTRINSECOS |= {"LIVE"}

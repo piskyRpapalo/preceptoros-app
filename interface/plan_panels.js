@@ -79,7 +79,9 @@
     if (p.state !== "shown") { box.hidden = true; return; }
     box.hidden = false; box.replaceChildren();
     const c = p.counts, line = ["PROPOSED", "AUTHORIZED", "DISPATCHED", "RUNNING", "RESULT", "DENIED"].filter((k) => c[k]).map((k) => c[k] + " " + k).join(" · ");
-    box.append(el("p", "plan-line", (p.synthetic ? "SYNTHETIC · " : "") + "Plan " + p.plan.sha.slice(0, 12) + ": " + line + "."));
+    // A stored plan with no tasks is said as what it is: stored, not proposed, not authorized.
+    box.append(el("p", "plan-line", (p.synthetic ? "SYNTHETIC · " : "") + "Plan " + p.plan.sha.slice(0, 12) + ": "
+      + (line || "PLAN_STORED · " + p.plan.bytes + " B · no task proposed (" + String(p.abstained || "NO_DATA").replace(/_/g, " ") + ")") + "."));
     if (sug.length) {
       box.append(el("p", "plan-next-title", "What could come next (suggestions from the records, not authorizations):"));
       const ol = el("ol", "plan-next");

@@ -308,8 +308,8 @@ class Shell(unittest.TestCase):
         self.assertIn('#comandos-hexelion [data-comando]', app)
         self.assertIn('"ACTED", "ACTION_REFUSED"', (ROOT / "interface/notebook.js").read_text(encoding="utf-8"))
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf-8")
-        self.assertIn("preceptoros-armazon-v199", sw)
-        for asset in ('"/app.js?v=40"', '"/app.css?v=27"', '"/notebook.js?v=20"'):
+        self.assertIn("preceptoros-armazon-v201", sw)
+        for asset in ('"/app.js?v=40"', '"/app.css?v=29"', '"/notebook.js?v=20"'):
             self.assertIn(asset, sw)
 
 
