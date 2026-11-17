@@ -499,6 +499,12 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # Talk · storing a plan (plan_composer.js) says the store's own verifiable state word, PLAN_STORED, and the
         # same state words as the rest of the APP: state sentences, not policy names.
         INTRINSECOS |= {"PLAN_STORED", "WORKING", "REFUSED", "BLOCKED"}
+        # Companion first-run draft state: declaration is local, never submitted or published.
+        INTRINSECOS |= {"DRAFT_ONLY"}
+        # Companion onboarding handoff mentions public filename stems and exact secret-format lexemes,
+        # not policies or tokens. The specific vocabulary is closed; arbitrary uppercase names still fail.
+        INTRINSECOS |= {"AGENT_CARD", "CONTRIBUTING", "DECLARATION", "GROUNDTRUTH", "GUIDE", "STATE",
+                       "BEGIN", "DSA", "OPENSSH", "PRIVATE", "RSA", "PROPOSE", "ENTER"}
         # Las cabeceras del panel de la cara llevan su sello como el marco de
         # la terminal canon (LIVE, STALE o NO_DATA): estado, no politica.
         INTRINSECOS |= {"LIVE"}

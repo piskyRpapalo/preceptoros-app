@@ -372,6 +372,7 @@ ESTATICOS = {
     "/hitl.css": ("hitl.css", "text/css; charset=utf-8"),
     "/node_registration.js": ("node_registration.js", "application/javascript; charset=utf-8"),
     "/node_building.js": ("node_building.js", "application/javascript; charset=utf-8"),
+    "/companion_onboarding.js": ("companion_onboarding.js", "application/javascript; charset=utf-8"),
     # Índice canónico en la raíz del repo; el handler sirve esos mismos bytes.
     "/llms.txt": (os.path.join(AQUI, "llms.txt"), "text/plain; charset=utf-8"),
     "/zonas.js": ("zonas.js", "application/javascript; charset=utf-8"),
