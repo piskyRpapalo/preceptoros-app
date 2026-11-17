@@ -39,7 +39,7 @@ const textos = {
     comprobando: "comprobando…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "Firmas HITL", hitl_intro: "Los PRs que esperan tu firma. Nada se firma hasta que pulsas «Sí, firmo y fusiono».", hitl_recargar: "Actualizar lista", hitl_estado: "NO_DATA: la lista se lee al abrir Boundary.", hitl_si: "Sí, firmo y fusiono", hitl_no: "No",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "Consentimiento para entrenamiento · registro histórico", lo_que_dices: "Lo que dices",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "Sin datos: contenido de esta zona aún no declarado.", zona_activa: "Zona activa:", insertor_instrucciones: "Usa @panel para enrutar una pregunta; @ayuda abre ayuda local temporal.", ayuda_cerrar: "Cerrar ayuda",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "Sin datos: contenido de esta zona aún no declarado.", zona_activa: "Zona activa:", insertor_instrucciones: "Usa @panel para enrutar una pregunta; @ayuda abre ayuda local temporal.", ayuda_cerrar: "Cerrar ayuda", documentos_titulo: "Título", documentos_contenido: "Contenido",
     model_last_reply: "Último modelo que respondió", world_idle: "OpenWorld se cargará al abrir esta pestaña.", world_checking: "Comprobando conexión con OpenWorld…", world_loading: "Conexión disponible; cargando OpenWorld…", world_loaded: "El navegador terminó la navegación del marco; el estado HTTP externo no se puede leer aquí.", world_retry: "Reintentar OpenWorld", world_open_new: "Abrir OpenWorld en otra pestaña", world_frame_title: "OpenWorld: mapa, partida efímera y lenguaje Acho",
     ph_dicho: "Escribe tu respuesta…", dilo: "Dilo",
     pie_hallazgos: "Lo de arriba nunca es el texto encontrado: clase y cantidad, nada más. Los números vienen del payload — esta interfaz no cuenta.",
@@ -101,7 +101,7 @@ const textos = {
     comprobando: "checking…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "HITL signatures", hitl_intro: "The PRs waiting for your signature. Nothing is signed until you press «Yes, sign and merge».", hitl_recargar: "Refresh list", hitl_estado: "NO_DATA: the list is read when Boundary opens.", hitl_si: "Yes, sign and merge", hitl_no: "No",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "Training consent · historical record", lo_que_dices: "What you say",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "No data: content for this zone has not been declared.", zona_activa: "Active zone:", insertor_instrucciones: "Use @panel to route a question; @ayuda opens temporary local help.", ayuda_cerrar: "Close help",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "No data: content for this zone has not been declared.", zona_activa: "Active zone:", insertor_instrucciones: "Use @panel to route a question; @ayuda opens temporary local help.", ayuda_cerrar: "Close help", documentos_titulo: "Title", documentos_contenido: "Content",
     model_last_reply: "Last model that replied", world_idle: "OpenWorld loads when you open this tab.", world_checking: "Checking the OpenWorld connection…", world_loading: "Connection available; loading OpenWorld…", world_loaded: "NO_DATA(world_frame_unverified): the frame finished loading, but the browser does not say whether the public site allowed it. If it stays blank, use the link below.", world_retry: "Retry OpenWorld", world_open_new: "Open OpenWorld in another tab", world_frame_title: "OpenWorld: map, ephemeral game and Acho language",
     ph_dicho: "Write your answer…", dilo: "Say it",
     pie_hallazgos: "What you see above is never the text that was found: class and count, nothing else. The numbers come from the payload — this interface does not count.",
@@ -166,7 +166,7 @@ const textos = {
     comprobando: "vérification…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "Signatures HITL", hitl_intro: "Les PR qui attendent ta signature. Rien n’est signé avant que tu appuies sur «Oui, je signe et fusionne».", hitl_recargar: "Actualiser la liste", hitl_estado: "NO_DATA : la liste est lue à l’ouverture de Boundary.", hitl_si: "Oui, je signe et fusionne", hitl_no: "Non",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "Consentement à l'entraînement · historique", lo_que_dices: "Ce que tu dis",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "Pas de données : contenu de cette zone non déclaré.", zona_activa: "Zone active :", insertor_instrucciones: "Utilisez @panel pour acheminer une question ; @ayuda ouvre une aide locale temporaire.", ayuda_cerrar: "Fermer l’aide",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "Pas de données : contenu de cette zone non déclaré.", zona_activa: "Zone active :", insertor_instrucciones: "Utilisez @panel pour acheminer une question ; @ayuda ouvre une aide locale temporaire.", ayuda_cerrar: "Fermer l’aide",
     model_last_reply: "Dernier modèle ayant répondu", world_idle: "OpenWorld se charge à l’ouverture de cet onglet.", world_checking: "Vérification de la connexion OpenWorld…", world_loading: "Connexion disponible ; chargement d’OpenWorld…", world_loaded: "Le navigateur a terminé la navigation du cadre ; son état HTTP inter-origines n’est pas lisible ici.", world_retry: "Réessayer OpenWorld", world_open_new: "Ouvrir OpenWorld dans un autre onglet", world_frame_title: "OpenWorld : carte, partie éphémère et langage Acho",
     ph_dicho: "Écris ta réponse…", dilo: "Dis-le",
     pie_hallazgos: "Ce que tu vois au-dessus n'est jamais le texte trouvé : la classe et le nombre, rien d'autre. Les chiffres viennent du payload — cette interface ne compte pas.",
@@ -229,7 +229,7 @@ const textos = {
     comprobando: "a verificar…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "Assinaturas HITL", hitl_intro: "Os PRs à espera da tua assinatura. Nada é assinado até carregares em «Sim, assino e fundo».", hitl_recargar: "Atualizar lista", hitl_estado: "NO_DATA: a lista é lida ao abrir Boundary.", hitl_si: "Sim, assino e fundo", hitl_no: "Não",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "Consentimento para treino · registo histórico", lo_que_dices: "O que dizes",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "Sem dados: conteúdo desta zona ainda não declarado.", zona_activa: "Zona ativa:", insertor_instrucciones: "Use @panel para encaminhar uma pergunta; @ayuda abre ajuda local temporária.", ayuda_cerrar: "Fechar ajuda",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "Sem dados: conteúdo desta zona ainda não declarado.", zona_activa: "Zona ativa:", insertor_instrucciones: "Use @panel para encaminhar uma pergunta; @ayuda abre ajuda local temporária.", ayuda_cerrar: "Fechar ajuda",
     model_last_reply: "Último modelo que respondeu", world_idle: "OpenWorld carrega ao abrir esta separação.", world_checking: "A verificar a ligação ao OpenWorld…", world_loading: "Ligação disponível; a carregar OpenWorld…", world_loaded: "O navegador terminou a navegação do quadro; o estado HTTP entre origens não é legível aqui.", world_retry: "Tentar OpenWorld novamente", world_open_new: "Abrir OpenWorld noutra separação", world_frame_title: "OpenWorld: mapa, partida efémera e linguagem Acho",
     ph_dicho: "Escreve a tua resposta…", dilo: "Diz",
     pie_hallazgos: "O que vês acima nunca é o texto encontrado: classe e quantidade, nada mais. Os números vêm do payload — esta interface não conta.",
@@ -291,7 +291,7 @@ const textos = {
     comprobando: "verifica…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "Firme HITL", hitl_intro: "Le PR che aspettano la tua firma. Nulla è firmato finché non premi «Sì, firmo e unisco».", hitl_recargar: "Aggiorna elenco", hitl_estado: "NO_DATA: l’elenco si legge all’apertura di Boundary.", hitl_si: "Sì, firmo e unisco", hitl_no: "No",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "Consenso all'addestramento · cronologia", lo_que_dices: "Quello che dici",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "Nessun dato: contenuto di questa zona non dichiarato.", zona_activa: "Zona attiva:", insertor_instrucciones: "Usa @panel per instradare una domanda; @ayuda apre un aiuto locale temporaneo.", ayuda_cerrar: "Chiudi aiuto",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "Nessun dato: contenuto di questa zona non dichiarato.", zona_activa: "Zona attiva:", insertor_instrucciones: "Usa @panel per instradare una domanda; @ayuda apre un aiuto locale temporaneo.", ayuda_cerrar: "Chiudi aiuto",
     model_last_reply: "Ultimo modello che ha risposto", world_idle: "OpenWorld si carica quando apri questa scheda.", world_checking: "Verifica della connessione a OpenWorld…", world_loading: "Connessione disponibile; caricamento di OpenWorld…", world_loaded: "Il browser ha terminato la navigazione del frame; lo stato HTTP cross-origin non è leggibile qui.", world_retry: "Riprova OpenWorld", world_open_new: "Apri OpenWorld in un'altra scheda", world_frame_title: "OpenWorld: mappa, partita effimera e linguaggio Acho",
     ph_dicho: "Scrivi la tua risposta…", dilo: "Dillo",
     pie_hallazgos: "Quello che vedi sopra non è mai il testo trovato: classe e quantità, nient'altro. I numeri vengono dal payload — questa interfaccia non conta.",
@@ -353,7 +353,7 @@ const textos = {
     comprobando: "wird geprüft…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "HITL-Signaturen", hitl_intro: "Die PRs, die auf deine Signatur warten. Nichts wird signiert, bevor du «Ja, signieren und zusammenführen» drückst.", hitl_recargar: "Liste aktualisieren", hitl_estado: "NO_DATA: die Liste wird beim Öffnen von Boundary gelesen.", hitl_si: "Ja, signieren und zusammenführen", hitl_no: "Nein",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "Einwilligung zum Training · Verlauf", lo_que_dices: "Was du sagst",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "Keine Daten: Inhalt dieser Zone ist noch nicht festgelegt.", zona_activa: "Aktive Zone:", insertor_instrucciones: "Nutze @panel für eine Frage; @ayuda öffnet eine lokale temporäre Hilfe.", ayuda_cerrar: "Hilfe schließen",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "Keine Daten: Inhalt dieser Zone ist noch nicht festgelegt.", zona_activa: "Aktive Zone:", insertor_instrucciones: "Nutze @panel für eine Frage; @ayuda öffnet eine lokale temporäre Hilfe.", ayuda_cerrar: "Hilfe schließen",
     model_last_reply: "Zuletzt antwortendes Modell", world_idle: "OpenWorld wird beim Öffnen dieses Tabs geladen.", world_checking: "OpenWorld-Verbindung wird geprüft…", world_loading: "Verbindung verfügbar; OpenWorld wird geladen…", world_loaded: "Der Browser hat die Frame-Navigation beendet; der Cross-Origin-HTTP-Status ist hier nicht lesbar.", world_retry: "OpenWorld erneut versuchen", world_open_new: "OpenWorld in einem neuen Tab öffnen", world_frame_title: "OpenWorld: Karte, flüchtige Partie und Acho-Sprache",
     ph_dicho: "Schreib deine Antwort…", dilo: "Sag es",
     pie_hallazgos: "Was du oben siehst, ist nie der gefundene Text: Klasse und Anzahl, sonst nichts. Die Zahlen kommen aus dem Payload — diese Oberfläche zählt nicht.",
@@ -415,7 +415,7 @@ const textos = {
     comprobando: "проверка…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "Подписи HITL", hitl_intro: "PR, ожидающие твоей подписи. Ничего не подписывается, пока ты не нажмёшь «Да, подписать и слить».", hitl_recargar: "Обновить список", hitl_estado: "NO_DATA: список читается при открытии Boundary.", hitl_si: "Да, подписать и слить", hitl_no: "Нет",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "Согласие на обучение · история", lo_que_dices: "Что ты говоришь",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "Нет данных: содержимое этой зоны ещё не объявлено.", zona_activa: "Активная зона:", insertor_instrucciones: "Используйте @panel для маршрута вопроса; @ayuda открывает временную справку на устройстве.", ayuda_cerrar: "Закрыть справку",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "Нет данных: содержимое этой зоны ещё не объявлено.", zona_activa: "Активная зона:", insertor_instrucciones: "Используйте @panel для маршрута вопроса; @ayuda открывает временную справку на устройстве.", ayuda_cerrar: "Закрыть справку",
     model_last_reply: "Последняя ответившая модель", world_idle: "OpenWorld загрузится при открытии этой вкладки.", world_checking: "Проверка соединения с OpenWorld…", world_loading: "Соединение доступно; загружается OpenWorld…", world_loaded: "Браузер завершил навигацию фрейма; его HTTP-статус между источниками здесь не виден.", world_retry: "Повторить OpenWorld", world_open_new: "Открыть OpenWorld в другой вкладке", world_frame_title: "OpenWorld: карта, эфемерная партия и язык Acho",
     ph_dicho: "Напиши свой ответ…", dilo: "Скажи",
     pie_hallazgos: "То, что ты видишь выше, — никогда не найденный текст: класс и количество, больше ничего. Числа приходят из payload — этот интерфейс не считает.",
@@ -477,7 +477,7 @@ const textos = {
     comprobando: "έλεγχος…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "Υπογραφές HITL", hitl_intro: "Τα PR που περιμένουν την υπογραφή σου. Τίποτα δεν υπογράφεται μέχρι να πατήσεις «Ναι, υπογράφω και συγχωνεύω».", hitl_recargar: "Ανανέωση λίστας", hitl_estado: "NO_DATA: η λίστα διαβάζεται όταν ανοίγει το Boundary.", hitl_si: "Ναι, υπογράφω και συγχωνεύω", hitl_no: "Όχι",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "Συναίνεση για εκπαίδευση · ιστορικό", lo_que_dices: "Τι λες",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "Χωρίς δεδομένα: το περιεχόμενο αυτής της ζώνης δεν έχει δηλωθεί.", zona_activa: "Ενεργή ζώνη:", insertor_instrucciones: "Χρησιμοποιήστε @panel για δρομολόγηση ερώτησης· το @ayuda ανοίγει προσωρινή τοπική βοήθεια.", ayuda_cerrar: "Κλείσιμο βοήθειας",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "Χωρίς δεδομένα: το περιεχόμενο αυτής της ζώνης δεν έχει δηλωθεί.", zona_activa: "Ενεργή ζώνη:", insertor_instrucciones: "Χρησιμοποιήστε @panel για δρομολόγηση ερώτησης· το @ayuda ανοίγει προσωρινή τοπική βοήθεια.", ayuda_cerrar: "Κλείσιμο βοήθειας",
     model_last_reply: "Το τελευταίο μοντέλο που απάντησε", world_idle: "Το OpenWorld φορτώνεται όταν ανοίξεις αυτή την καρτέλα.", world_checking: "Έλεγχος σύνδεσης OpenWorld…", world_loading: "Η σύνδεση είναι διαθέσιμη· φόρτωση OpenWorld…", world_loaded: "Το πρόγραμμα περιήγησης ολοκλήρωσε την πλοήγηση του πλαισίου· η διασταυρούμενη κατάσταση HTTP δεν είναι αναγνώσιμη εδώ.", world_retry: "Νέα προσπάθεια OpenWorld", world_open_new: "Άνοιγμα OpenWorld σε άλλη καρτέλα", world_frame_title: "OpenWorld: χάρτης, εφήμερη παρτίδα και γλώσσα Acho",
     ph_dicho: "Γράψε την απάντησή σου…", dilo: "Πες το",
     pie_hallazgos: "Αυτό που βλέπεις πάνω δεν είναι ποτέ το κείμενο που βρέθηκε: κατηγορία και πλήθος, τίποτα άλλο. Οι αριθμοί έρχονται από το payload — αυτή η διεπαφή δεν μετρά.",
@@ -538,7 +538,7 @@ const textos = {
     comprobando: "جارٍ التحقق…", tab_mando: "Command", tab_chat: "Talk", tab_frontera: "Boundary", hitl_titulo: "توقيعات HITL", hitl_intro: "طلبات الدمج التي تنتظر توقيعك. لا يُوقَّع شيء حتى تضغط «نعم، أوقّع وأدمج».", hitl_recargar: "تحديث القائمة", hitl_estado: "NO_DATA: تُقرأ القائمة عند فتح Boundary.", hitl_si: "نعم، أوقّع وأدمج", hitl_no: "لا",
     tab_cuaderno: "Notebook", cuaderno_consent_legacy: "موافقة على التدريب · السجل السابق", lo_que_dices: "ما تقوله",
     tab_lab: "Lab", tab_harness: "Harness",
-    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", zona_no_data: "لا توجد بيانات: لم يُعلن محتوى هذه المنطقة بعد.", zona_activa: "المنطقة النشطة:", insertor_instrucciones: "استخدم @panel لتوجيه السؤال؛ يفتح @ayuda مساعدة محلية مؤقتة.", ayuda_cerrar: "إغلاق المساعدة",
+    tab_modelos: "Models", tab_mundo: "World", tab_ajustes: "Settings", tab_mynode: "My node", tab_documents: "Documents", zona_no_data: "لا توجد بيانات: لم يُعلن محتوى هذه المنطقة بعد.", zona_activa: "المنطقة النشطة:", insertor_instrucciones: "استخدم @panel لتوجيه السؤال؛ يفتح @ayuda مساعدة محلية مؤقتة.", ayuda_cerrar: "إغلاق المساعدة",
     model_last_reply: "آخر نموذج أجاب", world_idle: "سيُحمّل OpenWorld عند فتح علامة التبويب هذه.", world_checking: "جارٍ التحقق من اتصال OpenWorld…", world_loading: "الاتصال متاح؛ جارٍ تحميل OpenWorld…", world_loaded: "اكتمل تنقل الإطار في المتصفح؛ حالة HTTP عبر الأصل غير مقروءة هنا.", world_retry: "إعادة محاولة OpenWorld", world_open_new: "فتح OpenWorld في علامة تبويب أخرى", world_frame_title: "OpenWorld: الخريطة واللعبة المؤقتة ولغة Acho",
     ph_dicho: "اكتب جوابك…", dilo: "قُلها",
     pie_hallazgos: "ما تراه في الأعلى ليس أبدًا النص الذي عُثر عليه: الفئة والعدد، لا غير. الأرقام تأتي من الـ payload — هذه الواجهة لا تعدّ.",
@@ -639,6 +639,44 @@ const modelosWeb = window.PreceptorModelosWeb.mount({
   fetcher: (...args) => fetch(...args),
 });
 const insertor = window.PreceptorInsertor;
+
+/* --- Superbot profile (explicit, no auto-detection) -------------------
+ * Profile is read from localStorage key "preceptoros.profile".
+ * Valid values: "private_rack" or "personal_mvp".
+ * If not set, defaults to "personal_mvp" (the downloadable product).
+ * An available endpoint does NOT change the profile.
+ * The orchestrator name is read from localStorage key "preceptoros.orchestrator".
+ */
+(function initProfile() {
+  var stored = null;
+  try { stored = localStorage.getItem("preceptoros.profile"); } catch (e) { /* private mode */ }
+  var profile = (stored === "private_rack" || stored === "personal_mvp") ? stored : "personal_mvp";
+  window.PreceptorProfile = profile;
+  var name = null;
+  try { name = localStorage.getItem("preceptoros.orchestrator"); } catch (e) { /* private mode */ }
+  if (name && typeof name === "string" && name.trim()) {
+    window.PreceptorOrchestratorName = name.trim();
+  }
+  // Sync radio buttons in My node with stored profile
+  var radios = document.querySelectorAll('input[name="app-profile"]');
+  radios.forEach(function (r) {
+    if (r.value === profile) r.checked = true;
+    r.addEventListener("change", function () {
+      var chosen = r.value;
+      try { localStorage.setItem("preceptoros.profile", chosen); } catch (e) { /* quota */ }
+      window.PreceptorProfile = chosen;
+      var status = document.getElementById("app-profile-status");
+      if (status) status.textContent = "Profile: " + chosen + ". Chat will show " + (chosen === "private_rack" ? "Hexelion" : "your mini orchestrator") + ".";
+      // Re-paint interlocutor immediately
+      if (window.PreceptorConversacion && window.PreceptorConversacion.paintInterlocutor) {
+        window.PreceptorConversacion.paintInterlocutor();
+      }
+    });
+  });
+  // Update status text on load
+  var statusEl = document.getElementById("app-profile-status");
+  if (statusEl) statusEl.textContent = "Profile: " + profile;
+})();
 
 /* --- reorganización · zonas en una sola pestaña ----------------------- */
 let enfocandoPestana = false;   // set by mostrar(): the tab itself is receiving focus
@@ -750,21 +788,84 @@ function showAdvancedTools(open) {
     mostrar(paneles.findIndex((z) => z.id === "ajustes"));
   }
   document.querySelectorAll('.pestanas [data-mvp="advanced"]').forEach((tab) => { tab.hidden = !open; });
-  const button = $("mvp-more-tools"), status = $("mvp-tools-status");
-  if (button) {
-    button.setAttribute("aria-expanded", String(open));
-    button.textContent = open ? "Hide advanced tools" : "Show advanced tools";
-  }
+  const status = $("mvp-tools-status");
   if (status) {
     const state = open ? "AVAILABLE" : "HIDDEN";
     status.dataset.state = state; status.dataset.acho = state;
-    status.textContent = open ? "Advanced tools available: Boundary, Notebook, Lab, Harness." :
-      "Four main panels. Advanced tools are hidden, not removed.";
+    status.textContent = open ? "Advanced tools available: Command, Boundary, Notebook, Harness, World." :
+      "Advanced tools are available via Technical Options in the header.";
   }
   document.dispatchEvent(new Event("mvp-tabs-changed"));
 }
-$("mvp-more-tools")?.addEventListener("click", () =>
-  showAdvancedTools($("mvp-more-tools").getAttribute("aria-expanded") !== "true"));
+
+/* Technical Options toggle: always visible in header, never hidden inside hidden tools
+ * Accessibility: Escape closes and returns focus, Tab wraps within menu,
+ * aria-expanded reflects state, menu items have role=menuitem. */
+(function () {
+  var toggle = $("technical-options-toggle");
+  var menu = $("technical-options-menu");
+  if (!toggle || !menu) return;
+  toggle.addEventListener("click", function () {
+    var open = menu.hidden;
+    menu.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    if (open) {
+      showAdvancedTools(true);
+      // Focus first menu item for keyboard users
+      var first = menu.querySelector('button.ir');
+      if (first) first.focus();
+    } else {
+      var anySelected = document.querySelector('.pestanas [data-mvp="advanced"][aria-selected="true"]');
+      if (!anySelected) showAdvancedTools(false);
+    }
+  });
+  // Close on Escape; return focus to toggle
+  menu.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      menu.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.focus();
+      e.preventDefault();
+    }
+    // Arrow key navigation within menu items
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      var items = [...menu.querySelectorAll('button.ir')];
+      var idx = items.indexOf(document.activeElement);
+      if (idx >= 0) {
+        var next = e.key === "ArrowDown" ? (idx + 1) % items.length : (idx - 1 + items.length) % items.length;
+        items[next].focus();
+        e.preventDefault();
+      }
+    }
+  });
+  // Close when clicking outside
+  document.addEventListener("click", function (e) {
+    if (!menu.hidden && !menu.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
+      menu.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+})();
+
+/* Technical Options list: navigate to the selected panel */
+document.querySelectorAll(".technical-options-list .ir").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var panelId = btn.dataset.ir;
+    if (!panelId) return;
+    // Show advanced tools so the tab is visible
+    showAdvancedTools(true);
+    // Find and click the corresponding tab
+    var tab = document.querySelector('.pestanas [data-panel="' + panelId + '"]');
+    if (tab) {
+      tab.click();
+      // Close Technical Options menu
+      var menu = $("technical-options-menu");
+      var toggle = $("technical-options-toggle");
+      if (menu) menu.hidden = true;
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+});
 $("mvp-open-node")?.addEventListener("click", () => {
   const group = $("ajustes-nodo"), button = $("node-identity-read"), status = $("mvp-node-state");
   if (!group || !button) {
@@ -776,7 +877,13 @@ $("mvp-open-node")?.addEventListener("click", () => {
   button.focus();
   button.click(); // Existing read-only identity operation; no grant or deployment.
 });
-document.querySelectorAll(".pestanas [role=tab]").forEach((b, n) => {
+document.querySelectorAll(".pestanas [role=tab]").forEach((b) => {
+  // Use data-panel id to find the correct index, not the DOM position.
+  // The DOM order (Chat, Documents, Lab, My node, then hidden advanced tabs)
+  // differs from zonas.js order, so index-based lookup would select wrong panels.
+  var panelId = b.dataset.panel;
+  var n = paneles.findIndex((z) => z.id === panelId);
+  if (n < 0) return; // safety: unknown panel id
   b.addEventListener("click", () => mostrar(n));
   b.addEventListener("keydown", (e) => {
     let siguiente = null;

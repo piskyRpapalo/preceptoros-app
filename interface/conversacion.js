@@ -4,6 +4,12 @@
  * addressed to someone says to whom. Bubbles this window drew while waiting are marked `local` and are replaced by
  * the thread's own copy once the thread is read: the thread is the source, the bubble was only a draft of it.
  * Read-only except send(), which posts the person's addressed message; a message is never authority.
+ *
+ * Superbot: two profiles, explicit, no auto-detection.
+ *   - private_rack: Soberano, Hexelion, rack agents.
+ *   - personal_mvp: collaborator, personal mini-orchestrator, no Hexelion.
+ * The profile is set via root.PreceptorProfile (explicit configuration).
+ * An endpoint available does NOT authorize a profile change.
  */
 (function (root) {
   "use strict";
@@ -11,6 +17,33 @@
   const kinds = { person: "person", private: "private", "rack-cli": "rack CLI", sensor: "sensor (not a model)",
     external: "external", door: "door (not a model)", unknown: "unknown voice" };
   let seen = 0, routes = {}, names = {}, busy = false, timer = null;
+
+  // Interlocutor header: shows name and type of conversation partner
+  // Profile is explicit: private_rack or personal_mvp. No auto-detection.
+  function paintInterlocutor() {
+    var container = doc.getElementById("conv-interlocutor");
+    var glyph = doc.getElementById("conv-interlocutor-glyph");
+    var nameEl = doc.getElementById("conv-interlocutor-name");
+    var typeEl = doc.getElementById("conv-interlocutor-type");
+    if (!container || !glyph || !nameEl || !typeEl) return;
+
+    var profile = root.PreceptorProfile || "personal_mvp";
+    if (profile === "private_rack") {
+      glyph.textContent = "■";
+      nameEl.textContent = "Hexelion";
+      typeEl.textContent = "Private rack brain";
+      container.dataset.state = "private";
+      container.dataset.acho = "private";
+    } else {
+      // personal_mvp: show the configured mini-orchestrator name
+      var orchestrator = root.PreceptorOrchestratorName || "Your mini orchestrator";
+      glyph.textContent = "●";
+      nameEl.textContent = orchestrator;
+      typeEl.textContent = "Personal mini-orchestrator";
+      container.dataset.state = "personal";
+      container.dataset.acho = "personal";
+    }
+  }
 
   function chip(m) {
     const span = doc.createElement("span");
@@ -80,6 +113,7 @@
       routes = {}; names = {};
       (d.destinations || []).forEach((x) => { routes[x.id] = x.route; names[x.id] = x.name; });
       paintDestinations(d.destinations);
+      paintInterlocutor();
       // Who is here, and what the evidence says each is doing: the Notebook paints it (Talk reads only its thread).
       if (root.PreceptorNotebook && root.PreceptorNotebook.talkStates) root.PreceptorNotebook.talkStates(d.destinations);
       if (d.state !== "MEASURED") {
@@ -139,7 +173,14 @@
     }, 20000);
   }
 
+  // Paint interlocutor on load, before any sync
+  if (doc.readyState === "loading") {
+    doc.addEventListener("DOMContentLoaded", paintInterlocutor);
+  } else {
+    paintInterlocutor();
+  }
+
   root.PreceptorConversacion = Object.freeze({ sync, send, watch, routes: () => Object.assign({}, routes),
-    name: (id) => names[id] || id, provenance });
+    name: (id) => names[id] || id, provenance, paintInterlocutor });
   if (typeof module === "object" && module.exports) module.exports = { provenance };
 })(typeof window !== "undefined" ? window : globalThis);
