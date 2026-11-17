@@ -15,9 +15,12 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.concurrent.atomic.AtomicLong;
 
 import androidx.webkit.WebViewAssetLoader;
@@ -34,6 +37,21 @@ public class MainActivity extends Activity {
     private WebViewAssetLoader loader;
     private volatile boolean ownPageReady = false;
     private final AtomicLong lastReviewRequest = new AtomicLong(0L);
+    private final Object miniModelLock = new Object();
+    private long lastMiniAsk = 0L;
+    private static final String MINI_MODEL_SHA256 =
+            "ed5fa30c487b282ec156c29062f1222e5c20875a944ac98289dbd242e947f747";
+
+    private void evaluateBundledScript(WebView view, String name) throws IOException {
+        // Scripts are loaded exclusively from APK assets, not from an external URL.
+        try (InputStream in = getAssets().open(name)) {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] block = new byte[2048];
+            int n;
+            while ((n = in.read(block)) != -1) bytes.write(block, 0, n);
+            view.evaluateJavascript(new String(bytes.toByteArray(), StandardCharsets.UTF_8), null);
+        }
+    }
 
     /**
      * Restricted Android handoff. Only opens the public GitHub issue composer;
@@ -64,6 +82,78 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** No model files, memory, tools or grants are accessible to JavaScript. */
+    private final class OfflineModelBridge {
+        @JavascriptInterface
+        public String generate(String prompt) {
+            if (!ownPageReady) return "NO_DATA(mini_page_not_verified)";
+            if (prompt == null || prompt.isEmpty() || prompt.length() > 600)
+                return "NO_DATA(mini_input_out_of_range)";
+            if (!MiniNative.available()) return "NO_DATA(mini_native_runtime_not_packaged)";
+            synchronized (miniModelLock) {
+                long now = SystemClock.elapsedRealtime();
+                if (lastMiniAsk > 0 && now - lastMiniAsk < 800)
+                    return "NO_DATA(mini_rate_limited)";
+                lastMiniAsk = now;
+                try {
+                    File model = installVerifiedMiniModel();
+                    if (model == null) return "NO_DATA(mini_model_asset_missing_or_invalid)";
+                    String result = MiniNative.generate(model.getAbsolutePath(), prompt);
+                    return result == null || result.isEmpty() ?
+                            "NO_DATA(mini_native_empty_result)" : result;
+                } catch (Exception error) {
+                    return "NO_DATA(mini_native_generation_failed)";
+                }
+            }
+        }
+    }
+
+    private File installVerifiedMiniModel() {
+        // The model is a bundled, public, Apache-2.0 135M GGUF. Copy only to
+        // private app storage, verify SHA-256 and atomically replace.
+        File model = new File(getFilesDir(), "mini-135m.gguf");
+        File temp = new File(getFilesDir(), "mini-135m.gguf.tmp");
+        try {
+            if (model.isFile() && MINI_MODEL_SHA256.equals(sha256Of(model))) return model;
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream input = getAssets().open("offline-mini.gguf");
+                 FileOutputStream output = new FileOutputStream(temp)) {
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = input.read(buf)) != -1) {
+                    output.write(buf, 0, n);
+                    digest.update(buf, 0, n);
+                }
+                output.getFD().sync();
+            }
+            if (!MINI_MODEL_SHA256.equals(hex(digest.digest()))) return null;
+            if (!temp.renameTo(model)) return null;
+            return model;
+        } catch (Exception failure) {
+            return null;
+        } finally {
+            if (temp.exists()) temp.delete();
+        }
+    }
+
+    private static String sha256Of(File file) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream input = new java.io.FileInputStream(file)) {
+            byte[] b = new byte[65536]; int n;
+            while ((n = input.read(b)) != -1) digest.update(b, 0, n);
+        }
+        return hex(digest.digest());
+    }
+    private static String hex(byte[] raw) {
+        StringBuilder result = new StringBuilder(raw.length * 2);
+        final char[] chars = "0123456789abcdef".toCharArray();
+        for (byte b : raw) {
+            result.append(chars[(b >>> 4) & 15]);
+            result.append(chars[b & 15]);
+        }
+        return result.toString();
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle state) {
@@ -83,6 +173,7 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.addJavascriptInterface(new ReviewHandoff(), "PreceptorAndroidReview");
+        web.addJavascriptInterface(new OfflineModelBridge(), "PreceptorAndroidMiniModel");
         web.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
@@ -90,17 +181,13 @@ public class MainActivity extends Activity {
                 if (ownPageReady) {
                     // The APK's JS is read as a local asset, not fetched through a
                     // service worker (which may be offline or have stale caches).
-                    try (InputStream in = getAssets().open("android_review_bridge.js")) {
-                        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                        byte[] block = new byte[2048];
-                        int n;
-                        while ((n = in.read(block)) != -1) bytes.write(block, 0, n);
-                        view.evaluateJavascript(
-                            new String(bytes.toByteArray(), StandardCharsets.UTF_8), null);
+                    try {
+                        evaluateBundledScript(view, "android_review_bridge.js");
+                        evaluateBundledScript(view, "offline_mini.js");
                     } catch (IOException unavailable) {
                         ownPageReady = false;
                         Toast.makeText(MainActivity.this,
-                            "NO_DATA: Android review bridge unavailable.",
+                            "NO_DATA: Android offline capability unavailable.",
                             Toast.LENGTH_LONG).show();
                     }
                 }
