@@ -150,6 +150,21 @@ class DistributionSmoke(unittest.TestCase):
         self.assertIn("APK", android)
         self.assertIn("does not exist yet", android)
 
+    def test_day_d_installer_does_not_promise_an_unwired_ollama_bridge(self):
+        sh = (ROOT / "empaquetado/install.sh").read_text(encoding="utf-8")
+        app = (ROOT / "bin/preceptoros-pwa").read_text(encoding="utf-8")
+        guide = (ROOT / "docs/DAY_D_4_COLLABORATORS.md").read_text(encoding="utf-8")
+        self.assertIn("NO_DATA(ollama_adapter_unverified)", sh)
+        self.assertIn("GGUF", sh)
+        self.assertIn("no usa Hexelion privado como respaldo", sh)
+        self.assertNotIn("curl -fsSL https://ollama.com/install.sh | sh", sh)
+        self.assertIn('"private_hexelion" if os.environ.get(', app)
+        self.assertIn('else "local_gguf"', app)
+        self.assertIn("DECLARATION.md", guide)
+        self.assertIn("STATE.md", guide)
+        self.assertIn("NO_DATA(user_Ollama_bridge_E2E)", guide)
+        self.assertIn("Hexelion runs **only on the founder's private rack**", guide)
+
     def test_sabotage_deleting_temp_memory_is_detected(self):
         with tempfile.TemporaryDirectory(prefix="preceptoros-dist-sabotage-") as temporary:
             root = Path(temporary)

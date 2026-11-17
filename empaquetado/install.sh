@@ -64,15 +64,18 @@ for b in python3 git; do
   fi
 done
 
-# Ollama es opcional: sin él PreceptorOS recuerda y sanea, pero no conversa.
-# Se dice cuál es la diferencia en vez de tratarlo como un error.
+# DÍA D · El backend ACTUAL de Talk usa llama.cpp + GGUF local,
+# no la API de Ollama. Tener el ejecutable Ollama NO demuestra conversación.
+# Ningún modelo, runtime, API key o software externo se instala en silencio.
 if command -v ollama >/dev/null 2>&1; then
-  ok "ollama · presente"
+  nd "ollama · detectado, pero NO conectado a Talk: NO_DATA(ollama_adapter_unverified)"
 else
-  nd "sin ollama · PreceptorOS funcionará igual: recuerda, indexa y sanea"
-  nd "  para que además converse:  curl -fsSL https://ollama.com/install.sh | sh"
-  nd "  ese comando NO se ejecuta aquí — lo lanzas tú si quieres, tras leerlo"
+  nd "ollama · no instalado; es opcional y no bloquea la APP"
 fi
+nd "Talk necesita TU GGUF y un motor llama.cpp compatible para responder."
+nd "Si faltan, Talk informa NO_DATA; no usa Hexelion privado como respaldo."
+nd "No descargamos modelos, llaves, ni motores sin tu decisión."
+nd "Guía de 15 minutos: docs/DAY_D_4_COLLABORATORS.md"
 
 if [ "$faltan" -gt 0 ]; then
   echo
