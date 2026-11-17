@@ -171,9 +171,9 @@
 // ref against its own canonical SHA-256 and reads it back before saying PLAN_STORED; storing is never a task
 // (plan_composer.js v2, plan_panels.js v2, app.css v29). Cache v201: v200 is the memory increment, so no number collides.
 // 2026-11-17 (companion onboarding): Settings → Node identity gains a companion draft generator
-// (companion_onboarding.js v1, app.html, app.css v30). Cache v202.
-const Cache = "preceptoros-armazon-v202";
-const Armazon = ["/install.js?v=2", "/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=30", "/app.js?v=40", "/notebook.js?v=20", "/acho_sonido.js?v=3", "/memory_onboarding.js?v=1", "/conversacion.js?v=6", "/cabin_brain.js?v=1", "/fleet_map.js?v=1", "/plan_flow.js?v=1", "/plan_fixture.js?v=1", "/plan_panels.js?v=2", "/plan_composer.js?v=2", "/evidence_chip.js?v=3", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/companion_onboarding.js?v=1", "/zonas.js?v=1",
+// (companion_onboarding.js v2, app.html, app.css v30). Cache v203.
+const Cache = "preceptoros-armazon-v203";
+const Armazon = ["/install.js?v=2", "/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=30", "/app.js?v=40", "/notebook.js?v=20", "/acho_sonido.js?v=3", "/memory_onboarding.js?v=1", "/conversacion.js?v=6", "/cabin_brain.js?v=1", "/fleet_map.js?v=1", "/plan_flow.js?v=1", "/plan_fixture.js?v=1", "/plan_panels.js?v=2", "/plan_composer.js?v=2", "/evidence_chip.js?v=3", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=1", "/node_building.js?v=1", "/companion_onboarding.js?v=2", "/zonas.js?v=1",
                  "/transicion.js?v=2", "/sting.js?v=1", "/manifest.json",
                  // La brújula conserva su módulo y SVG. La hoja ornamental
                  // quedó en legacy; la estructura mínima no carga ese CSS.

@@ -24,7 +24,7 @@
   var secretPattern = /(?:password|passwd|secret|token|api[\s_-]*key|private[\s_-]*key|ssh[\s_-]*key|access[\s_-]*token)/i;
   var keyValuePattern = /\b(?:BEGIN|-----)\s*(?:RSA|EC|DSA|OPENSSH)\s*(?:PRIVATE\s+KEY)?\s*(?:-----)/i;
   /* Token prefixes that are well-known secret forms. */
-  var tokenPrefixPattern = /\b(?:sk-[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{10,})/;
+  var tokenPrefixPattern = /\b(?:sk-[A-Za-z0-9]{10,}|gh[pousr]_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|xox[baprs]-[A-Za-z0-9-]{10,}|akia[0-9a-z]{16}|Bearer\s+[A-Za-z0-9._~-]{10,})/i;
   /* PEM headers. */
   var pemPattern = /-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----/i;
 
@@ -35,7 +35,8 @@
   function looksLikeSecret(value) {
     if (!value) return false;
     return secretPattern.test(value) || keyValuePattern.test(value) ||
-           tokenPrefixPattern.test(value) || pemPattern.test(value);
+           tokenPrefixPattern.test(value) || pemPattern.test(value) ||
+           /https?:\/\/[^\s/@:]+:[^\s/@]+@/i.test(value);
   }
 
   function sanitize(value) {
