@@ -1,0 +1,49 @@
+plugins { id 'com.android.application' }
+
+// The panels are the app's own interface/ folder, copied at build time: nothing is duplicated in git.
+def secretDir = new File(System.getProperty("user.home"), ".config/preceptoros/android")
+def passFile = new File(secretDir, "pass")
+def mvpVersionCode = (project.hasProperty('mvpVersionCode') ? project.property('mvpVersionCode') : '1') as Integer
+
+tasks.register('copyPanels', Copy) {
+    from(rootProject.file('../interface')) {
+        exclude 'legacy/**'
+    }
+    into file('src/main/assets')
+}
+afterEvaluate { tasks.named('preBuild') { dependsOn 'copyPanels' } }
+
+android {
+    namespace "org.preceptoros.mvp"
+    compileSdk 36
+    defaultConfig {
+        applicationId "org.preceptoros.mvp"
+        minSdk 26
+        targetSdk 36
+        versionCode mvpVersionCode
+        versionName "0.1.0-mvp"
+    }
+    signingConfigs {
+        release {
+            // Signing material lives outside the repository; a build without it stays unsigned.
+            if (passFile.exists()) {
+                storeFile new File(secretDir, "preceptoros.keystore")
+                storePassword passFile.text.trim()
+                keyAlias "preceptoros"
+                keyPassword passFile.text.trim()
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (passFile.exists()) { signingConfig signingConfigs.release }
+        }
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
