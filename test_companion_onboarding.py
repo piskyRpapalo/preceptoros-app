@@ -48,7 +48,7 @@ class CompanionOnboarding(unittest.TestCase):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf-8")
         version = (ROOT / "version.py").read_text(encoding="utf-8")
         js = (ROOT / "interface/companion_onboarding.js").read_text(encoding="utf-8")
-        self.assertIn('const Cache = "preceptoros-armazon-v210"', sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v212"', sw)
         self.assertIn('"/companion_onboarding.js?v=3"', sw)
         self.assertIn('src="/companion_onboarding.js?v=3"', html)
         self.assertIn('"interface/companion_onboarding.js"', version)
