@@ -545,7 +545,7 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # contract word RUNNING it accepts. States of a participant, never redaction policies.
         INTRINSECOS |= {"AVAILABLE", "WORKING", "WAITING", "BLOCKED", "NEEDS", "READING", "RUNNING"}
         # MVP hidden/available specialist navigation is a UI state, not a redaction policy.
-        INTRINSECOS |= {"HIDDEN"}
+        INTRINSECOS |= {"HIDDEN", "FAIL", "CLOSED"}  # fail-closed profile verification
         INTRINSECOS |= {"SCHEMA", "ENGINE", "STAGES", "SIDES", "MIN_MM", "MAX_MM", "MAX_WORDS", "DONE"}  # Existing data-contract identifiers and status words, not scrub policies.
         # Plans in the panels (plan_flow.js, Superbot contract #310): the five stage words and the person's no.
         # Stages of a task, never redaction policies.

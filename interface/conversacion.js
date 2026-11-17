@@ -173,10 +173,10 @@
     }, 20000);
   }
 
-  // Paint interlocutor on load, before any sync
-  if (doc.readyState === "loading") {
+  // Paint interlocutor on load, before any sync (guard against Node.js where document is undefined)
+  if (doc && doc.readyState === "loading") {
     doc.addEventListener("DOMContentLoaded", paintInterlocutor);
-  } else {
+  } else if (doc) {
     paintInterlocutor();
   }
 

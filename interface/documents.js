@@ -16,9 +16,9 @@
 (function (root) {
   'use strict';
 
-  var STORAGE_KEY = 'preceptoros.documents.v1';
-  var MAX_TITLE = 80;
-  var MAX_CONTENT = 100000; // ~100 KB per document
+  var storageKey = 'preceptoros.documents.v1';
+  var maxTitle = 80;
+  var maxContent = 100000; // ~100 KB per document
 
   /* ------------------------------------------------------------------ */
   /*  Storage                                                           */
@@ -26,7 +26,7 @@
 
   function loadDocuments() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
+      var raw = localStorage.getItem(storageKey);
       return raw ? JSON.parse(raw) : [];
     } catch (e) {
       return [];
@@ -35,7 +35,7 @@
 
   function saveDocuments(docs) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
+      localStorage.setItem(storageKey, JSON.stringify(docs));
       return true;
     } catch (e) {
       return false;
@@ -193,12 +193,12 @@
         if (editorEstado) editorEstado.textContent = 'Please enter a title.';
         return;
       }
-      if (title.length > MAX_TITLE) {
-        if (editorEstado) editorEstado.textContent = 'Title too long. Max ' + MAX_TITLE + ' characters.';
+      if (title.length > maxTitle) {
+      if (editorEstado) editorEstado.textContent = 'Title too long. Max ' + maxTitle + ' characters.';
         return;
       }
-      if (content.length > MAX_CONTENT) {
-        if (editorEstado) editorEstado.textContent = 'Content too long. Max ' + MAX_CONTENT + ' characters.';
+      if (content.length > maxContent) {
+      if (editorEstado) editorEstado.textContent = 'Content too long. Max ' + maxContent + ' characters.';
         return;
       }
       var result;

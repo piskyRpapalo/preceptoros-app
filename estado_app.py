@@ -12,7 +12,7 @@ FUENTE_SEMANTICA = MappingProxyType({
 })
 ZONAS = frozenset({
     "mando", "conversacion", "gobierno", "cuaderno", "lab",
-    "harness", "puerta", "modelos", "ajustes",
+    "harness", "puerta", "modelos", "ajustes", "documentos",
 })
 ESTADOS_FRESCURA = frozenset({"LIVE", "STALE", "NO_DATA"})
 ORDEN_GUION = frozenset({"titulo", "zona", "estado", "frescura", "contenido", "acciones"})

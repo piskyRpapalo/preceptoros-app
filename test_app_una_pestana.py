@@ -36,13 +36,13 @@ class CarcasaUnaPestana(unittest.TestCase):
     def test_cada_zona_tiene_una_tab_y_un_panel(self):
         app = _app()
         ids = [tab.get("data-panel") for tab in app.tabs]
-        self.assertEqual(ids, ["mando", "conversacion", "gobierno", "cuaderno",
-                               "lab", "harness", "modelos", "ajustes"])
+        self.assertEqual(ids, ["conversacion", "documentos", "lab", "ajustes",
+                               "mando", "gobierno", "cuaderno", "harness", "modelos"])
         self.assertEqual(len(ids), len(set(ids)))
         paneles = {panel["id"] for panel in app.panels}
         self.assertEqual(paneles, {"panel-mando", "panel-conversacion", "panel-gobierno",
                                    "panel-cuaderno", "panel-lab", "panel-harness",
-                                   "panel-modelos", "panel-ajustes"})
+                                   "panel-modelos", "panel-ajustes", "panel-documentos"})
         self.assertEqual({tab.get("aria-controls") for tab in app.tabs}, paneles)
 
     def test_una_sola_zona_activa_y_cabezal_fijo(self):

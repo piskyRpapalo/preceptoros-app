@@ -640,42 +640,87 @@ const modelosWeb = window.PreceptorModelosWeb.mount({
 });
 const insertor = window.PreceptorInsertor;
 
-/* --- Superbot profile (explicit, no auto-detection) -------------------
- * Profile is read from localStorage key "preceptoros.profile".
+/* --- Superbot profile (fail-closed, no auto-detection) ----------------
+ * Profile preference is stored in localStorage key "preceptoros.profile".
  * Valid values: "private_rack" or "personal_mvp".
  * If not set, defaults to "personal_mvp" (the downloadable product).
- * An available endpoint does NOT change the profile.
+ *
+ * FAIL-CLOSED: choosing "private_rack" in localStorage is only a preference.
+ * The APP must verify the server has a valid identity (SHA256 fingerprint via
+ * /api/perfil) before actually showing Hexelion. Without server evidence,
+ * the profile falls back to "personal_mvp" regardless of localStorage.
+ * An available endpoint does NOT authorize a profile change — the fingerprint
+ * must be present and non-empty.
+ *
  * The orchestrator name is read from localStorage key "preceptoros.orchestrator".
  */
 (function initProfile() {
   var stored = null;
   try { stored = localStorage.getItem("preceptoros.profile"); } catch (e) { /* private mode */ }
-  var profile = (stored === "private_rack" || stored === "personal_mvp") ? stored : "personal_mvp";
-  window.PreceptorProfile = profile;
+  var preferred = (stored === "private_rack" || stored === "personal_mvp") ? stored : "personal_mvp";
+
   var name = null;
   try { name = localStorage.getItem("preceptoros.orchestrator"); } catch (e) { /* private mode */ }
   if (name && typeof name === "string" && name.trim()) {
     window.PreceptorOrchestratorName = name.trim();
   }
-  // Sync radio buttons in My node with stored profile
-  var radios = document.querySelectorAll('input[name="app-profile"]');
-  radios.forEach(function (r) {
-    if (r.value === profile) r.checked = true;
-    r.addEventListener("change", function () {
-      var chosen = r.value;
-      try { localStorage.setItem("preceptoros.profile", chosen); } catch (e) { /* quota */ }
-      window.PreceptorProfile = chosen;
-      var status = document.getElementById("app-profile-status");
-      if (status) status.textContent = "Profile: " + chosen + ". Chat will show " + (chosen === "private_rack" ? "Hexelion" : "your mini orchestrator") + ".";
-      // Re-paint interlocutor immediately
-      if (window.PreceptorConversacion && window.PreceptorConversacion.paintInterlocutor) {
-        window.PreceptorConversacion.paintInterlocutor();
-      }
+
+  // Fail-closed: verify server identity before granting private_rack
+  var verified = false;
+  (async function verifyIdentity() {
+    try {
+      var r = await fetch("/api/perfil", { cache: "no-store" });
+      var d = await r.json();
+      // Server must return a non-empty SHA256 fingerprint to authorize private_rack
+      verified = !!(d && d.identidad && d.identidad.sha256 && d.identidad.sha256 !== "NO_DATA");
+    } catch (e) {
+      // Network error — fail closed
+      verified = false;
+    }
+    var profile = (preferred === "private_rack" && verified) ? "private_rack" : "personal_mvp";
+    window.PreceptorProfile = profile;
+
+    // Sync radio buttons in My node with resolved profile
+    var radios = document.querySelectorAll('input[name="app-profile"]');
+    radios.forEach(function (r) {
+      if (r.value === profile) r.checked = true;
+      r.addEventListener("change", function () {
+        var chosen = r.value;
+        try { localStorage.setItem("preceptoros.profile", chosen); } catch (e) { /* quota */ }
+        // Changing to private_rack requires server verification
+        var resolved = (chosen === "private_rack" && verified) ? "private_rack" : "personal_mvp";
+        window.PreceptorProfile = resolved;
+        var status = document.getElementById("app-profile-status");
+        if (status) {
+          if (chosen === "private_rack" && !verified) {
+            status.textContent = "Profile preference: private_rack. Server identity not verified — showing personal_mvp. NO_DATA(server_fingerprint_not_received).";
+            status.dataset.state = "NO_DATA";
+            status.dataset.acho = "NO_DATA";
+          } else {
+            status.textContent = "Profile: " + resolved + ". Chat will show " + (resolved === "private_rack" ? "Hexelion" : "your mini orchestrator") + ".";
+            status.dataset.state = resolved;
+            status.dataset.acho = resolved;
+          }
+        }
+        if (window.PreceptorConversacion && window.PreceptorConversacion.paintInterlocutor) {
+          window.PreceptorConversacion.paintInterlocutor();
+        }
+      });
     });
-  });
-  // Update status text on load
-  var statusEl = document.getElementById("app-profile-status");
-  if (statusEl) statusEl.textContent = "Profile: " + profile;
+    // Update status text on load
+    var statusEl = document.getElementById("app-profile-status");
+    if (statusEl) {
+      if (preferred === "private_rack" && !verified) {
+        statusEl.textContent = "Profile preference: private_rack. Server identity not verified — showing personal_mvp. NO_DATA(server_fingerprint_not_received).";
+        statusEl.dataset.state = "NO_DATA";
+        statusEl.dataset.acho = "NO_DATA";
+      } else {
+        statusEl.textContent = "Profile: " + profile;
+        statusEl.dataset.state = profile;
+        statusEl.dataset.acho = profile;
+      }
+    }
+  })();
 })();
 
 /* --- reorganización · zonas en una sola pestaña ----------------------- */
