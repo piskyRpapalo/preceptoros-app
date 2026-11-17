@@ -77,6 +77,7 @@ import decisor as _decisor                                  # noqa: E402
 import canales as _canales                                  # noqa: E402
 import plan_store as _plan_store                            # noqa: E402
 import memory_lookup as _memory_lookup
+import memory_onboarding as _memory_onboarding
 import lab as _lab                                          # noqa: E402
 import nodo_export as _nodo_export                         # noqa: E402
 import node_registration as _node_registration              # noqa: E402
@@ -127,6 +128,7 @@ def _lectura_estado_memoria(ruta):
     result = None
     try:
         with closing(sqlite3.connect(uri, uri=True, timeout=1.0)) as db:
+            db.row_factory = sqlite3.Row  # leer_perfil reads columns by name
             db.execute("PRAGMA query_only=ON")
             check = db.execute("PRAGMA quick_check").fetchone()
             if not check or check[0] != "ok":
@@ -359,6 +361,7 @@ ESTATICOS = {
     "/evidence_chip.js": ("evidence_chip.js", "application/javascript; charset=utf-8"),
     "/cabin_brain.js": ("cabin_brain.js", "application/javascript; charset=utf-8"),
     "/fleet_map.js": ("fleet_map.js", "application/javascript; charset=utf-8"),
+    "/memory_onboarding.js": ("memory_onboarding.js", "application/javascript; charset=utf-8"),
     "/plan_flow.js": ("plan_flow.js", "application/javascript; charset=utf-8"),
     "/plan_fixture.js": ("plan_fixture.js", "application/javascript; charset=utf-8"),
     "/plan_panels.js": ("plan_panels.js", "application/javascript; charset=utf-8"),
@@ -594,6 +597,11 @@ class PWA(BaseHTTPRequestHandler):
                 return self._json(403, {"estado": "NO_DATA",
                                         "causa": "local_origin_required"})
             return self._json(200, _energia_estado.respuesta())
+        if ruta == "/api/memoria/inicio":
+            # Read-only: the state of the person's memory file, never created by reading. Local same-origin only.
+            if not self._memoria_local():
+                return self._json(403, {"estado": "NO_DATA", "causa": "origen_local_no_autorizado"})
+            return self._json(200, _memory_onboarding.read(self.server.ruta_db))
         if ruta == "/api/bandeja":
             origin = self.headers.get("Origin")
             site = self.headers.get("Sec-Fetch-Site")
@@ -831,6 +839,17 @@ class PWA(BaseHTTPRequestHandler):
                 _casa.raiz(), key_path=credential_file)
             codigo = int(resultado.get("http", 202)) if resultado.get("estado") == "recibido" else 503
             return self._json(codigo, resultado)
+        if ruta == "/api/memoria/inicio":
+            # The person creates their memory: loopback same-origin, the exact consent record, never twice.
+            # Stricter than _nodo_local_autorizado alone: the Host must be this machine's own name and port (no DNS
+            # rebinding) and the Origin must be this plain-http page itself.
+            if not (self._memoria_local() and self._nodo_local_autorizado()
+                    and self.headers.get("Origin", "").startswith("http://")):
+                return self._json(403, {"estado": "NO_DATA", "causa": "origen_local_no_autorizado"})
+            if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+                return self._json(415, {"estado": "NO_DATA", "causa": "tipo_de_contenido_invalido"})
+            codigo, recibo = _memory_onboarding.create(self.server.ruta_db, datos)
+            return self._json(codigo, recibo)
         if ruta == "/api/nodo/door1/preview":
             return self._nodo_door1_preview(datos)
         return self._json(404, {"estado": "NO_DATA", "motivo": "aquí no vive eso"})
@@ -879,6 +898,15 @@ class PWA(BaseHTTPRequestHandler):
         self.send_header("X-Voice-Receipt", json.dumps(receipt, separators=(",", ":")))
         self.end_headers()
         self.wfile.write(audio)
+
+    def _memoria_local(self):
+        """GET guard for the memory state: loopback, a local Host, and same-origin when the browser says where from."""
+        port = str(self.server.server_port)
+        host = self.headers.get("Host", "")
+        if not self._es_loopback(self.client_address[0]) or host not in ("localhost:" + port, "127.0.0.1:" + port, "[::1]:" + port):
+            return False
+        origin = self.headers.get("Origin")
+        return self._nodo_local_autorizado() if origin else self.headers.get("Sec-Fetch-Site") in (None, "none", "same-origin")
 
     def _nodo_local_autorizado(self):
         """Allow only the APP's own loopback HTTP origin for local node actions."""
@@ -1636,6 +1664,11 @@ class PWA(BaseHTTPRequestHandler):
         como en el resto de esta casa.
         """
         import soberano as SB
+        estado_memoria = _lectura_estado_memoria(self.server.ruta_db)
+        if estado_memoria.get("memoria_estado") != "READY":
+            # Read-only routes never open a memory file that is not READY (see test_memory_onboarding).
+            return self._json(200, {"estado": "NO_DATA", "causa": estado_memoria.get("causa", "memory_not_ready"),
+                                    "memoria_estado": estado_memoria.get("memoria_estado")})
         with M.abrir(self.server.ruta_db) as c:
             cod = SB.quien(c)
         return self._json(200, {
@@ -2158,6 +2191,11 @@ class PWA(BaseHTTPRequestHandler):
             return self._json(400, {"error": "modo_desconocido",
                                     "motivo": "modo debe ser camino o detalle"})
 
+        estado_memoria = _lectura_estado_memoria(self.server.ruta_db)
+        if estado_memoria.get("memoria_estado") != "READY":
+            # Read-only routes never open a memory file that is not READY (see test_memory_onboarding).
+            return self._json(200, {"estado": "NO_DATA", "causa": estado_memoria.get("causa", "memory_not_ready"),
+                                    "memoria_estado": estado_memoria.get("memoria_estado")})
         with M.abrir(self.server.ruta_db) as c:
             perfil = M.leer_perfil(c)
             idioma = perfil.get("language", "es")
@@ -2176,6 +2214,11 @@ class PWA(BaseHTTPRequestHandler):
                                 "cifras": camino.get("cifras", {})})
 
     def _perfil_leer(self):
+        estado_memoria = _lectura_estado_memoria(self.server.ruta_db)
+        if estado_memoria.get("memoria_estado") != "READY":
+            # Read-only routes never open a memory file that is not READY (see test_memory_onboarding).
+            return self._json(200, {"estado": "NO_DATA", "causa": estado_memoria.get("causa", "memory_not_ready"),
+                                    "memoria_estado": estado_memoria.get("memoria_estado")})
         with M.abrir(self.server.ruta_db) as c:
             perfil = M.leer_perfil(c)
         return self._json(200, {
@@ -2219,6 +2262,11 @@ class PWA(BaseHTTPRequestHandler):
                                            for k in CAMPOS_PERFIL}})
 
     def _proyectos_leer(self):
+        estado_memoria = _lectura_estado_memoria(self.server.ruta_db)
+        if estado_memoria.get("memoria_estado") != "READY":
+            # Read-only routes never open a memory file that is not READY (see test_memory_onboarding).
+            return self._json(200, {"estado": "NO_DATA", "causa": estado_memoria.get("causa", "memory_not_ready"),
+                                    "memoria_estado": estado_memoria.get("memoria_estado")})
         with M.abrir(self.server.ruta_db) as c:
             return self._json(200, {"estado": "ok", "proyectos": PR.listar(c)})
 
@@ -2410,6 +2458,11 @@ class PWA(BaseHTTPRequestHandler):
                                 "turno_id": tid})
 
     def _captura_listar(self):
+        estado_memoria = _lectura_estado_memoria(self.server.ruta_db)
+        if estado_memoria.get("memoria_estado") != "READY":
+            # Read-only routes never open a memory file that is not READY (see test_memory_onboarding).
+            return self._json(200, {"estado": "NO_DATA", "causa": estado_memoria.get("causa", "memory_not_ready"),
+                                    "memoria_estado": estado_memoria.get("memoria_estado")})
         with M.abrir(self.server.ruta_db) as c:
             C.asegurar(c)
             filas = list(c.execute(

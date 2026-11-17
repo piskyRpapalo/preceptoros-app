@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 MODULOS = ("plan_flow", "plan_fixture", "plan_panels", "plan_composer")
+VERSION = {"plan_flow": 1, "plan_fixture": 1, "plan_panels": 2, "plan_composer": 2}
 
 
 def leer(ruta):
@@ -36,8 +37,8 @@ class PlanEnLosPaneles(unittest.TestCase):
         pwa, sw, html = leer("bin/preceptoros-pwa"), leer("interface/sw.js"), leer("interface/app.html")
         for m in MODULOS:
             self.assertIn(f'"/{m}.js": ("{m}.js",', pwa, m)
-            self.assertIn(f'"/{m}.js?v=1"', sw, m)
-            self.assertIn(f'<script src="/{m}.js?v=1"></script>', html, m)
+            self.assertIn(f'"/{m}.js?v={VERSION[m]}"', sw, m)
+            self.assertIn(f'<script src="/{m}.js?v={VERSION[m]}"></script>', html, m)
         orden = [html.index(f"/{m}.js") for m in ("evidence_chip", "plan_flow", "plan_fixture", "plan_panels")]
         self.assertEqual(orden, sorted(orden), "the grammar and the logic load before the painters")
 
@@ -62,8 +63,13 @@ class PlanEnLosPaneles(unittest.TestCase):
         self.assertNotRegex(panels, r"fetch\([^)]*method|POST", "the panels only read")
         self.assertIn('a.by === "person"', leer("interface/plan_flow.js"))
         comp = leer("interface/plan_composer.js")
-        self.assertNotIn("fetch(", comp, "the composer sends nothing until the plan store exists")
-        self.assertNotRegex(comp, r"ta\.value\.(slice|substring|substr)\(|maxlength", "the plan is never cut")
+        # The composer writes only to the Plan Store, only on a trusted gesture, and never says more than «stored».
+        self.assertEqual(comp.count('method: "POST"'), 1)
+        self.assertIn('fetch("/api/plan", { method: "POST"', comp)
+        self.assertIn("if (!e.isTrusted || btn.disabled) return;", comp)
+        self.assertNotRegex(comp, r"/api/(memoria|anidar|conversacion|charla|hitl|plan/flow)", "Talk's plan never touches memory, thread or signatures")
+        self.assertNotRegex(comp, r"(ta|x)\.(slice|substring|substr)\(|maxlength", "the plan is never cut")
+        self.assertNotRegex(comp, r'tell\("(authorized|dispatched|running)"', "storing is never shown as a task stage")
 
     def test_el_producto_base_no_promete_hexelion(self):
         for m in MODULOS:
