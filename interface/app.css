@@ -155,6 +155,20 @@ body {
 #panel-conversacion { overflow: hidden; }
 #panel-conversacion .hilo { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 #panel-conversacion textarea { max-height: 160px; }
+/* An empty MVP Talk has no messages to scroll. Do not stretch the empty
+   thread into a full-screen gap between "Write a plan" and the composer.
+   When the first message arrives the existing anchored chat layout returns. */
+#panel-conversacion .hilo:empty { display: none; }
+body:has(#panel-conversacion:not([hidden]) .hilo:empty) .carril {
+  flex: 0 0 auto;
+  height: auto;
+  overflow: visible;
+}
+body:has(#panel-conversacion:not([hidden]) .hilo:empty) #panel-conversacion {
+  position: relative;
+  inset: auto;
+  overflow: visible;
+}
 
 .redactar { display: flex; gap: .5rem; align-items: flex-end; }
 #form-chat.redactar-anclado {
@@ -541,6 +555,36 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 @media (forced-colors: active) { .carril-pestanas > .pestanas { -webkit-mask-image: none; mask-image: none; } .pestanas button[aria-selected="true"]::after { color: CanvasText; } }
 .pestanas button:first-child[aria-selected="true"]::after { left: 0; transform: none; }
 .pestanas button:last-child[aria-selected="true"]::after { left: auto; right: 0; transform: none; }
+/* Four primary zones always have a visible name. Icons alone make the
+   Documents and Lab steps between Talk and My node look like empty slots. */
+.pestanas button:not([data-mvp="advanced"]) {
+  flex: 1 1 64px;
+  width: auto;
+  min-width: 64px;
+  max-width: 155px;
+}
+.pestanas button:not([data-mvp="advanced"])::after {
+  content: attr(aria-label);
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.pestanas button:not([data-mvp="advanced"])[aria-selected="true"]::after {
+  color: var(--ink);
+  font-weight: 800;
+}
+.pestanas:has([data-mvp="advanced"]:not([hidden])) {
+  justify-content: flex-start;
+  gap: .25rem;
+}
 
 /* The Talk cabin: the Brain band of Talk. Which brain answers, the choice, the heads (NO_DATA until their
    contract exists) and how many signatures Boundary has read. Ink on paper; nothing here moves. */
@@ -636,6 +680,24 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 #mvp-tools-status[data-state="HIDDEN"] { color: var(--ink); }
 
 /* Technical Options: always visible in header, never hidden inside hidden tools */
+.technical-options-close {
+  flex: 0 0 auto;
+  min-height: 44px;
+  max-width: 10rem;
+  padding: .35rem .55rem;
+  border: 1px solid var(--acento);
+  border-radius: var(--radio);
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 .82rem/1.3 system-ui, sans-serif;
+  cursor: pointer;
+}
+.technical-options-close[hidden] { display: none !important; }
+.technical-options-close:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+@media (max-width: 420px) {
+  .technical-options-close { max-width: 7rem; padding: .25rem .35rem; }
+}
+@media (forced-colors: active) { .technical-options-close { border-color: ButtonText; } }
 .header-actions {
   position: absolute;
   top: 0.5rem;
