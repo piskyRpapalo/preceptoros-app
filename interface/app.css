@@ -124,7 +124,7 @@ body {
 #panel-modelos:has(#openworld-frame:not([hidden])) #openworld-status {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-#panel-modelos:has(#openworld-frame:not([hidden])) .openworld-fallback { display: none; }
+/* The link stays under the frame: a blocked frame looks blank and the browser does not say why, so the way out must remain. */
 #panel-modelos:has(#openworld-frame:not([hidden])) #openworld-frame { min-height: 0; height: 100%; }
 
 /* --- hilo --- */
