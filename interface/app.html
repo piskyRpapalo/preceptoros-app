@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=30">
+<link rel="stylesheet" href="/app.css?v=31">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
@@ -38,12 +38,11 @@
 <nav class="pestanas" id="pestanas" role="tablist" aria-orientation="horizontal" aria-label="Zonas">
   <button id="tab-mando" role="tab" aria-controls="panel-mando" aria-selected="false" tabindex="-1" data-panel="mando" data-i18n="tab_mando" aria-label="Command" title="Command">Command</button>
   <button id="tab-conversacion" role="tab" aria-controls="panel-conversacion" aria-selected="true" tabindex="0" data-panel="conversacion" data-i18n="tab_chat" aria-label="Talk" title="Talk">Talk</button>
-  <button id="tab-gobierno" role="tab" aria-controls="panel-gobierno" aria-selected="false" tabindex="-1" data-panel="gobierno" data-i18n="tab_frontera" aria-label="Boundary" title="Boundary">Boundary</button>
-  <button id="tab-cuaderno" role="tab" aria-controls="panel-cuaderno" aria-selected="false" tabindex="-1" data-panel="cuaderno" data-i18n="tab_cuaderno" aria-label="Notebook" title="Notebook">Notebook</button>
-  <button id="tab-lab" role="tab" aria-controls="panel-lab" aria-selected="false" tabindex="-1" data-panel="lab" data-i18n="tab_lab" aria-label="Lab" title="Lab">Lab</button>
-  <button id="tab-harness" role="tab" aria-controls="panel-harness" aria-selected="false" tabindex="-1" data-panel="harness" data-i18n="tab_harness" aria-label="Harness" title="Harness">Harness</button>
-  <button id="tab-puerta" role="tab" aria-controls="panel-puerta" aria-selected="false" tabindex="-1" data-panel="puerta" data-i18n="tab_puerta" aria-label="3DFabrika" title="3DFabrika">3DFabrika</button>
-  <button id="tab-modelos" role="tab" aria-controls="panel-modelos" aria-selected="false" tabindex="-1" data-panel="modelos" data-i18n="tab_mundo" aria-label="World" title="World">World</button>
+  <button id="tab-gobierno" role="tab" aria-controls="panel-gobierno" aria-selected="false" tabindex="-1" data-panel="gobierno" data-i18n="tab_frontera" aria-label="Boundary" title="Boundary" data-mvp="advanced" hidden>Boundary</button>
+  <button id="tab-cuaderno" role="tab" aria-controls="panel-cuaderno" aria-selected="false" tabindex="-1" data-panel="cuaderno" data-i18n="tab_cuaderno" aria-label="Notebook" title="Notebook" data-mvp="advanced" hidden>Notebook</button>
+  <button id="tab-lab" role="tab" aria-controls="panel-lab" aria-selected="false" tabindex="-1" data-panel="lab" data-i18n="tab_lab" aria-label="Lab" title="Lab" data-mvp="advanced" hidden>Lab</button>
+  <button id="tab-harness" role="tab" aria-controls="panel-harness" aria-selected="false" tabindex="-1" data-panel="harness" data-i18n="tab_harness" aria-label="Harness" title="Harness" data-mvp="advanced" hidden>Harness</button>
+    <button id="tab-modelos" role="tab" aria-controls="panel-modelos" aria-selected="false" tabindex="-1" data-panel="modelos" data-i18n="tab_mundo" aria-label="World" title="World">World</button>
   <button id="tab-ajustes" role="tab" aria-controls="panel-ajustes" aria-selected="false" tabindex="-1" data-panel="ajustes" data-i18n="tab_ajustes" aria-label="Settings" title="Settings">Settings</button>
 </nav>
 <button type="button" class="flecha" id="panel-siguiente" aria-label="Next panel" title="Next panel" aria-controls="pestanas">→</button>
@@ -200,11 +199,6 @@
       <summary><h3 id="tx-06">Studies and proposals</h3></summary>
       <ul class="turnos"><li id="tx-28">NO_DATA: studies are published in their own repository; no local copy is read here</li></ul>
     </details>
-    <details class="grupo">
-      <summary><h3 id="tx-07">3D designs</h3></summary>
-      <ul class="turnos"><li id="tx-29">NO_DATA: no design has been found on this machine</li></ul>
-      <button id="tx-08" type="button" class="ir" data-ir="puerta">Open 3DFabrika</button>
-    </details>
   </section>
 
   <section class="panel" id="panel-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0" aria-label="Lab" hidden>
@@ -278,58 +272,6 @@
       <ul class="turnos" id="harness-bucles"></ul>
     </details>
   </section>
-  <section class="panel" id="panel-puerta" role="tabpanel" aria-labelledby="tab-puerta" tabindex="0" aria-label="3DFabrika" hidden>
-    <header class="panel-cabecera"><h2 data-i18n="tab_puerta" id="h-puerta">3DFabrika</h2>
-      <p class="fab-linea" id="fab-linea" role="status" aria-live="polite">NO_DATA: this panel has not started yet.</p></header>
-    <p class="pie" id="fab-que">Describe a part in plain words. A local model writes its shape, the shape is checked, and you get a file ready for a printer.</p>
-    <ol class="fab-pasos" id="fab-pasos" aria-label="Create, review, prepare to print">
-      <li class="fab-paso" id="fab-paso-crear">
-        <h3 id="fab-crear-titulo" tabindex="-1">1 · Create</h3>
-        <form id="fab-form" novalidate aria-labelledby="fab-crear-titulo">
-          <label id="fab-desc-rotulo" for="fab-desc">What part do you need?</label>
-          <textarea id="fab-desc" rows="3" maxlength="400" aria-describedby="fab-desc-ayuda fab-error" placeholder="A wall hook for a bicycle helmet"></textarea>
-          <p class="pie" id="fab-desc-ayuda">Say what it is for and anything it must fit. Up to 400 characters.</p>
-          <fieldset class="fab-medidas" aria-describedby="fab-medidas-ayuda fab-error">
-            <legend id="fab-medidas-rotulo">Size in millimetres (optional)</legend>
-            <label id="fab-ancho-rotulo" for="fab-ancho">Width</label><input id="fab-ancho" type="number" inputmode="decimal" min="1" max="300" step="0.1">
-            <label id="fab-fondo-rotulo" for="fab-fondo">Depth</label><input id="fab-fondo" type="number" inputmode="decimal" min="1" max="300" step="0.1">
-            <label id="fab-alto-rotulo" for="fab-alto">Height</label><input id="fab-alto" type="number" inputmode="decimal" min="1" max="300" step="0.1">
-          </fieldset>
-          <p class="pie" id="fab-medidas-ayuda">Each side between 1 and 300 mm. Leave them empty to let the description decide.</p>
-          <p class="fab-error" id="fab-error" role="alert" hidden></p>
-          <button type="submit" id="fab-crear">Create project</button>
-        </form>
-      </li>
-      <li class="fab-paso" id="fab-paso-revisar">
-        <h3 id="fab-revisar-titulo" tabindex="-1">2 · Review</h3>
-        <p class="pie" id="fab-vacio">No project yet. Create one above; it stays on this device.</p>
-        <ul class="fab-proyectos" id="fab-proyectos" aria-label="Your projects"></ul>
-        <div id="fab-detalle" hidden>
-          <p id="fab-pedido"></p>
-          <ul class="turnos" id="fab-etapas" aria-label="Stages of this project"></ul>
-          <p class="fab-siguiente" id="fab-siguiente"></p>
-          <div class="ir-fila">
-            <button type="button" id="fab-copiar">Copy the request</button>
-            <button type="button" id="fab-quitar">Remove this project</button>
-            <button type="button" id="fab-deshacer" hidden>Undo the removal</button>
-          </div>
-        </div>
-      </li>
-      <li class="fab-paso" id="fab-paso-imprimir">
-        <h3 id="fab-imprimir-titulo" tabindex="-1">3 · Prepare to print</h3>
-        <p id="fab-imprimir-estado">NO_DATA: no project is selected.</p>
-        <p class="pie" id="fab-imprimir-ley">Nothing is sent to a printer from this screen. A file is offered only when its check has passed and its fingerprint is known.</p>
-      </li>
-    </ol>
-    <details class="grupo" id="fab-maquina-grupo">
-      <summary id="fab-maquina-rotulo">Machine reading of this panel</summary>
-      <pre class="payload" id="fab-maquina" tabindex="0" aria-label="The same state, as data"></pre>
-    </details>
-    <div class="ir-fila">
-      <button type="button" id="fab-voz">Read the state aloud</button>
-      <button type="button" class="ir" id="fab-ir-cuaderno" data-ir="cuaderno">Open the Notebook</button>
-    </div>
-  </section>
   <section class="panel" id="panel-modelos" role="tabpanel" aria-labelledby="tab-modelos" tabindex="0" aria-label="World" hidden>
     <header class="panel-cabecera"><h2 class="sr" id="h-modelos">World</h2>
       <p class="pie" id="openworld-status" role="status" aria-live="polite">OpenWorld no se solicita hasta abrir esta zona.</p></header>
@@ -343,6 +285,13 @@
     <header class="panel-cabecera"><h2 data-i18n="tab_ajustes" id="h-ajustes">Settings</h2>
       <p class="pie" id="ajustes-estado" role="status" aria-live="polite">NO_DATA: Settings are read when this tab opens.</p>
       <button type="button" class="refrescar" data-refrescar="ajustes" aria-label="Refresh Settings" title="Refresh Settings">↻</button></header>
+    <section class="tarjeta mvp-start" id="mvp-start" aria-labelledby="mvp-start-title">
+      <h3 id="mvp-start-title">Set up your node</h3>
+      <p id="mvp-node-state" role="status" aria-live="polite" data-state="NO_DATA" data-acho="NO_DATA">Local identity setup is available below. Deployment to another computer is not connected here: NO_DATA(node_deployment_E2E_not_verified).</p>
+      <button type="button" id="mvp-open-node" class="probar" aria-controls="ajustes-nodo">Open node identity setup</button>
+      <button type="button" id="mvp-more-tools" class="probar" aria-expanded="false" aria-controls="tab-gobierno tab-cuaderno tab-lab tab-harness">Show advanced tools</button>
+      <p class="pie" id="mvp-tools-status" role="status" aria-live="polite" data-state="HIDDEN" data-acho="HIDDEN">Four main panels. Advanced tools are hidden, not removed.</p>
+    </section>
     <details class="grupo ajustes-grupo" id="ajustes-dispositivo" open>
       <summary><h3 id="ajustes-dispositivo-titulo">This device and privacy</h3></summary>
     <section class="tarjeta memoria-inicio" id="memoria-inicio" aria-labelledby="memoria-inicio-titulo" data-state="loading" data-acho="waiting">
@@ -590,7 +539,7 @@
 </form>
 
 <p class="sr" id="guion-zona" role="status" aria-live="polite" aria-atomic="true">Active zone: Talk.</p>
-<script src="/zonas.js?v=1"></script>
+<script src="/zonas.js?v=2"></script>
 <script src="/transicion.js?v=2"></script>
 <script src="/sting.js?v=1"></script>
 <script src="/modelos_web.js?v=3"></script>
@@ -609,7 +558,7 @@
 <script src="/notebook.js?v=20"></script>
 <script src="/acho_sonido.js?v=3"></script>
 <script src="/memory_onboarding.js?v=1"></script>
-<script src="/app.js?v=40"></script>
+<script src="/app.js?v=41"></script>
 <script src="/creation_voice.js?v=1"></script>
 <script src="/keep_device.js?v=1"></script>
 <script src="/install.js?v=2"></script>

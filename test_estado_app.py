@@ -44,12 +44,13 @@ class ContratoSuperficie(unittest.TestCase):
         with self.assertRaises(ValueError):
             serializar(estado)
 
-    def test_catalogo_de_app_y_contrato_comparten_las_nueve_zonas(self):
+    def test_catalogo_visible_excluye_zona_3d_legacy(self):
         ruta = Path(__file__).parent / "interface" / "zonas.js"
         fuente = ruta.read_text(encoding="utf-8")
         ids = re.findall(r'\bid: "([a-z]+)"', fuente)
-        self.assertEqual(set(ids), set(ZONAS))
-        self.assertEqual(len(ids), len(ZONAS))
+        # Legacy serialized zone IDs stay valid on read; retired 3D is not navigable.
+        self.assertEqual(set(ids), set(ZONAS) - {"puerta"})
+        self.assertEqual(len(ids), len(ZONAS) - 1)
 
     def test_fuente_hsl_es_semilla_fijada_por_el_manifiesto_de_herencia(self):
         raiz = Path(__file__).parent

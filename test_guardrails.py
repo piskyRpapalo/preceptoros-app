@@ -521,7 +521,6 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # HITL es el nombre del comando de firma del Soberano (doctrina 2026-11-08): el bloque de Boundary
         # lo nombra porque lo ejecuta; es un comando, no una politica.
         INTRINSECOS |= {"HITL", "ROJO"}  # ROJO: the checks state the HITL list shows, in words (a status, not a policy)
-        INTRINSECOS |= {"SCHEMA", "ENGINE", "STAGES", "SIDES", "MIN_MM", "MAX_MM", "MAX_WORDS", "DONE"}  # 3DFabrika data-contract identifiers and stage status, not redaction policies.
         # Notebook status vocabulary: declared receipt / observed heartbeat, never privacy policy names.
         INTRINSECOS |= {"OBSERVADO", "DECLARADO"}
         # One conversation (app router piece 01): wire states of the shared thread, never privacy policy names.
@@ -545,6 +544,9 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # Participant state (evidence_chip.js PreceptorEstado, 2026-11-16): the words a state badge shows and the run
         # contract word RUNNING it accepts. States of a participant, never redaction policies.
         INTRINSECOS |= {"AVAILABLE", "WORKING", "WAITING", "BLOCKED", "NEEDS", "READING", "RUNNING"}
+        # MVP hidden/available specialist navigation is a UI state, not a redaction policy.
+        INTRINSECOS |= {"HIDDEN"}
+        INTRINSECOS |= {"SCHEMA", "ENGINE", "STAGES", "SIDES", "MIN_MM", "MAX_MM", "MAX_WORDS", "DONE"}  # Existing data-contract identifiers and status words, not scrub policies.
         # Plans in the panels (plan_flow.js, Superbot contract #310): the five stage words and the person's no.
         # Stages of a task, never redaction policies.
         INTRINSECOS |= {"PROPOSED", "AUTHORIZED", "DISPATCHED", "RESULT", "DENIED"}

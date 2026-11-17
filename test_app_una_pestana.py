@@ -37,12 +37,12 @@ class CarcasaUnaPestana(unittest.TestCase):
         app = _app()
         ids = [tab.get("data-panel") for tab in app.tabs]
         self.assertEqual(ids, ["mando", "conversacion", "gobierno", "cuaderno",
-                               "lab", "harness", "puerta", "modelos", "ajustes"])
+                               "lab", "harness", "modelos", "ajustes"])
         self.assertEqual(len(ids), len(set(ids)))
         paneles = {panel["id"] for panel in app.panels}
         self.assertEqual(paneles, {"panel-mando", "panel-conversacion", "panel-gobierno",
                                    "panel-cuaderno", "panel-lab", "panel-harness",
-                                   "panel-puerta", "panel-modelos", "panel-ajustes"})
+                                   "panel-modelos", "panel-ajustes"})
         self.assertEqual({tab.get("aria-controls") for tab in app.tabs}, paneles)
 
     def test_una_sola_zona_activa_y_cabezal_fijo(self):
@@ -97,7 +97,7 @@ class CarcasaUnaPestana(unittest.TestCase):
 
     def test_zona_inactiva_informa_no_data_y_hay_guion_vivo(self):
         app = _app()
-        for zona in ("lab", "harness", "puerta", "modelos", "ajustes"):
+        for zona in ("lab", "harness", "modelos", "ajustes"):
             self.assertIn(f"id=\"panel-{zona}\"", 
                           (RAIZ / "interface/app.html").read_text(encoding="utf-8"))
         tag, attrs = app.elements["guion-zona"]
