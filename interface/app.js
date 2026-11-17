@@ -640,6 +640,44 @@ const modelosWeb = window.PreceptorModelosWeb.mount({
 });
 const insertor = window.PreceptorInsertor;
 
+/* --- Superbot profile (explicit, no auto-detection) -------------------
+ * Profile is read from localStorage key "preceptoros.profile".
+ * Valid values: "private_rack" or "personal_mvp".
+ * If not set, defaults to "personal_mvp" (the downloadable product).
+ * An available endpoint does NOT change the profile.
+ * The orchestrator name is read from localStorage key "preceptoros.orchestrator".
+ */
+(function initProfile() {
+  var stored = null;
+  try { stored = localStorage.getItem("preceptoros.profile"); } catch (e) { /* private mode */ }
+  var profile = (stored === "private_rack" || stored === "personal_mvp") ? stored : "personal_mvp";
+  window.PreceptorProfile = profile;
+  var name = null;
+  try { name = localStorage.getItem("preceptoros.orchestrator"); } catch (e) { /* private mode */ }
+  if (name && typeof name === "string" && name.trim()) {
+    window.PreceptorOrchestratorName = name.trim();
+  }
+  // Sync radio buttons in My node with stored profile
+  var radios = document.querySelectorAll('input[name="app-profile"]');
+  radios.forEach(function (r) {
+    if (r.value === profile) r.checked = true;
+    r.addEventListener("change", function () {
+      var chosen = r.value;
+      try { localStorage.setItem("preceptoros.profile", chosen); } catch (e) { /* quota */ }
+      window.PreceptorProfile = chosen;
+      var status = document.getElementById("app-profile-status");
+      if (status) status.textContent = "Profile: " + chosen + ". Chat will show " + (chosen === "private_rack" ? "Hexelion" : "your mini orchestrator") + ".";
+      // Re-paint interlocutor immediately
+      if (window.PreceptorConversacion && window.PreceptorConversacion.paintInterlocutor) {
+        window.PreceptorConversacion.paintInterlocutor();
+      }
+    });
+  });
+  // Update status text on load
+  var statusEl = document.getElementById("app-profile-status");
+  if (statusEl) statusEl.textContent = "Profile: " + profile;
+})();
+
 /* --- reorganización · zonas en una sola pestaña ----------------------- */
 let enfocandoPestana = false;   // set by mostrar(): the tab itself is receiving focus
 function actualizarGuionZona() {
@@ -760,7 +798,9 @@ function showAdvancedTools(open) {
   document.dispatchEvent(new Event("mvp-tabs-changed"));
 }
 
-/* Technical Options toggle: always visible in header, never hidden inside hidden tools */
+/* Technical Options toggle: always visible in header, never hidden inside hidden tools
+ * Accessibility: Escape closes and returns focus, Tab wraps within menu,
+ * aria-expanded reflects state, menu items have role=menuitem. */
 (function () {
   var toggle = $("technical-options-toggle");
   var menu = $("technical-options-menu");
@@ -770,20 +810,32 @@ function showAdvancedTools(open) {
     menu.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
     if (open) {
-      // Show advanced tabs when Technical Options is opened
       showAdvancedTools(true);
+      // Focus first menu item for keyboard users
+      var first = menu.querySelector('button.ir');
+      if (first) first.focus();
     } else {
-      // Hide advanced tabs if none is selected
       var anySelected = document.querySelector('.pestanas [data-mvp="advanced"][aria-selected="true"]');
       if (!anySelected) showAdvancedTools(false);
     }
   });
-  // Close on Escape
+  // Close on Escape; return focus to toggle
   menu.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
       menu.hidden = true;
       toggle.setAttribute("aria-expanded", "false");
       toggle.focus();
+      e.preventDefault();
+    }
+    // Arrow key navigation within menu items
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      var items = [...menu.querySelectorAll('button.ir')];
+      var idx = items.indexOf(document.activeElement);
+      if (idx >= 0) {
+        var next = e.key === "ArrowDown" ? (idx + 1) % items.length : (idx - 1 + items.length) % items.length;
+        items[next].focus();
+        e.preventDefault();
+      }
     }
   });
   // Close when clicking outside
@@ -825,7 +877,13 @@ $("mvp-open-node")?.addEventListener("click", () => {
   button.focus();
   button.click(); // Existing read-only identity operation; no grant or deployment.
 });
-document.querySelectorAll(".pestanas [role=tab]").forEach((b, n) => {
+document.querySelectorAll(".pestanas [role=tab]").forEach((b) => {
+  // Use data-panel id to find the correct index, not the DOM position.
+  // The DOM order (Chat, Documents, Lab, My node, then hidden advanced tabs)
+  // differs from zonas.js order, so index-based lookup would select wrong panels.
+  var panelId = b.dataset.panel;
+  var n = paneles.findIndex((z) => z.id === panelId);
+  if (n < 0) return; // safety: unknown panel id
   b.addEventListener("click", () => mostrar(n));
   b.addEventListener("keydown", (e) => {
     let siguiente = null;
