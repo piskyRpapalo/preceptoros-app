@@ -50,6 +50,19 @@
    * @param {object} form  {slug, title, summary, agent}
    * @returns {{ok:boolean, text?:string, errors?:string[]}}
    */
+  /* GitHub issue composer: the visitor must review and submit. A URL is not delivery evidence. */
+  function architectReviewUrl(slug) {
+    if (!slugPattern.test(slug || '')) return null;
+    var title = 'Companion admission request · ' + slug;
+    var body = '@piskyRpapalo · Architect review requested for one building.\n' +
+      'Companion slug: ' + slug + '\n' +
+      'Declaration PR: NO_DATA(declaration_pr_not_linked)\n' +
+      'Public knowledge/defense docs: NO_DATA(not_submitted)\n' +
+      'Approval: pending review; no publication, grant or registration requested automatically.';
+    return 'https://github.com/piskyRpapalo/preceptoros-companion/issues/new?title=' +
+      encodeURIComponent(title) + '&body=' + encodeURIComponent(body);
+  }
+
   function renderDraft(form) {
     var errors = [];
     var slug = sanitize(form && form.slug);
@@ -112,6 +125,17 @@
       lines.push('- **Agent/Provider (data):** ' + JSON.stringify(agent));
     }
     lines.push('');
+    lines.push('## One building · proposal only');
+    lines.push('');
+    lines.push('- **Building count:** 1 (one building per verified companion node)');
+    lines.push('- **Type:** Nexo · a single large building on the collaborator territory');
+    lines.push("- **Agent voice:** the collaborator's own external or local agent; no rack-hosted model is required");
+    lines.push('- **Knowledge:** `companions/' + slug + '/knowledge.md` — public, human-reviewed sources for retrieval (RAG)');
+    lines.push('- **Defense:** `companions/' + slug + '/defense.md` — proposed guardian policy; no running defense is asserted');
+    lines.push('- **Ownership:** NO_DATA(node_admission_not_approved)');
+    lines.push('- **Deployment:** NO_DATA(architect_approval_and_publication_not_verified)');
+    lines.push('- **Notification:** NO_DATA(architect_notification_delivery_not_verified)');
+    lines.push('');
     lines.push('## Measurement');
     lines.push('');
     lines.push('- Tests: NO_DATA(declaration_not_submitted)');
@@ -133,8 +157,16 @@
     lines.push('5. Do NOT write to core repos; only the contrib/ PR is allowed.');
     lines.push('6. The agent may propose tests and an agent card, but the card is not');
     lines.push('   authentication or authorization. The human reviews and submits the PR.');
-    lines.push('7. Node registration is independent — this declaration does not register a node.');
-    lines.push('8. Real authentication, grants, and the OpenWorld gate are separate');
+    lines.push('7. Prepare exactly ONE building; do not request extra buildings or a node-zero town.');
+    lines.push('   Include a public knowledge.md with cited sources, boundaries and NO_DATA for missing facts.');
+    lines.push('   Include defense.md describing the NPC defense/return rule and visitor expiry (proposal only).');
+    lines.push('8. Submit a docs-only PR into preceptoros-companion; request explicit architectural review.');
+    lines.push('   The PR is the auditable admission request, NOT a live node or proof of notification.');
+    lines.push('   The architect must separately approve admission and public deployment.');
+    lines.push('9. Never claim a remote notification was delivered without a confirmed receipt.');
+    lines.push('10. An ephemeral visitor occupation ends at its signed cycle limit; NPC ownership returns.');
+    lines.push('11. Node registration is independent — this declaration does not register a node.');
+    lines.push('12. Real authentication, grants, and the OpenWorld gate are separate');
     lines.push('   concerns — consult the companion repo for the current process.');
     lines.push('');
     lines.push('---');
@@ -162,10 +194,12 @@
     var copyBtn = doc.getElementById('companion-copy');
     var downloadBtn = doc.getElementById('companion-download');
     var resetBtn = doc.getElementById('companion-reset');
+    var reviewLink = doc.getElementById('companion-request-review');
 
     if (!slugInput || !titleInput || !summaryInput || !statusEl || !draftArea) return;
 
     var currentDraft = '';
+    if (reviewLink) { reviewLink.hidden = true; reviewLink.href = ''; }
 
     function showStatus(msg) {
       if (!statusEl) return;
@@ -181,6 +215,7 @@
       currentDraft = text;
       if (copyBtn) copyBtn.disabled = !text;
       if (downloadBtn) downloadBtn.disabled = !text;
+      if (reviewLink) { reviewLink.hidden = !text; reviewLink.href = text ? (architectReviewUrl(slugInput.value) || '') : ''; }
     }
 
     function clearDraft() {
@@ -288,6 +323,7 @@
       renderDraft: renderDraft,
       mount: mount,
       looksLikeSecret: looksLikeSecret,
+      architectReviewUrl: architectReviewUrl,
 
     });
   } else {

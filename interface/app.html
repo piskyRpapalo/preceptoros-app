@@ -517,7 +517,7 @@
       <p id="node-building-status" role="status" aria-live="polite" data-i18n="node_building_none">No se ha declarado ningún edificio desde esta pantalla.</p>
     </section>
     <section class="tarjeta" lang="en" aria-labelledby="companion-onboard-title">
-      <h3 id="companion-onboard-title">Join as a Companion · prepare a project</h3>
+      <h3 id="companion-onboard-title">Join OpenWorld · propose your one building</h3>
       <p class="pie" id="companion-onboard-help">Fill in your project details to generate a portable handoff draft. The draft stays in your browser until you copy or download it. Nothing is sent, published, or registered here.</p>
       <form id="companion-onboard-form" autocomplete="off">
         <label id="companion-slug-label" for="companion-slug">Companion slug</label>
@@ -535,7 +535,7 @@
         <input id="companion-agent" name="agent" maxlength="80" autocomplete="off">
         <p class="pie" id="companion-agent-hint">Name only — never credentials, keys, or tokens.</p>
 
-        <button type="button" class="probar" id="companion-generate" style="min-height:44px">Generate draft</button>
+        <button type="button" class="probar" id="companion-generate" style="min-height:44px">Prepare one-building draft</button>
       </form>
 
       <p id="companion-status" role="status" aria-live="polite" aria-atomic="true" data-state="DRAFT_ONLY" data-acho="DRAFT_ONLY">DRAFT_ONLY · fill the form and click Generate.</p>
@@ -545,8 +545,11 @@
       <button type="button" class="probar" id="companion-copy" disabled style="min-height:44px">Copy draft</button>
       <button type="button" class="probar" id="companion-download" disabled style="min-height:44px">Download draft</button>
       <button type="button" class="probar" id="companion-reset" style="min-height:44px">Clear form</button>
+      <a class="probar" id="companion-request-review" href="" target="_blank" rel="noopener noreferrer" hidden style="display:inline-block;min-height:44px">Request architect review on GitHub (you submit)</a>
+      <p class="pie" id="companion-review-hint">This opens a GitHub issue composer with the public slug only. Nothing is sent until you review and submit it. GitHub account and notification delivery: NO_DATA(external_submit_not_verified).</p>
 
-      <p class="pie" id="companion-note">This draft guides an external agent to propose a docs-only declaration. It does not register a node, grant authority, or publish a project. You review and submit the PR. Public visibility in OpenWorld requires a separate verified step: NO_DATA(world_publication_not_verified).</p>
+
+      <p class="pie" id="companion-note">One project means one building. Your agent prepares public knowledge and defense documents, then you submit a review request. This draft does not notify the architect, register a node, grant authority, or publish a project. You review and submit the PR. Public visibility in OpenWorld requires a separate verified step: NO_DATA(world_publication_not_verified).</p>
       <p class="pie"><a data-rotulo="companion-guide" href="https://github.com/piskyRpapalo/preceptoros-companion" target="_blank" rel="noopener noreferrer">Open the public Companion guide</a> · <a data-rotulo="companion-download-page" href="https://preceptoros.org/get-the-app/" target="_blank" rel="noopener noreferrer">Get the app</a></p>
     </section>
     </details>
@@ -614,7 +617,7 @@
 <script src="/creation_publish.js?v=2"></script>
 <script src="/node_building.js?v=1"></script>
 <script src="/node_registration.js?v=1"></script>
-<script src="/companion_onboarding.js?v=2"></script>
+<script src="/companion_onboarding.js?v=3"></script>
 <script>PreceptorNodeRegistration.mount(document);</script>
 <script>PreceptorCompanionOnboarding.mount(document);</script>
 <script>
