@@ -266,7 +266,17 @@ def _ruta_visible(ruta):
     return visible
 
 
-def _cerebro_paquete(modelo):
+def _talk_mode():
+    """The existing server-side station config selects private Talk.
+
+    The browser cannot choose a backend or provide an endpoint. A configured
+    but unavailable endpoint remains private and fails closed.
+    """
+    return ("private_hexelion" if os.environ.get(_hexelion_proxy.ENDPOINT_ENV, "").strip()
+            else "local_gguf")
+
+
+def _cerebro_paquete(modelo, talk_mode=None):
     """Que cerebro manda ahora, y cual seria el otro.
 
     Funcion de modulo y no metodo, por dos razones que apuntan igual: no
@@ -324,6 +334,8 @@ def _cerebro_paquete(modelo):
 
     return {
         "estado": "ok",
+        "talk_mode": (talk_mode if talk_mode in ("local_gguf", "private_hexelion")
+                      else _talk_mode()),
         "en_uso": {
             "cual": eleccion.cual,
             "motivo": eleccion.motivo,
@@ -1853,7 +1865,8 @@ class PWA(BaseHTTPRequestHandler):
 
     def _cerebro_leer(self):
         try:
-            return self._json(200, _cerebro_paquete(self.server.modelo))
+            return self._json(200, _cerebro_paquete(
+                self.server.modelo, getattr(self.server, "talk_mode", None)))
         except Exception as e:                      # nunca tumba el tablero
             return self._json(500, {"estado": "bloqueado",
                                     "motivo": type(e).__name__})
@@ -2049,7 +2062,7 @@ class PWA(BaseHTTPRequestHandler):
                 # Se dice, en vez de responder 200 sobre un cambio que no paso.
                 return self._json(409, {"estado": "bloqueado",
                                         "motivo": "no hay cerebro afinado declarado"})
-            paquete = _cerebro_paquete(self.server.modelo)
+            paquete = _cerebro_paquete(self.server.modelo, getattr(self.server, "talk_mode", None))
         except OSError as e:
             return self._json(500, {"estado": "bloqueado",
                                     "motivo": type(e).__name__})
@@ -2420,14 +2433,42 @@ class PWA(BaseHTTPRequestHandler):
         if not dicho:
             return self._json(400, {"estado": "bloqueado", "motivo": "vacío"})
         ruta = self.server.ruta_db
+        memoria_estado = _lectura_estado_memoria(ruta)
+        if memoria_estado["memoria_estado"] != "READY":
+            return self._json(503, {"estado": "NO_DATA",
+                                    "causa": memoria_estado.get("causa") or "memory_not_ready"})
+        raiz = _casa.raiz()
+        ruta_registro = Path(raiz) / _afinado.NOMBRE_REGISTRO
+        try:
+            if ruta_registro.exists():
+                registro = json.loads(ruta_registro.read_text(encoding="utf-8"))
+            else:
+                registro = {}
+            if not isinstance(registro, dict):
+                raise ValueError("registry_shape")
+            if "afinado" in registro and not isinstance(registro["afinado"], dict):
+                raise ValueError("tuned_registry_shape")
+        except (OSError, UnicodeError, ValueError, json.JSONDecodeError):
+            return self._json(409, {"estado": "NO_DATA", "causa": "model_registry_invalid"})
+        try:
+            eleccion = _afinado.elegir(raiz, self.server.modelo)
+        except (AttributeError, OSError, TypeError, ValueError):
+            return self._json(409, {"estado": "NO_DATA", "causa": "model_registry_invalid"})
+        # The selector's normal fallback is useful for display, but a turn must
+        # not silently run a different model after a registered tuned candidate
+        # failed its digest/path check. An explicit base choice remains valid.
+        if (registro.get("preferencia") != "base" and registro.get("afinado")
+                and eleccion.cual != "afinado"):
+            return self._json(409, {"estado": "NO_DATA",
+                                    "causa": "selected_model_integrity_failed"})
         with M.abrir(ruta) as c:
             perfil = M.leer_perfil(c)
             idioma = perfil.get("language", "es")
             camino = _cara.progreso_camino(c, ruta)
-            motor = _charla.motor_llama(self.server.modelo)
+            motor = _charla.motor_llama(eleccion.ruta)
             if motor is None:
-                return self._json(503, {"estado": "bloqueado",
-                                        "motivo": "sin motor"})
+                _, causa = _charla.diagnostico(eleccion.ruta)
+                return self._json(503, {"estado": "NO_DATA", "causa": causa})
             try:
                 # `personalizada` decide si el turno lleva el harness --prompt
                 # de sistema, instrucciones, idioma y punto del Camino-- o si
@@ -2440,8 +2481,8 @@ class PWA(BaseHTTPRequestHandler):
             except _charla.SeAgotoElTiempo as e:
                 return self._json(504, {"estado": "tarde", "motivo": str(e)})
             except Exception as e:
-                return self._json(500, {"estado": "bloqueado",
-                                        "motivo": type(e).__name__})
+                return self._json(500, {"estado": "NO_DATA",
+                                        "causa": "local_turn_failed", "tipo": type(e).__name__})
             tid = None
             if C.activa(perfil):
                 # EL RASTRO Y EL ARNES VIAJAN CON EL TURNO. Sin el rastro,
@@ -2451,12 +2492,16 @@ class PWA(BaseHTTPRequestHandler):
                 # modelo local a 5 tok/s con uno de frontera no describe a
                 # ninguno de los dos.
                 tid = C.registrar(c, dicho, turno["texto"],
-                                  modelo=self.server.modelo or "NO_DATA",
+                                  modelo=eleccion.ruta or "NO_DATA",
                                   idioma=idioma,
                                   rastro=turno.get("rastro"),
                                   arnes="app")
         return self._json(200, {"estado": "ok", "texto": turno["texto"],
-                                "turno_id": tid})
+                                "turno_id": tid, "id_salida": turno.get("id_salida"),
+                                "modelo": {"cual": eleccion.cual,
+                                           "nombre": os.path.basename(eleccion.ruta),
+                                           "motivo": eleccion.motivo},
+                                "ms": turno.get("ms_motor")})
 
     def _captura_listar(self):
         estado_memoria = _lectura_estado_memoria(self.server.ruta_db)
@@ -2510,6 +2555,7 @@ def main(argv=None):
     servidor = ThreadingHTTPServer((BIND, PUERTO), PWA)
     servidor.ruta_db = a.db
     servidor.modelo = a.modelo
+    servidor.talk_mode = _talk_mode()
     print(f"[pwa] escuchando en {BIND}:{PUERTO} · memoria: {a.db}")
     if BIND not in ("127.0.0.1", "::1", "localhost"):
         print("[pwa] AVISO: no estás en loopback. Esto escucha fuera de esta "

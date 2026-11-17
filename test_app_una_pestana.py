@@ -84,7 +84,7 @@ class CarcasaUnaPestana(unittest.TestCase):
         self.assertIn('"NO_DATA: " + String((d && d.causa)', js)       # the server's own cause, never "unreachable"
         self.assertNotIn('$("estado").textContent = d.motor', js)
         # Three failure paths keep the draft: station error, transport error, and an addressed send that was not delivered.
-        self.assertEqual(js.count('if (!$("dicho").value.trim()) $("dicho").value = escrito;'), 3)
+        self.assertEqual(js.count('if (!$("dicho").value.trim()) $("dicho").value = escrito;'), 4)
 
     def test_tema_instalado_coincide_con_cara_crema(self):
         html = (RAIZ / "interface/app.html").read_text(encoding="utf-8")
