@@ -970,3 +970,48 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
     right: 0.25rem;
   }
 }
+/* Owner's two independent model slots are a single My node section, not
+   another panel. The browser can save names but cannot infer model readiness. */
+.owner-models { display: grid; gap: .6rem; min-width: 0; }
+.owner-models h3 { margin: 0; }
+.owner-models-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: .8rem; min-width: 0;
+}
+.owner-model-slot {
+  display: grid; align-content: start; gap: .4rem; min-width: 0;
+  padding: .8rem; border: 1px solid var(--line);
+  border-radius: var(--radio); background: var(--paper);
+}
+.owner-model-slot legend { padding: 0 .3rem; font-weight: 800; }
+.owner-model-slot label { font-weight: 650; }
+.owner-model-slot select, .owner-model-slot input {
+  display: block; width: 100%; min-width: 0; min-height: 44px;
+  border: 1px solid var(--line); border-radius: var(--radio);
+  padding: .5rem; background: #fff; color: var(--ink); font: inherit;
+}
+.owner-model-slot [data-state] { overflow-wrap: anywhere; }
+.owner-model-slot [data-state="NO_DATA"] { color: var(--ink-soft); }
+.owner-model-slot [data-state="DRAFT_ONLY"] { color: var(--warn); }
+.owner-model-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.owner-model-buttons button, #owner-model-export {
+  min-height: 44px; padding: .5rem .75rem; border-radius: var(--radio);
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+  font: 700 1rem/1.35 system-ui, sans-serif; cursor: pointer;
+}
+.owner-model-consent { display: flex; gap: .5rem; align-items: flex-start; }
+.owner-model-consent input { flex: 0 0 22px; width: 22px; height: 22px; margin: .15rem 0 0; }
+#owner-model-public-draft {
+  margin: 0; padding: .6rem; max-width: 100%; overflow-x: auto;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line); border-radius: var(--radio);
+}
+.owner-models button:focus-visible, .owner-model-slot input:focus-visible,
+.owner-model-slot select:focus-visible {
+  outline: 3px solid var(--acento); outline-offset: 2px;
+}
+@media (forced-colors: active) {
+  .owner-model-slot, #owner-model-public-draft, .owner-model-buttons button,
+  #owner-model-export { border-color: CanvasText; }
+}
