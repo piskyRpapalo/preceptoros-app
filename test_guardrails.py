@@ -501,6 +501,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         INTRINSECOS |= {"PLAN_STORED", "WORKING", "REFUSED", "BLOCKED"}
         # Companion first-run draft state: declaration is local, never submitted or published.
         INTRINSECOS |= {"DRAFT_ONLY"}
+        # APP deployment review states: presentation vocabulary, never authorizing policy.
+        INTRINSECOS |= {"REQUESTED", "PENDING", "APPROVED", "REJECTED"}
         # Companion onboarding handoff mentions public filename stems and exact secret-format lexemes,
         # not policies or tokens. The specific vocabulary is closed; arbitrary uppercase names still fail.
         INTRINSECOS |= {"AGENT_CARD", "CONTRIBUTING", "DECLARATION", "GROUNDTRUTH", "GUIDE", "STATE",

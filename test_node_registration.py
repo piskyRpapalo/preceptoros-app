@@ -190,8 +190,8 @@ const adapter = flow.doorOneAdapter((url, options) => {
         sw = (ROOT / "interface" / "sw.js").read_text(encoding="utf-8")
         html = (ROOT / "interface" / "app.html").read_text(encoding="utf-8")
         self.assertIn('"/node_registration.js": ("node_registration.js"', PWA_PATH.read_text())
-        self.assertIn('/node_registration.js?v=1', html)
-        self.assertIn('"/node_registration.js?v=1"', sw)
+        self.assertIn('/node_registration.js?v=2', html)
+        self.assertIn('"/node_registration.js?v=2"', sw)
         self.assertGreaterEqual(int(re.search(r'preceptoros-armazon-v(\d+)', sw).group(1)), 120)
         self.assertIn("interface/node_registration.js", version.ARMAZON)
         self.assertIn('"/node_building.js": ("node_building.js"', PWA_PATH.read_text())
@@ -217,6 +217,27 @@ const adapter = flow.doorOneAdapter((url, options) => {
         self.assertNotIn("root.fetch(", client)
         self.assertNotIn("private_rack", client)
         self.assertNotIn("localhost", client)
+
+
+    def test_preliminary_deployment_ui_and_negative_matrix(self):
+        result = subprocess.run(
+            ["node", "--test", "tests/android_deployment_ui_cases.cjs"],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("pass 12", result.stdout)
+        self.assertIn("fail 0", result.stdout)
+
+    def test_preliminary_ui_stays_fail_closed_from_browser_network(self):
+        source = (ROOT / "interface/node_registration.js").read_text(encoding="utf-8")
+        mounted = source.split("  function mount(document)", 1)[1]
+        self.assertIn("requestDeploymentReview(draft, true, root.PreceptorAndroidJoin)", mounted)
+        self.assertNotIn("root.fetch(", mounted)
+        self.assertNotIn("doorOneAdapter(", mounted)
+        self.assertNotIn("private_rack", mounted)
+        html = (ROOT / "interface/app.html").read_text(encoding="utf-8")
+        self.assertIn('id="node-registration-purpose"', html)
+        self.assertIn("Sign deployment", html)
 
 
 if __name__ == "__main__":
