@@ -93,7 +93,9 @@
     "/sw.js": "interface/sw.js",
     "/team.js": "interface/team.js",
     "/transicion.js": "interface/transicion.js",
-    "/zonas.js": "interface/zonas.js"
+    "/zonas.js": "interface/zonas.js",
+    "/offline_mini.js": "mvp-android/offline_mini.js",
+    "/browser_mini_gate.js": "interface/browser_mini_gate.js"
   },
   "api_routes": [
     "/api/anidar",
@@ -279,6 +281,7 @@
       "Node loops",
       "Notebook",
       "Notebook · Hexelion",
+      "Offline mini router",
       "Open Boundary",
       "Open node identity setup",
       "Open the Notebook",
@@ -342,6 +345,7 @@
       "To confirm, type",
       "Training consent · captured turns",
       "Tray",
+      "Try offline mini",
       "Turn sounds",
       "Verify and import",
       "Voice and creations",

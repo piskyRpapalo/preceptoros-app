@@ -391,6 +391,9 @@ ESTATICOS = {
     "/zonas.js": ("zonas.js", "application/javascript; charset=utf-8"),
     "/documents.js": ("documents.js", "application/javascript; charset=utf-8"),
     "/owner_model_slots.js": ("owner_model_slots.js", "application/javascript; charset=utf-8"),
+    # Shared deterministic parser: the browser gets exactly the Android source.
+    "/offline_mini.js": (os.path.join(AQUI, "mvp-android/offline_mini.js"), "application/javascript; charset=utf-8"),
+    "/browser_mini_gate.js": ("browser_mini_gate.js", "application/javascript; charset=utf-8"),
     "/transicion.js": ("transicion.js", "application/javascript; charset=utf-8"),
     "/sting.js": ("sting.js", "application/javascript; charset=utf-8"),
     "/insertor.js": ("insertor.js", "application/javascript; charset=utf-8"),
