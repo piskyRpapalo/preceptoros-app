@@ -96,6 +96,8 @@ body {
 .pestanas button::before { font-size: 20px; line-height: 1; }
 .pestanas button[data-panel="mando"]::before { content: "⌖"; }
 .pestanas button[data-panel="conversacion"]::before { content: "▱"; }
+/* i18n replaces button text, so each primary zone needs a CSS icon. */
+.pestanas button[data-panel="documentos"]::before { content: "▤"; }
 .pestanas button[data-panel="gobierno"]::before { content: "⛨"; }
 .pestanas button[data-panel="cuaderno"]::before { content: "▤"; }
 .pestanas button[data-panel="lab"]::before { content: "⚗"; }

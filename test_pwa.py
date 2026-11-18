@@ -1569,6 +1569,15 @@ class RutaAppContrato(unittest.TestCase):
         esperado = pathlib.Path(AQUI, "interface", "app.html").read_bytes()
         self.assertEqual(handler.wfile.getvalue(), esperado)
 
+    def test_documentos_conserva_el_icono_al_traducirse_el_rotulo(self):
+        html = (pathlib.Path(AQUI) / "interface/app.html").read_text(encoding="utf-8")
+        css = (pathlib.Path(AQUI) / "interface/app.css").read_text(encoding="utf-8")
+        js = (pathlib.Path(AQUI) / "interface/app.js").read_text(encoding="utf-8")
+        self.assertIn('id="tab-documentos"', html)
+        self.assertIn('data-panel="documentos"', html)
+        self.assertIn('el.textContent = v;', js)  # la traducción elimina iconos escritos en HTML
+        self.assertIn('.pestanas button[data-panel="documentos"]::before { content: "▤"; }', css)
+
     def test_rutas_profundas_abren_la_zona_que_nombra_el_hash(self):
         js = (pathlib.Path(AQUI) / "interface/app.js").read_text(encoding="utf-8")
         self.assertIn("location.hash", js)
