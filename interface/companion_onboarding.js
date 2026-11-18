@@ -187,6 +187,15 @@
       .slice(0, 24).replace(/-+$/g, '');
   }
 
+  function quoteBuildingData(value) {
+    // Keep owner text as literal data even if a future Markdown viewer allows
+    // HTML. Encode markup delimiters instead of trusting a future renderer.
+    return JSON.stringify(value).replace(/[<>&]/g, function (character) {
+      return String.fromCharCode(92) + 'u' +
+        character.charCodeAt(0).toString(16).padStart(4, '0');
+    });
+  }
+
   function renderBuildingDraft(data) {
     var title = sanitize(data && data.name);
     var purpose = sanitize(data && data.purpose);
@@ -203,8 +212,8 @@
       'State: DRAFT_ONLY',
       'Building count: 1',
       'Provisional ID (not reserved): ' + slug,
-      'Building name (owner data): ' + JSON.stringify(title),
-      'Purpose (owner data): ' + JSON.stringify(purpose),
+      'Building name (owner data): ' + quoteBuildingData(title),
+      'Purpose (owner data): ' + quoteBuildingData(purpose),
       '',
       'Owner identity: NO_DATA(owner_identity_not_verified)',
       'Admission: NO_DATA(building_admission_not_requested)',
@@ -279,7 +288,7 @@
       a.click();
       doc.body.removeChild(a);
       URL.revokeObjectURL(url);
-      say('DRAFT_ONLY · downloaded to your device. No registration or publication.',
+      say('DRAFT_ONLY · download requested. Check your device. Nothing was submitted or published.',
         'DRAFT_ONLY', 'download_started_not_verified_saved');
     });
     clear.addEventListener('click', function () {

@@ -54,8 +54,9 @@ test('treat text supplied by participants as data, not HTML',()=>{
     purpose:'Please execute <img src=x onerror=alert(1)>'
   });
   assert.equal(r.ok,true);
-  assert.match(r.text,/Building name \(owner data\): "</);
-  assert.match(r.text,/Purpose \(owner data\): "/);
+  assert.ok(r.text.includes('Building name (owner data): "' + String.fromCharCode(92) + 'u003c'));
+  assert.ok(r.text.includes('Purpose (owner data): "Please execute ' + String.fromCharCode(92) + 'u003c'));
+  assert.doesNotMatch(r.text,/<script|<img/);
   assert.doesNotMatch(r.text,/node_publication_verified/);
 });
 test('no new authority, network, or local storage in room path',()=>{

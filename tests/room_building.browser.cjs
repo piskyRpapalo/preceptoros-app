@@ -69,6 +69,9 @@ test('one-building draft in a clean browser: 900, 420, 360', { timeout: 120000 }
       const downloaded=page.waitForEvent('download');
       await page.locator('#room-building-download').click();
       const dl=await downloaded;
+      assert.equal(await page.locator('#room-building-status').getAttribute('data-cause'),
+        'download_started_not_verified_saved');
+      assert.match(await page.locator('#room-building-status').textContent(),/download requested/);
       assert.equal(dl.suggestedFilename(),'building-draft-my-solar-workshop.md');
       const localFile=await dl.path();
       const content=fs.readFileSync(localFile,'utf8');
