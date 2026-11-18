@@ -176,6 +176,123 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Day D room: one building as an offline draft; Companion comes later.
+   *  This adapter reuses renderDraft's exact validation and secret checks.
+   *  A filename is never a node identifier or proof of admission.
+   * ------------------------------------------------------------------ */
+  function buildingSlug(title) {
+    return sanitize(title).normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+      .slice(0, 24).replace(/-+$/g, '');
+  }
+
+  function renderBuildingDraft(data) {
+    var title = sanitize(data && data.name);
+    var purpose = sanitize(data && data.purpose);
+    var slug = buildingSlug(title);
+    // A display name with no portable slug must be corrected locally,
+    // not converted to an invented or globally reserved identifier.
+    if (!slug) return { ok: false, errors: ['building name needs letters or digits for a portable draft ID'] };
+    var checked = renderDraft({ slug: slug, title: title, summary: purpose, agent: '' });
+    if (!checked.ok) return { ok: false, errors: checked.errors };
+    var lines = [
+      '# My Building · Local Draft',
+      '',
+      'Schema: preceptoros.room-building-draft/1',
+      'State: DRAFT_ONLY',
+      'Building count: 1',
+      'Provisional ID (not reserved): ' + slug,
+      'Building name (owner data): ' + JSON.stringify(title),
+      'Purpose (owner data): ' + JSON.stringify(purpose),
+      '',
+      'Owner identity: NO_DATA(owner_identity_not_verified)',
+      'Admission: NO_DATA(building_admission_not_requested)',
+      'Node deployment: NO_DATA(node_not_deployed)',
+      'OpenWorld publication: NO_DATA(world_publication_not_verified)',
+      'AI runtime: NO_DATA(owner_model_not_connected)',
+      '',
+      'Next: Keep this file on your own device. At home, install your',
+      'own PreceptorOS and connect your own model if you want one.',
+      'You may prepare a Companion and request review later, separately.',
+      'Hexelion is not included; it runs only on the founder\'s rack.',
+      'Feedback must remain on the owner\'s own hardware.',
+      'Nothing was submitted, registered, signed or published.'
+    ];
+    return { ok: true, slug: slug, text: lines.join('\n') };
+  }
+
+  function mountBuilding(doc) {
+    if (!doc) return false;
+    var form = doc.getElementById('room-building-form');
+    if (!form || form.dataset.mounted === '1') return false;
+    var name = doc.getElementById('room-building-name');
+    var purpose = doc.getElementById('room-building-purpose');
+    var status = doc.getElementById('room-building-status');
+    var preview = doc.getElementById('room-building-draft');
+    var download = doc.getElementById('room-building-download');
+    var clear = doc.getElementById('room-building-clear');
+    if (!name || !purpose || !status || !preview || !download || !clear) return false;
+    form.dataset.mounted = '1';
+    var current = null;
+    function say(message, state, cause) {
+      status.textContent = message;
+      status.dataset.state = state;
+      status.dataset.acho = state;
+      status.dataset.cause = cause;
+    }
+    function invalidate() {
+      current = null;
+      preview.textContent = '';
+      preview.hidden = true;
+      download.disabled = true;
+      say('NO_DATA(building_draft_not_created). Nothing has been sent.',
+        'NO_DATA', 'local_draft_not_created');
+    }
+    name.addEventListener('input', invalidate);
+    purpose.addEventListener('input', invalidate);
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var result = renderBuildingDraft({ name: name.value, purpose: purpose.value });
+      if (!result.ok) {
+        invalidate();
+        say('NO_DATA(building_draft_validation): ' + result.errors.join('; '),
+          'NO_DATA', 'validation_error');
+        return;
+      }
+      current = result;
+      preview.textContent = result.text;
+      preview.hidden = false;
+      download.disabled = false;
+      say('DRAFT_ONLY · your one-building draft is ready. Download it. Nothing was sent or published.',
+        'DRAFT_ONLY', 'local_building_draft_ready');
+    });
+    download.addEventListener('click', function () {
+      if (!current) return;
+      var blob = new Blob([current.text], { type: 'text/markdown;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = doc.createElement('a');
+      a.href = url;
+      a.download = 'building-draft-' + current.slug + '.md';
+      a.rel = 'noopener';
+      doc.body.appendChild(a);
+      a.click();
+      doc.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      say('DRAFT_ONLY · downloaded to your device. No registration or publication.',
+        'DRAFT_ONLY', 'download_started_not_verified_saved');
+    });
+    clear.addEventListener('click', function () {
+      name.value = '';
+      purpose.value = '';
+      invalidate();
+      name.focus();
+    });
+    invalidate();
+    return true;
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Browser UI mount                                                  */
   /* ------------------------------------------------------------------ */
 
@@ -324,12 +441,15 @@
       mount: mount,
       looksLikeSecret: looksLikeSecret,
       architectReviewUrl: architectReviewUrl,
-
+      renderBuildingDraft: renderBuildingDraft,
+      mountBuilding: mountBuilding,
     });
   } else {
     root.PreceptorCompanionOnboarding = Object.freeze({
       renderDraft: renderDraft,
-      mount: mount
+      mount: mount,
+      renderBuildingDraft: renderBuildingDraft,
+      mountBuilding: mountBuilding
     });
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
