@@ -48,5 +48,20 @@ test('limits user text without escaping into executable content', () => {
   const r = p('<script>alert(1)</script>');
   assert.equal(r.state, 'NO_DATA');
   assert.equal(r.action, undefined);
-  assert.equal(mini.parse('x'.repeat(15000)).source, 'model');
+  assert.equal(mini.parse('x'.repeat(15000)).cause, 'input_oversize');
+});
+test('oversize cannot be truncated into navigation, action or model call', () => {
+  const attempts = [
+    'go to lab ' + 'x'.repeat(1300),
+    'escribe un plan ' + 'x'.repeat(1300),
+    'hola ' + 'x'.repeat(1300),
+    'abre documentos ' + '🌱'.repeat(280), // < 600 JS chars, > 1023 UTF-8 bytes
+  ];
+  for (const text of attempts) {
+    const out = p(text);
+    assert.equal(out.state, 'NO_DATA', text.slice(0, 20));
+    assert.equal(out.cause, 'input_oversize', text.slice(0, 20));
+    assert.equal(out.action, undefined);
+    assert.equal(out.source, 'rules');
+  }
 });

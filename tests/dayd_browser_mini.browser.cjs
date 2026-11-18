@@ -89,6 +89,17 @@ test('opt-in mini provides local closed intents at desktop and mobile sizes', { 
       await page.waitForFunction(() =>
         document.querySelector('#hilo')?.textContent?.includes('NO_DATA(on_device_model_unavailable)'));
       assert.equal(apiRequests,baselineRequests,'unknown prompt must fail closed in mini mode');
+      // Emoji fit the textarea's 600 UTF-16 units but exceed 1023 UTF-8
+      // bytes. They must not be truncated into a valid "open lab" intent.
+      const oversize = 'open lab ' + '🌱'.repeat(280);
+      await page.locator('#dicho').fill(oversize);
+      await page.locator('#enviar').click();
+      assert.equal(await page.locator('#offline-mini-status').getAttribute('data-cause'),'input_oversize');
+      assert.equal(await page.locator('#offline-mini-status').getAttribute('data-acho'),'NO_DATA');
+      assert.equal(await page.locator('#dicho').inputValue(),oversize,'rejected text remains editable');
+      assert.equal(await page.locator('#tab-lab').getAttribute('aria-selected'),'false',
+        'oversize input must not be truncated into navigation');
+      assert.equal(apiRequests,baselineRequests,'oversize must not contact a backend');
       await toggle.click();
       assert.equal(await toggle.getAttribute('aria-pressed'), 'false');
       assert.equal(await page.locator('#mini-local-mode-status').getAttribute('data-acho'), 'NO_DATA');

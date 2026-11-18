@@ -52,7 +52,7 @@ class MiniBrowserDoor(unittest.TestCase):
             cwd=ROOT,capture_output=True,text=True,timeout=20,
         )
         self.assertEqual(proc.returncode,0,proc.stderr[-1600:]+proc.stdout[-1600:])
-        self.assertRegex(proc.stdout, r"(?m)(?:ℹ|#) pass 6")
+        self.assertRegex(proc.stdout, r"(?m)(?:ℹ|#) pass 7")
 
 if __name__=="__main__":
     unittest.main()

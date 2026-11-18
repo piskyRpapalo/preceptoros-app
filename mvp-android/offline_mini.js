@@ -11,7 +11,19 @@
     lab: 'tab-lab', node: 'tab-ajustes',
   });
   function parse(raw) {
-    const text = String(raw || '').trim().slice(0, 600);
+    // Reject BEFORE recognizing any intent. Truncating and parsing a prefix
+    // can turn an oversized/untrusted message into a valid navigation.
+    const text = String(raw || '').trim();
+    const utf8Size = typeof TextEncoder === 'function'
+      ? new TextEncoder().encode(text).byteLength : null;
+    if (utf8Size === null) {
+      return { source: 'rules', state: 'NO_DATA', cause: 'utf8_measurement_unavailable',
+        text: 'NO_DATA(utf8_measurement_unavailable). No intent was accepted.' };
+    }
+    if (text.length > 600 || utf8Size > 1023) {
+      return { source: 'rules', state: 'NO_DATA', cause: 'input_oversize',
+        text: 'NO_DATA(mini_input_oversize). Limit: 600 characters and 1023 UTF-8 bytes. Shorten your message; nothing was executed.' };
+    }
     const s = text.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const nav = /^(?:abre|abrir|ir a|ve a|open|go to|muestra|show)\s+(?:el |la |mis |my )?(chat|talk|conversacion|documents|documentos|docs|lab|laboratorio|laboratory|my node|mi nodo|nodo)\b/.exec(s);
     if (nav) {
@@ -104,9 +116,19 @@
       event.stopImmediatePropagation(); // mini never reaches /api/charla
       const text = String(input.value || '').trim();
       if (!text) return;
+      const result = parse(text);
+      if (result.cause === 'input_oversize' || result.cause === 'utf8_measurement_unavailable') {
+        // Preserve the input for correction. Never add the unbounded payload
+        // to the visual/audio thread or pass it to the model.
+        append('MINI-LOCAL', result.text, result.state, result.cause, contract);
+        status.textContent = 'MINI-LOCAL · NO_DATA · input not accepted';
+        status.dataset.state = status.dataset.acho = 'NO_DATA';
+        status.dataset.cause = result.cause;
+        input.focus();
+        return;
+      }
       input.value = '';
       append('You', text, 'DRAFT_ONLY', 'local_input', contract);
-      const result = parse(text);
       if (result.action === 'plan') {
         const details = document.getElementById('plan-escribir');
         if (details) { details.open = true; details.querySelector('input,textarea')?.focus(); }
