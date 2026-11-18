@@ -26,7 +26,7 @@ The existing `PRECEPTOROS_HEXELION_ENDPOINT` remains server-only and loopback-va
 - `python3 -m unittest test_pwa`: existing PWA suite plus tests for source reuse, hash mismatch, exact-quote enforcement, absent memory, source and prompt caps, receipt `<1,024 B`, append-only citations, `think:false`, and no station URL in browser code.
 - `./bin/pruebas`: full repository gate; report total, suite count, skips, sabotage results, and any unavailable check separately.
 - SCRUB: no private paths, local database text, secrets, non-loopback station addresses, or historical-thread rewrites.
-- One implementation commit; push only the H2 branch; draft PR titled with `HITL`. Stop there for independent CI review and the Sovereign's exact-head signature; never merge or sign here.
+- One implementation commit; push only the H2 branch and open a reviewable `HITL` PR. Leave **this head** pending independent CI, receipt, and the Sovereign's exact-head FIRMO for merge; continue unrelated authorized work. No agent signs, merges, or deploys.
 
 ## Approval and completion
 
