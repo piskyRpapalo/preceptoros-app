@@ -19,8 +19,10 @@ assembled locally. The path for a new human — step-by-step guides — lives at
 ## The doctrine, in one line
 
 **Silicon proposes, carbon signs.** No autonomous execution of value
-operations. A machine may prepare, suggest, and measure; a human signature
-precedes every consequential action.
+operations. A machine may prepare, suggest, and measure under a standing or
+commissioned scope. The human signature gates merge, deployment, admission,
+or another real-world consequence, **not** branch implementation, tests, or
+preparation of a reviewable PR.
 
 ## The two things we ask
 
@@ -80,4 +82,4 @@ A preceptor receives **COMMISSIONS**, not solutions. A commission is a short, ve
 
 The chain is: COMMISSION → SPEC → PLAN → CODE → BEACON → FIRMO. The HANDS derives the SPEC from the commission; whoever commissions reviews it and never writes it. Constraints are pinned for the whole chain and compile into test gates: a diff that leaves them fails verification. What is not known is investigated and reported as NO DATA with cause.
 
-This is the base of the PS: every propose-only session opens with a commission and ends in proposals, and one FIRMO moves a proposal into effect. Silicon proposes, carbon signs.
+This is the base of the PS: every propose-only session opens with a commission and produces reviewable proposals. Standing/pre-FIRMO authorizes a class of work, not a merge; green checks, a receipt, and a **human FIRMO on the exact PR head** authorize orchestration to integrate only that SHA. A subsequent commit needs renewed FIRMO. Silicon proposes, carbon signs; no agent self-merges or self-deploys.

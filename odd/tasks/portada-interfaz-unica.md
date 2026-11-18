@@ -107,9 +107,12 @@ NO_DATA with cause; colour by band only (no raw hex outside the cores); a11y ass
 (44px, focus, aria-live); no build artifacts; SCRUB of the diff.
 
 ## Process
-Declare the piece card in odd/ BEFORE cooking (1 pieza = 1 PR) -> plan -> the Sovereign
-approves -> cook -> PR draft with HITL in the title -> STOP and wait for FIRMA SOBERANO.
-Propose-only: codex never merges, never signs.
+Declare the piece card in odd/ before building (one piece = one PR), then plan,
+implement, test, and prepare a reviewable HITL PR under verified standing or
+commissioned coverage. Record the standing-signature search result and receipt;
+request the Sovereign's exact-head FIRMO for merge. An unsigned PR is pending
+review, not terminal delivery. Continue other authorized work; stop unsafe
+effects, not implementation. Codex never signs, merges, or deploys.
 
 ## Demo (the Sovereign's eyes, the final gate)
 The app serves at loopback; the installed PWA opens the portada: a chatbot with the buttons

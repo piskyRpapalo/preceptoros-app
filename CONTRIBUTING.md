@@ -85,9 +85,12 @@ there, it is red.
 ## What not to touch / Lo que no se toca
 
 - **`LORE.md` and `ARQUETIPO.md`.** They are signed material.
-- **Doctrine.** The signed cases, the exact phrasings, and the rules of the
-  border belong to the author. If you find something that deserves a doctrinal
-  change, say so in an issue — do not write it into the tree.
+- **Doctrine.** The signed cases, exact phrasings, and border rules belong
+  to the author. Never change them unilaterally or push directly to `main`.
+  Under an explicit Sovereign commission or verified standing policy, prepare
+  a minimal documentation PR with sources, checks, and a receipt; the human
+  approves the exact head before orchestration merges it. An issue alone is
+  not required when a reviewable change has already been commissioned.
 - **No third-party dependencies.** The product is standard library only. That
   is what makes the desktop build fit in 14 MB. If you believe something needs
   a dependency, that is a conversation, not a commit.
@@ -96,6 +99,7 @@ there, it is red.
 
 ## Commit messages / Mensajes de commit
 
-Spanish, and they explain **why**, not what — the diff already says what. The
-history of this repository is a notebook: when a change comes from a measurement
-or from something breaking, that goes in the message, with its number.
+For GitHub, write commit messages **in English**, explaining **why**, not just
+what — the diff already says what. Keep existing Spanish code identifiers and
+comments unless a separate change authorizes their migration. The history is a
+notebook: cite the measurement or breakage, and its number, when applicable.
