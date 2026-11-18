@@ -1015,3 +1015,28 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
   .owner-model-slot, #owner-model-public-draft, .owner-model-buttons button,
   #owner-model-export { border-color: CanvasText; }
 }
+
+/* Day D · one-building local draft in My node. No new panel. */
+.room-building { display: grid; gap: .65rem; min-width: 0; }
+.room-building > h3 { margin: 0; }
+.room-building form { display: grid; gap: .5rem; min-width: 0; }
+.room-building label { font-weight: 700; }
+.room-building input, .room-building textarea {
+  display: block; width: 100%; min-width: 0; min-height: 44px;
+  padding: .6rem; border: 1px solid var(--line);
+  border-radius: var(--radio); font: inherit;
+  color: var(--ink); background: var(--paper);
+}
+.room-building button { min-height: 44px; max-width: 100%; }
+.room-building [data-state="NO_DATA"] { overflow-wrap: anywhere; }
+.room-building [data-state="DRAFT_ONLY"] { color: var(--warn); }
+#room-building-draft {
+  overflow-wrap: anywhere; white-space: pre-wrap;
+  max-width: 100%; max-height: 20rem; overflow-y: auto;
+}
+.room-building :is(input, textarea, button):focus-visible {
+  outline: 3px solid var(--acento); outline-offset: 2px;
+}
+@media (forced-colors: active) {
+  .room-building input, .room-building textarea { border-color: CanvasText; }
+}

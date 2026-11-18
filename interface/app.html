@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=36">
+<link rel="stylesheet" href="/app.css?v=38">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
@@ -354,6 +354,25 @@
     <header class="panel-cabecera"><h2 data-i18n="tab_mynode" id="h-ajustes">My node</h2>
       <p class="pie" id="ajustes-estado" role="status" aria-live="polite">NO_DATA: Settings are read when this tab opens.</p>
       <button type="button" class="refrescar" data-refrescar="ajustes" aria-label="Refresh My node" title="Refresh My node">↻</button></header>
+    <!-- Day D: creating a building means making a private local draft, not
+         requesting Companion admission, sending feedback or publishing. -->
+    <section class="tarjeta room-building" id="room-building" aria-labelledby="room-building-title">
+      <h3 id="room-building-title">Create your building</h3>
+      <p class="pie" id="room-building-help">Prepare one building draft; no identity or ownership is verified here. Make a draft, download it to your device, and decide what to do with it at home. No GitHub account, model, node, or permission is required today.</p>
+      <form id="room-building-form" autocomplete="off">
+        <label for="room-building-name">Building name</label>
+        <input id="room-building-name" name="name" maxlength="80" required aria-describedby="room-building-help">
+        <label for="room-building-purpose">What will your building do?</label>
+        <textarea id="room-building-purpose" name="purpose" rows="3" maxlength="600" required aria-describedby="room-building-help"></textarea>
+        <button type="submit" id="room-building-create" class="probar">Create my building draft</button>
+      </form>
+      <p id="room-building-status" role="status" aria-live="polite" aria-atomic="true"
+         data-state="NO_DATA" data-acho="NO_DATA">NO_DATA(building_draft_not_created).</p>
+      <pre id="room-building-draft" class="companion-draft" aria-label="Your building draft" hidden></pre>
+      <button type="button" id="room-building-download" class="probar" disabled>Download my draft</button>
+      <button type="button" id="room-building-clear" class="probar">Clear draft</button>
+      <p class="pie">Created means <strong>local draft only</strong>. OpenWorld publication: NO_DATA(world_publication_not_verified). Hexelion stays on the founder's private rack. You can connect your own model and prepare a Companion at home later. Feedback stays on the node owner's hardware.</p>
+    </section>
     <!-- My node journey: 10 visible steps from install to revoke access -->
     <section class="tarjeta mvp-start" id="mvp-start" aria-labelledby="mvp-start-title">
       <h3 id="mvp-start-title">My node journey</h3>
@@ -664,11 +683,11 @@
 <script src="/creation_publish.js?v=2"></script>
 <script src="/node_building.js?v=1"></script>
 <script src="/node_registration.js?v=1"></script>
-<script src="/companion_onboarding.js?v=3"></script>
+<script src="/companion_onboarding.js?v=4"></script>
 <script src="/documents.js?v=1"></script>
 <script src="/owner_model_slots.js?v=1"></script>
 <script>PreceptorNodeRegistration.mount(document);</script>
-<script>PreceptorCompanionOnboarding.mount(document);</script>
+<script>PreceptorCompanionOnboarding.mount(document); PreceptorCompanionOnboarding.mountBuilding(document);</script>
 <script>PreceptorDocuments.mount(document);</script>
 <script>
 document.getElementById('tray-read').addEventListener('click', async function () {
