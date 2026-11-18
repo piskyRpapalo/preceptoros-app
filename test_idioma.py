@@ -455,6 +455,8 @@ APP_ENGLISH_FROZEN_COPY = {
     "This setting controls what the Chat shows. It is stored loca",
     "Personal MVP",
     "Private rack",
+    "Offline mini router",
+    "Try offline mini",
     # Day D: one local building draft, no Companion admission in the room.
     "Building name",
     "What will your building do?",

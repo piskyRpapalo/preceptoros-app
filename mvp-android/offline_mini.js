@@ -1,7 +1,7 @@
-/* PreceptorOS Mini · Android-only, on-device and fail-closed.
- * A deterministic local router is NOT an LLM. Native GGUF inference is
- * optional and only counted LIVE after a real generated response.
- * No network, rack credentials, submissions, or remote execution.
+/* PreceptorOS Mini · shared deterministic router (Android + opt-in browser).
+ * This is NOT an LLM. Android may call its separately verified local JNI
+ * model. Browser mode is opt-in, never grants rack authority or uses tools.
+ * No network, credentials, remote execution, or automatic submissions.
  */
 (function (root) {
   'use strict';
@@ -11,7 +11,19 @@
     lab: 'tab-lab', node: 'tab-ajustes',
   });
   function parse(raw) {
-    const text = String(raw || '').trim().slice(0, 600);
+    // Reject BEFORE recognizing any intent. Truncating and parsing a prefix
+    // can turn an oversized/untrusted message into a valid navigation.
+    const text = String(raw || '').trim();
+    const utf8Size = typeof TextEncoder === 'function'
+      ? new TextEncoder().encode(text).byteLength : null;
+    if (utf8Size === null) {
+      return { source: 'rules', state: 'NO_DATA', cause: 'utf8_measurement_unavailable',
+        text: 'NO_DATA(utf8_measurement_unavailable). No intent was accepted.' };
+    }
+    if (text.length > 600 || utf8Size > 1023) {
+      return { source: 'rules', state: 'NO_DATA', cause: 'input_oversize',
+        text: 'NO_DATA(mini_input_oversize). Limit: 600 characters and 1023 UTF-8 bytes. Shorten your message; nothing was executed.' };
+    }
     const s = text.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const nav = /^(?:abre|abrir|ir a|ve a|open|go to|muestra|show)\s+(?:el |la |mis |my )?(chat|talk|conversacion|documents|documentos|docs|lab|laboratorio|laboratory|my node|mi nodo|nodo)\b/.exec(s);
     if (nav) {
@@ -32,7 +44,7 @@
     }
     if (/^(?:\/?(?:estado|status|offline)|sin conexion|sin internet|estamos offline)\b/.test(s)) {
       return { source: 'rules', state: 'DRAFT_ONLY', cause: 'local_status',
-        text: 'MINI-LOCAL · router del dispositivo disponible. No requiere internet. Modelo generativo: se comprobará al pedir una respuesta libre. Rack, identidad remota y herramientas: NO_DATA(no_backend_in_apk).' };
+        text: 'MINI-LOCAL · router del dispositivo disponible. No requiere internet. Modelo generativo: solo con un runtime local verificado. Rack, identidad remota y herramientas: NO_DATA(no_backend_in_mini).' };
     }
     if (/^(?:\/?plan|escribe un plan|write a plan|crear plan|crea un plan)\b/.test(s)) {
       return { source: 'rules', state: 'DRAFT_ONLY', cause: 'plan_editor_opened',
@@ -70,11 +82,14 @@
     status.dataset.state = 'DRAFT_ONLY';
     status.dataset.acho = 'DRAFT_ONLY';
     status.dataset.source = contract;
-    status.textContent = 'MINI-LOCAL · offline router · no remote effects · generative model: not verified';
+    status.textContent = 'MINI-LOCAL · deterministic router, NOT Hexelion · no remote effects · generative model: not verified';
+    const native = root.PreceptorAndroidMiniModel;
+    // On public/desktop browsers mini is explicit opt-in; it must never
+    // silently capture a configured Chat session or the private rack.
+    status.hidden = !native;
     const cabin = document.getElementById('cabina-brain');
     if (cabin && cabin.parentNode === panel) cabin.insertAdjacentElement('afterend', status);
     else panel.prepend(status);
-    const native = root.PreceptorAndroidMiniModel;
     const append = (who, value, state, cause, source) => {
       const row = document.createElement('li');
       row.className = who === 'You' ? 'mio' : 'hilo-msg';
@@ -93,13 +108,27 @@
       thread.scrollTop = thread.scrollHeight;
     };
     form.addEventListener('submit', (event) => {
+      // Android uses the on-device bridge; the browser needs an explicit
+      // toggle and a personal profile. Neither state is an auth credential.
+      if (!native && (root.PreceptorMiniBrowserEnabled !== true ||
+          root.PreceptorProfile === 'private_rack')) return;
       event.preventDefault();
-      event.stopImmediatePropagation(); // never reach /api/charla on an offline shell
+      event.stopImmediatePropagation(); // mini never reaches /api/charla
       const text = String(input.value || '').trim();
       if (!text) return;
+      const result = parse(text);
+      if (result.cause === 'input_oversize' || result.cause === 'utf8_measurement_unavailable') {
+        // Preserve the input for correction. Never add the unbounded payload
+        // to the visual/audio thread or pass it to the model.
+        append('MINI-LOCAL', result.text, result.state, result.cause, contract);
+        status.textContent = 'MINI-LOCAL · NO_DATA · input not accepted';
+        status.dataset.state = status.dataset.acho = 'NO_DATA';
+        status.dataset.cause = result.cause;
+        input.focus();
+        return;
+      }
       input.value = '';
       append('You', text, 'DRAFT_ONLY', 'local_input', contract);
-      const result = parse(text);
       if (result.action === 'plan') {
         const details = document.getElementById('plan-escribir');
         if (details) { details.open = true; details.querySelector('input,textarea')?.focus(); }

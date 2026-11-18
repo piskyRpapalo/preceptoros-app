@@ -548,7 +548,7 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         INTRINSECOS |= {"HIDDEN", "FAIL", "CLOSED"}  # fail-closed profile verification
         # Model choice is a draft, not a redaction policy or proof of inference.
         # JSON is the native JS serialization API, not a security policy.
-        INTRINSECOS |= {"DRAFT_ONLY", "JSON"}
+        INTRINSECOS |= {"DRAFT_ONLY", "JSON", "MINI", "LOCAL"}  # MINI-LOCAL is a router label, not a scrub policy.
         INTRINSECOS |= {"SCHEMA", "ENGINE", "STAGES", "SIDES", "MIN_MM", "MAX_MM", "MAX_WORDS", "DONE"}  # Existing data-contract identifiers and status words, not scrub policies.
         # Plans in the panels (plan_flow.js, Superbot contract #310): the five stage words and the person's no.
         # Stages of a task, never redaction policies.
