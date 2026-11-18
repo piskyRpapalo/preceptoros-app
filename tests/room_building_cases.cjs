@@ -21,7 +21,7 @@ test('room creates precisely one local building draft, not admission',()=>{
 test('home install and Companion are later, own model and feedback hardware',()=>{
   const r=app.renderBuildingDraft(good());
   assert.match(r.text,/at home/i);
-  assert.match(r.text,/Companion.*later/i);
+  assert.match(r.text,/Companion HITL PR if you have GitHub/i);
   assert.match(r.text,/Hexelion is not included/);
   assert.match(r.text,/owner's own hardware/);
   assert.match(r.text,/NO_DATA\(owner_model_not_connected\)/);

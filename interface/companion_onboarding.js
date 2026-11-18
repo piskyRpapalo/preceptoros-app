@@ -223,7 +223,8 @@
       '',
       'Next: Keep this file on your own device. At home, install your',
       'own PreceptorOS and connect your own model if you want one.',
-      'You may prepare a Companion and request review later, separately.',
+      'At the table, prepare a docs-only Companion HITL PR if you have GitHub.',
+      'Otherwise keep this draft. Connect your own model at home later.',
       'Hexelion is not included; it runs only on the founder\'s rack.',
       'Feedback must remain on the owner\'s own hardware.',
       'Nothing was submitted, registered, signed or published.'

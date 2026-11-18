@@ -1,0 +1,20 @@
+# Lisbon Table · APP operator audit of the four GROUNDTRUTH checkpoints
+**Date:** 18 November 2026 · **Source:** [preceptoros-companion/GROUNDTRUTH.md](https://github.com/piskyRpapalo/preceptoros-companion/blob/main/GROUNDTRUTH.md), source blob `759ca5955e910c143e317b0ac25cc36f48c4b290` · **APP baseline:** `97f954173123c2886adfd41c86d67c96f2fd2075`.
+
+These are review gates for an **ephemeral visitor's interaction with a sovereign host node**, not a claim that preparing a local building draft fulfils them. A local draft involves no host interaction or transmission.
+
+| GROUNDTRUTH checkpoint | APP-side state | Measured evidence, cause or next verification |
+|---|---|---|
+| **1. Zero hidden telemetry** when the **WEB window** loads | **NO_DATA(public_web_zero_external_load_not_owned_by_APP)** | APP isolated Chromium smoke on actual Beelink `:8742`, 900/420/360 px, captured **0 foreign-origin requests** and **0 attempted POST** during a scoped personal Talk/mini interaction. That observation is APP only; it does **not** certify initial external loads of the deployed WEB window. WEB owner must audit cold-load requests at the public URL. |
+| **2. Explicit Ed25519 HITL signature before ephemeral visitor data leaves the client** | **NO_DATA(ephemeral_ed25519_signed_interaction_E2E_not_verified)** | APP can prepare a **local, unsent building draft**; it does not submit/sign a visitor-to-node interaction. Existing cryptographic utilities/tests are not proof of one live signed and consented visitor POST. Require a real end-to-end signed interaction with a negative unsigned case. |
+| **3. The host node's own conditions shown and accepted before signing** | **NO_DATA(host_conditions_acceptance_E2E_not_verified)** | Local APP onboarding has consent controls for the operator's own identity/memory, but no measured ephemeral remote visitor path showing the specific *host's* terms and refusing non-acceptance. Do not substitute a checkbox or rack policy for host-node conditions. |
+| **4. Signed PreceptorOS protocol, `atlas.sobre/1` + `atlas.paquete_mp/1`, strict UTF-8 and under 1024 bytes; no ad-hoc REST** | **NO_DATA(signed_window_to_node_packet_E2E_not_verified)** | APP includes bounded/protocol validation tests, but there is no measured APP↔WEB↔independent node signed envelope and packet delivered to the host. The local building Markdown and Companion GitHub PR are **not** protocol packets. Prove exact bytes, signer, recipient, terms reference and host receipt in a later consented test. |
+
+## Lisbon operator phrases
+- **MEDIDO:** `personal_mvp` against real rack APP service `:8742` with server `talk_mode=private_hexelion`: 900/420/360 Chromium; zero attempted private chat POST, zero private-thread GET/POST, zero foreign-origin requests. Browser test intercepted all potential writes; no real chat was sent. Synthetic server guard ×2 also passes. **This proves a client-path negative case, not server authorization or a packet capture.**
+- **MEDIDO:** My node → **Create your building** → download one local `preceptoros.room-building-draft/1`, `DRAFT_ONLY`; no POST or identity reservation. A completed local draft satisfies **none** of checkpoints 2–4 by itself.
+- **NO_DATA(real_visitor_node_interaction_E2E):** there is no basis to claim a public node handshake, visiting Ed25519 signature, host-terms acceptance or verified `atlas.sobre/1` packet.
+- **Feedback:** stays on the **node owner's disk** when the owner explicitly opens a future channel. The `feedback_link.py` journal is a bounded, isolated proposal; it is **not** a deployed multi-owner relay. **NO_DATA(remote_authenticated_feedback_delivery_E2E)**. No third-party inbox in the founder's Beelink.
+
+## Next concrete evidence
+A separate owner-authorized test must exercise **one ephemeral browser → actual independent host**, displaying that host's terms, capturing an Ed25519 signature, sending a bounded signed packet, receiving a verifiable host-side receipt, and refusing unsigned/oversized/wrong-host submissions. This test is **not** required for the Lisbon Meta 1 GitHub proposal ritual. Silicon proposes; the human owner signs admission.
