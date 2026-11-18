@@ -39,7 +39,7 @@
       var orchestrator = root.PreceptorOrchestratorName || "Your mini orchestrator";
       glyph.textContent = "●";
       nameEl.textContent = orchestrator;
-      typeEl.textContent = "Personal mini-orchestrator";
+      typeEl.textContent = "Personal mini-orchestrator · not Hexelion";
       container.dataset.state = "personal";
       container.dataset.acho = "personal";
     }
@@ -103,6 +103,13 @@
 
   // sync({ replaceLocal }) -> the projection, or null. New messages after `seen` are appended in order.
   async function sync(opts) {
+    if (root.PreceptorProfile !== "private_rack") {
+      // Do not pull the private rack's thread into a personal interface.
+      routes = {}; names = {};
+      say(doc.getElementById("conv-destinos"),
+        "NO_DATA(personal_profile_shared_thread_denied) · No private thread was read.");
+      return { state: "NO_DATA", cause: "personal_profile_shared_thread_denied" };
+    }
     if (busy) return null;
     busy = true;
     const list = doc.getElementById("hilo"), status = doc.getElementById("conv-destinos");
@@ -156,6 +163,11 @@
 
   // send(para, texto) -> { ok, cause, n }. The server stores it in the thread with `para`; no reply is promised.
   async function send(para, texto) {
+    // A personal_mvp is not the private rack's shared preceptor thread.
+    // Neither a previously discovered destination nor a label confers scope.
+    if (root.PreceptorProfile !== "private_rack") {
+      return { ok: false, cause: "personal_profile_shared_thread_denied" };
+    }
     try {
       const r = await fetch("/api/conversacion", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ para, texto }) });

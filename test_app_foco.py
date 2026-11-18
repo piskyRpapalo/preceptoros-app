@@ -24,7 +24,9 @@ class Focus(unittest.TestCase):
     def test_every_re_enable_gives_focus_back(self):
         h = submit_handler()
         enables = [m.end() for m in re.finditer(re.escape('$("enviar").disabled = false;'), h)]
-        self.assertEqual(len(enables), 2)                            # preceptor thread and Hexelion paths
+        # Three legitimate routes now restore focus: preceptor thread, the
+        # personal private-route refusal, and normal local/private completion.
+        self.assertEqual(len(enables), 3)
         for end in enables:
             self.assertTrue(h[end:end + 40].lstrip().startswith("devolverFoco(volverA);"))
 
