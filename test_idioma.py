@@ -457,6 +457,7 @@ APP_ENGLISH_FROZEN_COPY = {
     "Private rack",
     "Offline mini router",
     "Try offline mini",
+    "Purpose of your node",
     # Day D: one local building draft, no Companion admission in the room.
     "Building name",
     "What will your building do?",

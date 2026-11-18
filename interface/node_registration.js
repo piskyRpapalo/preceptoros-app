@@ -136,6 +136,80 @@
     };
   }
 
+  // Preliminary deployment is a review request, NOT the signed cédula protocol.
+  // Brain owns the distinct request endpoint and reply schema; until that
+  // contract is integrated this client cannot claim a submitted request.
+  var deploymentStates = Object.freeze({
+    draft: 'DRAFT_ONLY', requested: 'REQUESTED', pending: 'PENDING',
+    approved: 'APPROVED', live: 'LIVE', rejected: 'REJECTED', unknown: 'NO_DATA'
+  });
+
+  function deploymentDraft(node, purpose) {
+    if (!nodePattern.test(String(node || ''))) throw new Error('invalid_node_name');
+    if (typeof purpose !== 'string' || !purpose.trim() || purpose.trim().length > 512) {
+      throw new Error('invalid_deployment_purpose');
+    }
+    return Object.freeze({ node: node, purpose: purpose.trim(), state: deploymentStates.draft });
+  }
+
+  function deploymentEvidence(state, evidence) {
+    // An arbitrary server string, receipt digest, visitor identity or HTTP
+    // status can never authorize a rack operation or public liveness.
+    if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) return deploymentStates.unknown;
+    if (state === deploymentStates.draft) return deploymentStates.draft;
+    if ((state === deploymentStates.requested || state === deploymentStates.pending) &&
+        evidence.preliminaryReceiptValidated === true &&
+        typeof evidence.trackingId === 'string' &&
+        /^[a-z0-9][a-z0-9._-]{7,119}$/i.test(evidence.trackingId) &&
+        evidence.requestNode === evidence.expectedNode) return state;
+    if (state === deploymentStates.rejected &&
+        evidence.operatorDecisionVerified === true &&
+        evidence.preliminaryReceiptValidated === true) return state;
+    if (state === deploymentStates.approved &&
+        evidence.operatorDecisionVerified === true &&
+        evidence.signedAdmissionVerified === true) return state;
+    if (state === deploymentStates.live &&
+        evidence.operatorDecisionVerified === true &&
+        evidence.signedAdmissionVerified === true &&
+        evidence.heartbeatFreshVerified === true &&
+        evidence.publicWorldVisible === true) return state;
+    return deploymentStates.unknown;
+  }
+
+  async function requestDeploymentReview(draft, consent, nativeBridge) {
+    if (consent !== true) throw new Error('explicit_consent_required');
+    if (!draft || draft.state !== deploymentStates.draft ||
+        !nodePattern.test(draft.node || '')) throw new Error('invalid_deployment_draft');
+    if (!nativeBridge || typeof nativeBridge.requestPreliminary !== 'function') {
+      throw new Error('native_preliminary_request_not_available');
+    }
+    // No WebView fetch: Android owns the allowlisted HTTPS and a second
+    // native consent confirmation. The native bridge must bind the installed
+    // identity, route, signed server response and caller origin.
+    var result = await nativeBridge.requestPreliminary({
+      node: draft.node, purpose: draft.purpose, consent: true
+    });
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      throw new Error('preliminary_receipt_unverified');
+    }
+    // Brain has not yet published the authoritative receipt format.
+    // Never accept an arbitrary mock or HTTP 200 as a real tracking receipt.
+    if (result.contractVerified !== true ||
+        result.preliminaryReceiptValidated !== true ||
+        !result.trackingId || result.node !== draft.node) {
+      throw new Error('preliminary_receipt_contract_unconfirmed');
+    }
+    var state = result.state === 'PENDING' ? deploymentStates.pending :
+      (result.state === 'REQUESTED' ? deploymentStates.requested : deploymentStates.unknown);
+    if (deploymentEvidence(state, {
+      preliminaryReceiptValidated: result.preliminaryReceiptValidated,
+      trackingId: result.trackingId,
+      requestNode: result.node, expectedNode: draft.node
+    }) === deploymentStates.unknown) throw new Error('preliminary_receipt_unverified');
+    return Object.freeze({ state: state, trackingId: result.trackingId,
+      approved: false, live: false });
+  }
+
   function pendingSigner() {
     return Promise.resolve({ state: 'pending', cause: 'signature_missing',
       detail: 'The phone never signs; the Sovereign must be present at the rack ceremony.' });
@@ -147,7 +221,7 @@
   }
 
   function doorOneAdapter(fetchImpl) {
-    var send = fetchImpl || root.fetch.bind(root);
+    var send = fetchImpl || function () { throw new Error('explicit_test_transport_required'); };
     return {
       endpoint: doorOneUrl,
       submitPending: async function (cedula, consent) {
@@ -204,59 +278,106 @@
     return { state: stateNames.pendingUntrusted, transitions: transitions, cedula: cedula, signer: signerResult, receipt: receipt };
   }
 
-  function mount(document, fetchImpl) {
+  function mount(document) {
     var form = document.getElementById('node-registration-form');
     if (!form) return;
     var input = document.getElementById('node-registration-name');
+    var purpose = document.getElementById('node-registration-purpose');
     var status = document.getElementById('node-registration-status');
     var preview = document.getElementById('node-registration-preview');
     var signerStatus = document.getElementById('node-registration-signer');
     var consent = document.getElementById('node-registration-consent');
     var submit = document.getElementById('node-registration-submit');
-    var pendingCedula = null;
+    var draft = null;
     var submitted = false;
-    var adapter = doorOneAdapter(fetchImpl);
 
-    form.addEventListener('submit', async function (event) {
-      event.preventDefault();
-      pendingCedula = null;
+    function show(state, message, cause) {
+      // One state for eye, ear (aria-live status) and machine/Acho.
+      status.textContent = state + ' · ' + message;
+      status.setAttribute('data-state', state);
+      status.setAttribute('data-acho', state);
+      status.setAttribute('data-cause', cause);
+    }
+    function clear() {
+      draft = null;
       submitted = false;
       consent.checked = false;
+      consent.disabled = true;
       submit.disabled = true;
+    }
+    clear();
+    signerStatus.textContent = 'The phone requests a review; it never signs the Sovereign cédula.';
+    // English-only MVP: replace dormant historical copy after app.js initialized.
+    var wording = {
+      node_registration_title: 'Deploy a node (review request)',
+      node_registration_help: 'Sign deployment requests human review only. It cannot approve a node, sign an SSH credential or make a node LIVE.',
+      node_registration_name: 'Proposed canonical node name',
+      node_registration_preview: 'Preview deployment request',
+      node_registration_consent: 'I consent to send this preliminary request for human review. Approval and signing are separate.',
+      node_registration_submit: 'Sign deployment · request review',
+      node_registration_signer_pending: 'The phone never signs the final cédula.'
+    };
+    Object.keys(wording).forEach(function (key) {
+      var target = document.querySelector('[data-i18n="' + key + '"]');
+      if (!target) return;
+      target.textContent = wording[key];
+      target.removeAttribute('data-i18n');
+    });
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      clear();
       try {
-        pendingCedula = await createRequest(input.value.trim());
-        preview.textContent = JSON.stringify(pendingCedula, null, 2);
-        signerStatus.textContent = text('node_registration_signer_pending');
-        status.textContent = text('node_registration_draft_ready');
+        draft = deploymentDraft(input.value.trim(), purpose.value);
+        preview.textContent = JSON.stringify({
+          nodo: draft.node, purpose: draft.purpose,
+          estado: deploymentStates.draft, sent: false, approved: false, live: false
+        }, null, 2);
         consent.disabled = false;
+        show(deploymentStates.draft,
+          'Review your request and consent to contact Aduana. No submission or signature yet.',
+          'owner_consent_required');
       } catch (error) {
-        status.textContent = text('node_registration_invalid') + ' ' + error.message;
         preview.textContent = '';
-        signerStatus.textContent = text('node_registration_signer_pending');
+        show(deploymentStates.unknown, 'Nothing sent: ' + error.message, error.message);
       }
     });
+
+    function invalidate() {
+      clear();
+      show(deploymentStates.draft,
+        'Node details changed. Preview again before consent.', 'draft_changed');
+    }
+    input.addEventListener('input', invalidate);
+    purpose.addEventListener('input', invalidate);
 
     consent.addEventListener('change', function () {
-      submit.disabled = submitted || !pendingCedula || !consent.checked;
+      submit.disabled = submitted || !draft || !consent.checked;
     });
-
     submit.addEventListener('click', async function (event) {
       event.preventDefault();
-      if (!pendingCedula || !consent.checked) return;
+      if (!draft || !consent.checked || submitted) return;
       submitted = true;
       submit.disabled = true;
-      status.textContent = text('node_registration_sending');
+      show('submitting', 'Waiting for Android native consent and a real receipt.',
+        'native_confirmation_required');
       try {
-        await pendingSigner();
-        var receipt = await adapter.submitPending(pendingCedula, consent.checked);
-        status.textContent = text('node_registration_pending') + ' ' + receipt.cause
-          + ' · ' + receipt.receipt_id;
+        var receipt = await requestDeploymentReview(draft, true, root.PreceptorAndroidJoin);
+        show(receipt.state, 'Request received; tracking ' + receipt.trackingId +
+          '. Awaiting human approval. Not a live node.', 'human_approval_pending');
+        preview.textContent = JSON.stringify({
+          nodo: draft.node, tracking_id: receipt.trackingId,
+          estado: receipt.state, approved: false, live: false
+        }, null, 2);
       } catch (error) {
-        status.textContent = text('node_registration_unavailable') + ' ' + (error.cause || 'network_unavailable');
-      } finally {
-        submit.disabled = submitted || !consent.checked;
+        show(deploymentStates.unknown,
+          'No verified request receipt: ' + error.message + '. Nothing approved or live.',
+          error.message);
       }
     });
+    show(deploymentStates.draft,
+      'Create a node request locally. Sign deployment means request review, not SSH signing.',
+      'local_only');
   }
 
   function text(key) {
@@ -269,12 +390,16 @@
       canonical: canonical, createRequest: createRequest, pendingSigner: pendingSigner,
       testStubSigner: testStubSigner, doorOneAdapter: doorOneAdapter, runDryRun: runDryRun, mount: mount,
     canonicalAduana: canonicalAduana, createAduanaRequest: createAduanaRequest,
-    verifyAduanaReceipt: verifyAduanaReceipt, aduanaAdapter: aduanaAdapter });
+    verifyAduanaReceipt: verifyAduanaReceipt, aduanaAdapter: aduanaAdapter,
+    deploymentStates: deploymentStates, deploymentDraft: deploymentDraft,
+    deploymentEvidence: deploymentEvidence, requestDeploymentReview: requestDeploymentReview });
   } else {
     root.PreceptorNodeRegistration = Object.freeze({ schemaName: schemaName, states: stateNames,
       createRequest: createRequest, pendingSigner: pendingSigner,
       doorOneAdapter: doorOneAdapter, mount: mount,
       canonicalAduana: canonicalAduana, createAduanaRequest: createAduanaRequest,
-      verifyAduanaReceipt: verifyAduanaReceipt, aduanaAdapter: aduanaAdapter });
+      verifyAduanaReceipt: verifyAduanaReceipt, aduanaAdapter: aduanaAdapter,
+    deploymentStates: deploymentStates, deploymentDraft: deploymentDraft,
+    deploymentEvidence: deploymentEvidence, requestDeploymentReview: requestDeploymentReview });
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
