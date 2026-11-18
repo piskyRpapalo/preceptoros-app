@@ -193,6 +193,8 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           # comprobarse en cuanto viven en un guion aparte.
           test_apretar
           test_public_names
+          # Public four-zone MINI: source projection + deterministic browser-owned project contract.
+          test_public_mini_package
           test_faro
           test_colony_web_fixture
           test_colony_services

@@ -47,12 +47,17 @@
   /* ------------------------------------------------------------------ */
 
   function createDocument(title, content) {
+    var safeTitle = typeof title === 'string' ? title.trim() : '';
+    var safeContent = typeof content === 'string' ? content : '';
+    if (!safeTitle || safeTitle.length > maxTitle || safeContent.length > maxContent) {
+      return { state: 'draft', _validationError: 'invalid_document_size_or_title' };
+    }
     var docs = loadDocuments();
     var doc = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      title: title || 'Untitled',
-      content: content || '',
-      state: 'draft',
+      title: safeTitle,
+      content: safeContent,
+      state: 'saved',
       created: new Date().toISOString(),
       modified: new Date().toISOString()
     };
@@ -68,12 +73,17 @@
   }
 
   function updateDocument(id, title, content) {
+    if (typeof title !== 'string' || !title.trim() || title.trim().length > maxTitle ||
+        (content !== undefined && (typeof content !== 'string' || content.length > maxContent))) {
+      return { state: 'draft', _validationError: 'invalid_document_size_or_title' };
+    }
     var docs = loadDocuments();
     var idx = docs.findIndex(function (d) { return d.id === id; });
     if (idx < 0) return null;
     docs[idx].title = title || docs[idx].title;
     docs[idx].content = content !== undefined ? content : docs[idx].content;
     docs[idx].modified = new Date().toISOString();
+    docs[idx].state = 'saved';
     var ok = saveDocuments(docs);
     if (!ok) {
       docs[idx].state = 'draft';
@@ -276,11 +286,17 @@
         var files = e.target.files;
         if (!files || files.length === 0) return;
         Array.from(files).forEach(function (file) {
+          if (file.size > 400000 || !/\.(txt|md|json|csv|html|xml)$/i.test(file.name)) {
+            if (estadoGeneral) estadoGeneral.textContent = 'Import rejected: unsupported file type or size.';
+            return;
+          }
           var reader = new FileReader();
           reader.onload = function (ev) {
             var text = ev.target.result;
             var d = createDocument(file.name.replace(/\.[^.]+$/, ''), text);
-            if (d._saveError) {
+            if (d._validationError) {
+              if (estadoGeneral) estadoGeneral.textContent = 'Import rejected for ' + file.name + ': invalid name or more than 100,000 characters.';
+            } else if (d._saveError) {
               if (estadoGeneral) estadoGeneral.textContent = 'Import failed for ' + file.name + ': localStorage quota exceeded. Re-import after freeing space.';
             } else {
               if (estadoGeneral) estadoGeneral.textContent = 'Imported: ' + file.name + '. State: saved.';
