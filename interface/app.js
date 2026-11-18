@@ -646,9 +646,10 @@ const insertor = window.PreceptorInsertor;
  * If not set, defaults to "personal_mvp" (the downloadable product).
  *
  * FAIL-CLOSED: choosing "private_rack" in localStorage is only a preference.
- * The APP must verify the server has a valid identity (SHA256 fingerprint via
- * /api/perfil) before actually showing Hexelion. Without server evidence,
- * the profile falls back to "personal_mvp" regardless of localStorage.
+ * The APP checks the local installation's pseudonymous marker via /api/perfil
+ * and the declared private Talk mode before showing an explicitly chosen
+ * private profile. Neither value authenticates a user or grants authority.
+ * Without both, the profile falls back to personal_mvp.
  * An available endpoint does NOT authorize a profile change — the fingerprint
  * must be present and non-empty.
  *
@@ -665,16 +666,24 @@ const insertor = window.PreceptorInsertor;
     window.PreceptorOrchestratorName = name.trim();
   }
 
-  // Fail-closed: verify server identity before granting private_rack
+  // The server's stable fingerprint is an identity label, not authentication.
+  // Displaying the private profile requires a person's explicit preference,
+  // a measured local installation identity and the station's declared mode.
+  // Only the server can authorize any private request or effect.
   var verified = false;
   (async function verifyIdentity() {
     try {
       var r = await fetch("/api/perfil", { cache: "no-store" });
-      var d = await r.json();
-      // Server must return a non-empty SHA256 fingerprint to authorize private_rack
-      verified = !!(d && d.identidad && d.identidad.sha256 && d.identidad.sha256 !== "NO_DATA");
+      var d = r.ok ? await r.json() : null;
+      var identity = d && d.identidad;
+      var marker = identity && identity.huella;
+      var observed = !!(d && d.estado === "ok" && identity && identity.estado === "ok" &&
+        typeof marker === "string" && /^[a-f0-9]{64}$/.test(marker));
+      var modeReply = observed ? await fetch("/api/cerebro", { cache: "no-store" }) : null;
+      var mode = modeReply && modeReply.ok ? await modeReply.json() : null;
+      verified = !!(observed && mode && mode.estado === "ok" &&
+        mode.talk_mode === "private_hexelion");
     } catch (e) {
-      // Network error — fail closed
       verified = false;
     }
     var profile = (preferred === "private_rack" && verified) ? "private_rack" : "personal_mvp";
@@ -1255,7 +1264,7 @@ $("form-chat").addEventListener("submit", async (e) => {
   const texto = ruta.texto;
   if (!texto) return;
   $("dicho").value = "";
-  burbuja(escrito, "mio");
+  const localDraft = burbuja(escrito, "mio");
   $("enviar").disabled = true;
   const esperando = burbuja("thinking… on a phone this can take minutes", "espera");
   // Waiting is drawn still: nothing is known to be running until the turn says so.
@@ -1268,6 +1277,24 @@ $("form-chat").addEventListener("submit", async (e) => {
     const localMode = "local_gguf", privateMode = "private_hexelion";
     if (talkMode !== localMode && talkMode !== privateMode) {
       throw new Error("talk_mode_unavailable");
+    }
+    // The server's private model mode is not the person's selected profile.
+    // A fresh personal profile never silently posts to the private rack model.
+    // This client guard is not server authorization; the host owns that.
+    if (talkMode === privateMode && window.PreceptorProfile !== "private_rack") {
+      esperando.remove();
+      localDraft.remove(); // not delivered: never leave a fake sent bubble
+      $("estado").dataset.state = "NO_DATA";
+      $("estado").dataset.acho = "NO_DATA";
+      $("estado").textContent = "NO_DATA(personal_profile_private_route_denied) · No message was sent.";
+      if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), null, "silent");
+      modelosWeb.setActiveModel(null, null, "personal_profile_private_route_denied");
+      if (!$("dicho").value.trim()) {
+        $("dicho").value = escrito;
+      }
+      $("enviar").disabled = false;
+      devolverFoco(volverA);
+      return;
     }
     const localTalk = talkMode === localMode;
     const request = {
