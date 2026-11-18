@@ -200,5 +200,24 @@ const adapter = flow.doorOneAdapter((url, options) => {
         self.assertIn("interface/node_building.js", version.ARMAZON)
 
 
+    def test_aduana_client_join_contract(self):
+        result = subprocess.run(
+            ["node", "--test", "tests/android_join_contract_cases.cjs"],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("pass 10", result.stdout)
+        self.assertIn("fail 0", result.stdout)
+
+    def test_aduana_client_has_no_ambient_network_or_rack_access(self):
+        source = (ROOT / "interface/node_registration.js").read_text(encoding="utf-8")
+        client = source.split("// Aduana intake contract", 1)[1].split("  function pendingSigner()", 1)[0]
+        self.assertIn("native_https_transport_required", client)
+        self.assertIn("explicit_consent_required", client)
+        self.assertNotIn("root.fetch(", client)
+        self.assertNotIn("private_rack", client)
+        self.assertNotIn("localhost", client)
+
+
 if __name__ == "__main__":
     unittest.main()
