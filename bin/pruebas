@@ -184,7 +184,7 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           # Superbot F1: cards declare, only host-verified task grants gate eligibility.
           test_agentes_contrato test_talk_local
           # Day D · personal_mvp must never inherit a rack chat or shared thread.
-          test_dayd_personal_no_rack_contract
+          test_dayd_personal_no_rack_contract test_lisbon_table_operator
           # SYSTEM CHECK: native offline diagnosis, independent of model/provider.
           test_system_check tests.test_system_check_adversarial
           # test_apretar: la compresion de contexto que SOLO puede borrar

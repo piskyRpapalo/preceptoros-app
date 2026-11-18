@@ -1,6 +1,6 @@
 # PreceptorOS · Day D · Make one building draft
 
-**Room success (about 15 minutes):** open the public world and prepare **one building draft** on your own device. Keep the file. You do **not** need GitHub, a model, a Companion PR or a live node in the room.
+**Lisbon Table success (19 November 2026):** open the public world, prepare a local building draft, then **open docs-only Companion and Lab HITL PRs in the room** with human ownership and review. If GitHub access is missing, save drafts and report NO_DATA(GitHub_account_or_PR_not_created). No model or LIVE node is required. See [the one-page Lisbon operator path](LISBON_TABLE_APP_ONEPAGE_20261119.md).
 
 ## 1 · In the room: build first
 
@@ -29,9 +29,9 @@ Hexelion runs **only on the founder's private rack**. It is not bundled with Pre
 
 Current native Talk can use **your GGUF file with compatible llama.cpp**. Installing Ollama alone does not connect its API to Talk: **NO_DATA(user_Ollama_bridge_E2E)**. LAN/Tailscale and paid API backends also remain **NO_DATA(user_endpoint_E2E)** until independently verified. The `v1.3` installer release has older, misleading Ollama help text; do not run an unreviewed `curl | sh` from it. The corrected copy is in later source code; a new release digest is required for a corrected installer download.
 
-## 3 · At home later: Companion, admission and feedback
+## 3 · At the table: Companion HITL proposals; at home: model and feedback
 
-Only **after the room**, if you want to turn your project into a public chatbot, open **Create Companion**. The local generator prepares **DECLARATION.md** and **STATE.md**. Review both for secrets. A docs-only PR in [preceptoros-companion](https://github.com/piskyRpapalo/preceptoros-companion) is a **review request**, not a live node. Do not ask someone without a GitHub account to open one in the room.
+**In the room (Meta 1),** prepare **DECLARATION.md** and **STATE.md** and, if GitHub is available, open a docs-only HITL PR in [preceptoros-companion](https://github.com/piskyRpapalo/preceptoros-companion). Likewise, a Lab PR may contain experiments/<slug>/README.md with observed measurements or NO_DATA(baseline_not_measured). A PR is a **review request**, not an admitted or LIVE node; the Sovereign retains signing decisions. **At home (Meta 2)**, connect your own local model and investigate actual node operation. Do not claim the rack model is a collaborator service.
 
 A node owner's private model, memory and keys remain theirs. **Feedback content belongs on that owner's hardware**, via a future owner-approved pull/export channel; no intermediary inbox on the founder's Beelink. **NO_DATA(feedback_remote_delivery_E2E)** until tested. Human signatures govern real admission, node activation and permissions.
 
@@ -45,6 +45,6 @@ A node owner's private model, memory and keys remain theirs. **Feedback content 
 | `127.0.0.1:8740` unavailable | Run `cd ~/preceptoros && bin/preceptoros-servicio estado`. Do not stop or modify the founder's rack services. |
 | Download was interrupted | Regenerate locally; no public owner identity was reserved. |
 
-**Simple room receipt:** `ROOM_BUILDING_DRAFT · <provisional_slug> · DRAFT_ONLY · downloaded=yes|NO_DATA · world=NO_DATA`.
+**Simple room receipt:** `ROOM_META1 · companion_pr=<URL|NO_DATA(cause)> · lab_pr=<URL|NO_DATA(cause)> · building=DRAFT_ONLY|NO_DATA(cause) · owner_review=pending`.
 
 **Not promised in the room:** Windows/iOS full native APP, public Android mini APP, four live nodes, Companion PR merges, automatic building admission, remote feedback delivery, or free access to Hexelion.

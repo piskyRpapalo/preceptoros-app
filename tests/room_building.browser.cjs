@@ -41,6 +41,8 @@ test('one-building draft in a clean browser: 900, 420, 360', { timeout: 120000 }
       let effectPosts=0;
       page.on('request',r=>{if(r.method()==='POST' &&
         (r.url().startsWith(base+'/api/') || r.url().includes('github.com'))) effectPosts++;});
+      // Scripted cold-start time; not a human usability stopwatch.
+      const startMs = performance.now();
       await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
       await page.waitForFunction(()=>!!window.PreceptorCompanionOnboarding?.renderBuildingDraft);
       await page.locator('#tab-ajustes').click();
@@ -64,7 +66,7 @@ test('one-building draft in a clean browser: 900, 420, 360', { timeout: 120000 }
       assert.match(text,/Schema: preceptoros.room-building-draft\/1/);
       assert.match(text,/Building count: 1/);
       assert.match(text,/NO_DATA\(world_publication_not_verified\)/);
-      assert.match(text,/Companion and request review later/);
+      assert.match(text,/Companion HITL PR if you have GitHub/);
       assert.equal(effectPosts,0,'no backend write, repo submission, or inbox request');
       const downloaded=page.waitForEvent('download');
       await page.locator('#room-building-download').click();
@@ -75,6 +77,9 @@ test('one-building draft in a clean browser: 900, 420, 360', { timeout: 120000 }
       assert.equal(dl.suggestedFilename(),'building-draft-my-solar-workshop.md');
       const localFile=await dl.path();
       const content=fs.readFileSync(localFile,'utf8');
+      const scriptedElapsedMs = Math.round(performance.now()-startMs);
+      assert.ok(scriptedElapsedMs < 180000,
+        'scripted path exceeds café three-minute ceiling: '+scriptedElapsedMs);
       assert.equal(content,text,'download bytes must match the visible draft');
       await page.locator('#room-building-purpose').fill('sk-abcdefghijklmno');
       assert.equal(await page.locator('#room-building-download').isDisabled(),true);
@@ -88,7 +93,9 @@ test('one-building draft in a clean browser: 900, 420, 360', { timeout: 120000 }
       assert.equal(await page.locator('#room-building-name').evaluate(e=>e===document.activeElement),true);
       console.log(JSON.stringify({schema:'preceptoros.room-building-browser/1',viewport,
         result:'PASS',download:'PASS',a11y_tap:'PASS',keyboard_focus:'PASS',
-        effects_POST:effectPosts,publication:'NO_DATA(not_submitted)',physical_device:'NO_DATA(not_run)'}));
+        effects_POST:effectPosts,scripted_elapsed_ms:scriptedElapsedMs,
+        human_elapsed:'NO_DATA(human_run_not_measured)',
+        publication:'NO_DATA(not_submitted)',physical_device:'NO_DATA(not_run)'}));
       await context.close();
     }
   } finally {
