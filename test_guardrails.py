@@ -503,6 +503,11 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         INTRINSECOS |= {"DRAFT_ONLY"}
         # APP deployment review states: presentation vocabulary, never authorizing policy.
         INTRINSECOS |= {"REQUESTED", "PENDING", "APPROVED", "REJECTED"}
+        # Public MINI uses these exact local presentation states and source constants,
+        # never a redaction policy, SSH grant, model connection or authority.
+        INTRINSECOS |= {"DETERMINISTIC_ONLY", "MODEL_CONFIGURED", "MODEL_VERIFIED",
+                         "NOT_SUBMITTED", "NONE", "SCHEMA", "STORAGE", "STEPS",
+                         "TEMPLATES", "CELEX"}
         # Companion onboarding handoff mentions public filename stems and exact secret-format lexemes,
         # not policies or tokens. The specific vocabulary is closed; arbitrary uppercase names still fail.
         INTRINSECOS |= {"AGENT_CARD", "CONTRIBUTING", "DECLARATION", "GROUNDTRUTH", "GUIDE", "STATE",
