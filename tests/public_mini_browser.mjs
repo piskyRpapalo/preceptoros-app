@@ -30,7 +30,7 @@ const server=createServer(async(req,res)=>{
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const url='http://127.0.0.1:'+server.address().port+'/app/';
 const profile=await mkdtemp(join(tmpdir(),'preceptor-mini-cdp-'));
-const chrome=spawn('/usr/bin/google-chrome',['--headless=new','--no-sandbox','--disable-gpu',
+const chrome=spawn('/usr/bin/google-chrome',['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
  '--disable-extensions','--disable-background-networking','--no-first-run',
  '--remote-debugging-port=0','--user-data-dir='+profile,url],
  {stdio:['ignore','ignore','pipe']});
@@ -64,6 +64,18 @@ try {
   const msg=await command('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
   if(msg.result?.exceptionDetails)throw Error('BROWSER_EXCEPTION_'+JSON.stringify(msg.result.exceptionDetails).slice(0,500));
   return msg.result?.result?.value;
+ };
+ const waitFor=async (expression,label)=>{
+  let last='not evaluated';
+  for(let n=0;n<96;n++){
+   try{
+    const value=await evaluate(expression);
+    if(value)return value;
+    last=String(value);
+   }catch(e){last=String(e).slice(0,240);}
+   await sleep(125);
+  }
+  throw Error('CDP_WAIT_FAILED_'+label+': '+last);
  };
  await command('Runtime.enable');
  await command('Page.enable');
@@ -118,11 +130,13 @@ try {
  assert.equal(ownerDraft.description,'Private local research');
  assert.ok(ownerDraft.prompt.startsWith('You are an experimental PreceptorOS companion.'));
  await evaluate("(()=>{const c=document.getElementById('node-registration-consent');c.checked=true;c.dispatchEvent(new Event('change'));document.getElementById('node-registration-submit').click();return true;})()");
- await sleep(150);
+ await waitFor("document.getElementById('node-registration-status')?.dataset.state==='NO_DATA'",
+               'registration_gate_denied_without_bridge');
  const blocked=await evaluate("({state:document.getElementById('node-registration-status').dataset.state,text:document.getElementById('node-registration-status').textContent})");
  assert.equal(blocked.state,'NO_DATA');assert.match(blocked.text,/native_preliminary_request_not_available/);
  await command('Page.reload');
- await sleep(450);
+ await waitFor("!!(window.PreceptorMiniProjectGuide&&window.PreceptorDocuments&&document.getElementById('mini-project-title')?.value==='Owner Law Study'&&document.getElementById('node-default-name')?.value==='My own Companion')",
+               'owner_storage_reloaded');
  const persisted=await evaluate("({project:document.getElementById('mini-project-title').value,docs:window.PreceptorDocuments.loadDocuments().length,model:window.PreceptorMiniProjectGuide.modelState(window.PreceptorOwnerModelSlots,localStorage).state,companion:document.getElementById('node-default-name').value})");
  assert.equal(persisted.project,'Owner Law Study');assert.equal(persisted.docs,1);
  assert.equal(persisted.model,'MODEL_CONFIGURED');
@@ -134,7 +148,8 @@ try {
  assert.equal(sw,true);
  await command('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
  await command('Page.reload',{ignoreCache:false});
- await sleep(550);
+ await waitFor("!!(window.PreceptorOfflineMini&&window.PreceptorMiniProjectGuide&&window.PreceptorCompanionOnboarding&&window.PreceptorMiniProjectGuide.load(localStorage,window.PreceptorCompanionOnboarding).ok)",
+               'offline_router_and_local_project_reloaded');
  const offline=await evaluate("({loaded:!!window.PreceptorOfflineMini,project:window.PreceptorMiniProjectGuide.load(localStorage,window.PreceptorCompanionOnboarding).ok})");
  assert.equal(offline.loaded,true);assert.equal(offline.project,true);
  assert.equal(requests.filter(x=>x.includes('/api/')).length,0);

@@ -115,7 +115,7 @@ class PublicMiniPackage(unittest.TestCase):
         for width in (360, 420):
             with self.subTest(width=width):
                 run = subprocess.run(["node", "tests/public_mini_browser.mjs", str(width)],
-                                     cwd=ROOT, capture_output=True, text=True, timeout=30)
+                                     cwd=ROOT, capture_output=True, text=True, timeout=75)
                 self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
                 self.assertIn('"status":"PASS"', run.stdout)
                 self.assertIn('"apiRequests":0', run.stdout)
