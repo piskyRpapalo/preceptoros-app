@@ -186,5 +186,7 @@ try {
  try{ws?.close();}catch{}
  if(chrome){chrome.kill('SIGTERM');await sleep(120);try{chrome.kill('SIGKILL');}catch{}}
  await new Promise(r=>server.close(r));
- for(const profile of profiles)await rm(profile,{recursive:true,force:true});
+ // Chrome may still release files after SIGTERM; retry only transient fs.rm
+ // errors, with a finite deadline. Persistent cleanup failures stay red.
+ for(const profile of profiles)await rm(profile,{recursive:true,force:true,maxRetries:10,retryDelay:150});
 }
