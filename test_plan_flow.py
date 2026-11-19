@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 MODULOS = ("plan_flow", "plan_fixture", "plan_panels", "plan_composer")
-VERSION = {"plan_flow": 1, "plan_fixture": 1, "plan_panels": 2, "plan_composer": 2}
+VERSION = {"plan_flow": 1, "plan_fixture": 1, "plan_panels": 3, "plan_composer": 2}
 
 
 def leer(ruta):
@@ -46,15 +46,15 @@ class PlanEnLosPaneles(unittest.TestCase):
         html = leer("interface/app.html")
         self.assertEqual(len(re.findall(r'role="tabpanel"', html)), len(re.findall(r'role="tab"', html)))
         self.assertNotRegex(html, r'id="panel-(superbot|plan)')
-        for hogar, ids in {"panel-conversacion": ("talk-plan", "plan-texto", "plan-guardar"),
-                           "panel-mando": ("mando-plan-tareas", "mando-plan-estado"),
-                           "panel-cuaderno": ("notebook-plans",), "panel-lab": ("lab-runs",),
-                           "panel-harness": ("harness-plan-agents",)}.items():
-            ini = html.index(f'id="{hogar}"')
-            fin = html.find('<section class="panel"', ini + 1)
-            trozo = html[ini:fin if fin > 0 else len(html)]
-            for i in ids:
-                self.assertIn(f'id="{i}"', trozo, f"{i} lives in {hogar}")
+        for hogar, ids in {"panel-cuaderno": ("talk-plan", "plan-texto",
+                             "plan-guardar", "mando-plan-tareas", "mando-plan-estado",
+                             "notebook-plans"),
+                             "panel-lab": ("lab-runs","harness-plan-agents")}.items():
+            ini=html.index(f'id="{hogar}"')
+            fin=html.find('<section class="panel"',ini+1)
+            trozo=html[ini:fin if fin>0 else len(html)]
+            for field in ids:
+                self.assertIn(f'id="{field}"',trozo,f"{field} belongs to {hogar}")
 
     def test_ningun_mensaje_ni_campo_concede(self):
         panels = leer("interface/plan_panels.js")

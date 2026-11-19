@@ -49,8 +49,8 @@ class ContratoSuperficie(unittest.TestCase):
         fuente = ruta.read_text(encoding="utf-8")
         ids = re.findall(r'\bid: "([a-z]+)"', fuente)
         # Legacy serialized zone IDs stay valid on read; retired 3D is not navigable.
-        self.assertEqual(set(ids), set(ZONAS) - {"puerta"})
-        self.assertEqual(len(ids), len(ZONAS) - 1)
+        self.assertEqual(ids, ["conversacion", "cuaderno", "lab", "modelos", "ajustes", "settings"])
+        self.assertEqual(len(ids), 6)
 
     def test_fuente_hsl_es_semilla_fijada_por_el_manifiesto_de_herencia(self):
         raiz = Path(__file__).parent

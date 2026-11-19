@@ -115,30 +115,36 @@ class NotebookShellTests(unittest.TestCase):
         notebook = html.split('id="panel-cuaderno"', 1)[1].split('id="panel-lab"', 1)[0]
         settings = html.split('id="panel-ajustes"', 1)[1]
         self.assertIn('id="notebook-agents"', notebook)
-        self.assertIn('id="notebook-loops"', notebook)
+        lab = html.split('id="panel-lab"', 1)[1].split('id="panel-harness"', 1)[0]
+        command = notebook
+        self.assertIn('id="lab-loops"', lab)
+        self.assertNotIn('id="notebook-loops"', notebook)
         self.assertIn('id="notebook-reports"', notebook)
-        self.assertNotIn('id="turnos"', notebook)
-        self.assertIn('id="captura-consent"', settings)
-        self.assertIn('id="turnos"', settings)
-        self.assertIn('id="recuento"', settings)
+        self.assertIn('id="notebook-memory-group"', notebook)
+        self.assertIn('id="turnos"', notebook)  # one memory view, nested and closed
+        self.assertIn('id="captura-consent"', command)
+        self.assertIn('id="turnos"', command)
+        self.assertIn('id="recuento"', command)
+        self.assertNotIn('id="memoria-inicio"', settings)
 
     def test_route_and_cache_align(self):
         html = (self.ROOT / "interface/app.html").read_text(encoding="utf-8")
         sw = (self.ROOT / "interface/sw.js").read_text(encoding="utf-8")
         pwa = (self.ROOT / "bin/preceptoros-pwa").read_text(encoding="utf-8")
         app = (self.ROOT / "interface/app.js").read_text(encoding="utf-8")
-        self.assertIn('<script src="/notebook.js?v=20"></script>', html)
-        self.assertIn('"/notebook.js?v=20"', sw)
+        self.assertIn('<script src="/notebook.js?v=23"></script>', html)
+        self.assertIn('"/notebook.js?v=23"', sw)
         self.assertIn('"/notebook.js": ("notebook.js", "application/javascript; charset=utf-8")', pwa)
         self.assertIn('ruta == "/api/notebook"', pwa)
         self.assertIn('ruta in ("/api/bandeja", "/api/energia", "/api/notebook")', pwa)
-        self.assertIn("preceptoros-armazon-v218", sw)
-        self.assertIn('<script src="/app.js?v=47"></script>', html)
-        self.assertIn('"/app.js?v=47"', sw)
-        self.assertIn('<link rel="stylesheet" href="/app.css?v=40">', html)
-        self.assertIn('"/app.css?v=40"', sw)
+        self.assertIn("preceptoros-armazon-v232", sw)
+        self.assertIn('<script src="/app.js?v=56"></script>', html)
+        self.assertIn('"/app.js?v=56"', sw)
+        self.assertIn('<link rel="stylesheet" href="/app.css?v=52">', html)
+        self.assertIn('"/app.css?v=52"', sw)
         self.assertIn('window.PreceptorNotebook.load()', app)
-        self.assertIn('Promise.allSettled([cargarCuaderno(), cargarPuerta()])', app)
+        self.assertIn('paintDecide(), cargarCuaderno()', app)
+        self.assertIn('wireReaderGroup("ajustes-puerta", () => cargarPuerta())',app)
 
 
 if __name__ == "__main__":

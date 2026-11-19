@@ -1,4 +1,5 @@
-/* Notebook operativo · one read-only projection of receipt-bearing agents, loops and reviews.
+/* Read-only receipt projection shared by Operations Data (documents/reviews)
+ * and Lab (loop measurements). One source per fact, no duplicate storage.
  * Existing agents in Harness are prompt styles, not processes; never call them live.
  * No arbitrary remote fetch, eval, signer, scheduler or local-store duplicate.
  */
@@ -6,7 +7,7 @@
   "use strict";
   const translations = {
     es: {
-      title: "Cuaderno operativo", subtitle: "Agentes, ciclos y revisiones con fuente. Un dato declarado no acredita un proceso vivo.",
+      title: "Datos operativos", subtitle: "Documentos, planes y recibos con su fuente. Los bucles se consultan en Lab.",
       loading: "Leyendo los recibos locales…", refresh: "Actualizar lecturas",
       agents: "Agentes observados", loops: "Bucles del nodo", reports: "Revisiones",
       emptyAgents: "NO_DATA: censo de agentes ausente", emptyLoops: "NO_DATA: sensor de bucles sin lectura",
@@ -19,8 +20,8 @@
       receipts: "Recibos de órdenes", receiptsNote: "Un recibo dice que una orden corrió y cómo terminó; no que su salida fuera correcta."
     },
     en: {
-      title: "Operations Notebook", subtitle: "Sourced agents, cycles and reviews. A declaration does not prove a running process.",
-      loading: "Reading local receipts…", refresh: "Refresh readings",
+      title: "Operations Data", subtitle: "Documents, plans and operation receipts. Loop measurements live in Lab.",
+      loading: "Reading local receipts…", refresh: "Refresh",
       agents: "Observed agents", loops: "Node loops", reports: "Reviews",
       emptyAgents: "NO_DATA: agent census missing", emptyLoops: "NO_DATA: loop sensor unavailable",
       error: "NO_DATA: Notebook service unavailable", source: "Receipt", last: "Last observation",
@@ -116,7 +117,7 @@
     [
       ["notebook-title", t.title], ["notebook-subtitle", t.subtitle],
       ["notebook-refresh", t.refresh], ["notebook-agents-title", t.agents],
-      ["notebook-loops-title", t.loops], ["notebook-reports-title", t.reports]
+      ["notebook-reports-title", t.reports]
     ].forEach(([id, value]) => { const target = document.getElementById(id); if (target) target.textContent = value; });
     const button = document.getElementById("notebook-refresh");
     const status = document.getElementById("notebook-status");
@@ -124,16 +125,12 @@
     if (button.getAttribute("aria-disabled") === "true") return;
     button.setAttribute("aria-disabled", "true");
     status.textContent = t.loading;
-    const [notesResult, harnessResult] = await Promise.allSettled([
-      request("/api/notebook"), request("/api/harness")
-    ]);
-    const notes = notesResult.status === "fulfilled" ? projectNotebook(notesResult.value) : null;
-    const loops = harnessResult.status === "fulfilled" ?
-      projectHarness(harnessResult.value, Date.now()) : { rows: [], cause: "sensor_unreachable" };
+    // Operations Data does not read or render Lab loops.
+    let notes = null;
+    try { notes = projectNotebook(await request("/api/notebook")); } catch { notes = null; }
     const aList = document.getElementById("notebook-agents");
-    const lList = document.getElementById("notebook-loops");
     const rList = document.getElementById("notebook-reports");
-    aList.replaceChildren(); lList.replaceChildren(); rList.replaceChildren();
+    aList.replaceChildren(); rList.replaceChildren();
     if (notes && notes.agents.length) {
       notes.agents.forEach(a => {
         const label = a.status === "OBSERVADO" ? t.observed : a.status === "STALE" ? t.stale : t.unavailable;
@@ -144,16 +141,6 @@
         aList.append(c);
       });
     } else aList.append(card(t.emptyAgents, "NO_DATA", notes ? notes.cause : "notebook_endpoint_unavailable"));
-    // projectHarness returns rows only for a sensor read under 5 minutes old: that is what `fresh` states.
-    if (loops.rows.length) {
-      loops.rows.forEach(l => {
-        const c = estado(card(l.name, t.timer, l.result || t.profile), [{ source: "loop", fresh: true, result: l.result }], l.name);
-        field(c, t.lastLoop, l.last);
-        field(c, t.nextLoop, l.next);
-        if (l.cause) field(c, "Causa", l.cause);
-        lList.append(c);
-      });
-    } else lList.append(card(t.emptyLoops, "NO_DATA", loops.cause));
     const reports = notes ? notes.reports : [
       { kind: "WBR", status: "NO_DATA", cause: "notebook_endpoint_unavailable" },
       { kind: "MBR", status: "NO_DATA", cause: "notebook_endpoint_unavailable" }
@@ -185,7 +172,7 @@
     }
     await loadTurns("notebook-turns", "notebook-turns-status", 12);
     await loadTasks("notebook-tasks", "notebook-tasks-status");
-    status.textContent = (notes ? t.updated : t.error) + (loops.cause ? " · loops: " + loops.cause : "");
+    status.textContent = notes ? t.updated : t.error;
     button.removeAttribute("aria-disabled");
   }
   /* What happened to each request (meta-harness 01). One projection from /api/hexelion/turnos feeds the screen, the
@@ -400,6 +387,38 @@
     if (status && spoken[statusId] !== summary) { status.textContent = summary; spoken[statusId] = summary; }
     return runs;
   }
+  async function loadLabLoops() {
+    const target = document.getElementById("lab-loops");
+    const status = document.getElementById("lab-loops-status");
+    if (!target || !status) return;
+    const t = lang();
+    let reading;
+    try {
+      reading = projectHarness(await request("/api/harness"), Date.now());
+    } catch {
+      reading = { rows: [], cause: "harness_sensor_unreachable" };
+    }
+    target.replaceChildren();
+    status.dataset.state = reading.rows.length ? "MEASURED" : "NO_DATA";
+    status.dataset.cause = reading.cause || "recent_harness_sensor";
+    status.dataset.acho = reading.rows.length ? "ok" : "silent";
+    if (reading.rows.length) {
+      reading.rows.forEach((loop) => {
+        const c = estado(card(loop.name, t.timer, loop.result || t.profile),
+          [{ source: "loop", fresh: true, result: loop.result }], loop.name);
+        field(c, t.lastLoop, loop.last);
+        field(c, t.nextLoop, loop.next);
+        if (loop.cause) field(c, "Cause", loop.cause);
+        target.append(c);
+      });
+      status.textContent = reading.rows.length + " recent loop" +
+        (reading.rows.length === 1 ? "" : "s") + " observed. Check each receipt.";
+    } else {
+      status.textContent = "Loop readings unavailable. See cause in technical evidence.";
+      target.append(card(t.emptyLoops, "NO_DATA", reading.cause));
+    }
+  }
+
   async function loadTurns(listId, statusId, limit, thread) {
     const list = document.getElementById(listId), status = document.getElementById(statusId);
     if (!list) return null;
@@ -458,7 +477,7 @@
     // Through the panel flow when the app shell is present, so a refresh speaks once like an opening.
     if (refresh) refresh.addEventListener("click", () => root.PreceptorPanelFlow ? root.PreceptorPanelFlow.load("cuaderno") : load().catch(() => {}));
   }
-  const api = Object.freeze({ load, projectNotebook, projectHarness, projectTurns, turnLine, achoClasses, projectTasks, taskSummary, loadTasks, talkTasks, loadTurns, loadBench, evidenceFor, talkStates });
+  const api = Object.freeze({ load, loadLabLoops, projectNotebook, projectHarness, projectTurns, turnLine, achoClasses, projectTasks, taskSummary, loadTasks, talkTasks, loadTurns, loadBench, evidenceFor, talkStates });
   root.PreceptorNotebook = api;
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document !== "undefined") mount();

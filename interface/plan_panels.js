@@ -93,6 +93,7 @@
   async function load() {
     const p = root.PreceptorPlan.project(await read(), Date.now());
     paintNotebook(p); paintCommand(p); paintLab(p); paintHarness(p); paintTalk(p, root.PreceptorPlan.next(p));
+    if (root.PreceptorSuperbotTalk) root.PreceptorSuperbotTalk.fromPlan(p);
     return p;
   }
   root.PreceptorPlanPanels = Object.freeze({ load });

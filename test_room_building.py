@@ -20,13 +20,16 @@ class DayDRoomBuilding(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout[-2500:]+proc.stderr[-2500:])
         self.assertRegex(proc.stdout, r"(?m)(?:ℹ|#) pass 8")
 
-    def test_card_is_first_in_my_node_and_accessible(self):
+    def test_getting_started_first_then_identity_and_building(self):
         html = (ROOT/"interface/app.html").read_text(encoding="utf8")
         pos_tab = html.index('id="panel-ajustes"')
         pos_room = html.index('id="room-building"')
         pos_legacy = html.index('id="ajustes-nodo"')
         self.assertLess(pos_tab,pos_room)
-        self.assertLess(pos_room,pos_legacy)
+        self.assertLess(html.index('id="mvp-journey-guide"'),pos_legacy)
+        self.assertLess(pos_legacy,pos_room)
+        self.assertNotIn('id="mvp-journey-guide" open',html)
+        self.assertIn('id="node-identity-advanced"', html)
         for marker in (
             'id="room-building-title"', 'id="room-building-form"',
             'id="room-building-name"', 'id="room-building-purpose"',
@@ -38,7 +41,7 @@ class DayDRoomBuilding(unittest.TestCase):
         ):
             self.assertIn(marker,html)
         self.assertIn("Feedback stays on the node owner's hardware.",html)
-        self.assertIn("Hexelion stays on the founder's private rack.",html)
+        self.assertNotIn("Hexelion stays on the founder's private rack.",html)
         self.assertIn("prepare a docs-only Companion HITL PR if you have GitHub",html)
         self.assertNotIn('id="node-deploy"',html)
 
@@ -49,7 +52,7 @@ class DayDRoomBuilding(unittest.TestCase):
         self.assertIn('src="/companion_onboarding.js?v=5"',html)
         self.assertIn('PreceptorCompanionOnboarding.mountBuilding(document);',html)
         self.assertIn('renderDraft({ slug: slug, title: title, summary: purpose, agent:',js)
-        self.assertIn('const Cache = "preceptoros-armazon-v218"',sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v232"',sw)
         self.assertIn('"/companion_onboarding.js?v=5"',sw)
         self.assertNotIn('localStorage.',js)
         self.assertNotIn('fetch(',js)

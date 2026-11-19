@@ -145,7 +145,12 @@ class TestLaCaraEsLaPuerta(unittest.TestCase):
         precache = sw.split("const Armazon = [", 1)[1].split("];", 1)[0]
         for piel in PIELES:
             self.assertNotIn(f'"/face/{piel}.html"', precache)
-        for old in ("/face/", "/dashboard", "/hexelion", "/consola.", "/native_voice.js"):
+        # One byte-pinned Open World crab body is actively used in Talk.
+        # It is NOT a legacy face skin. All other /face/ entries stay banned.
+        import re
+        face_assets = re.findall(r'"/face/[^"]+"', precache)
+        self.assertEqual(face_assets, ['"/face/bubble/openworld_crab_body.js?v=1"'])
+        for old in ("/dashboard", "/hexelion", "/consola.", "/native_voice.js"):
             self.assertNotIn(f'"{old}', precache)
         self.assertIn('"/"', precache)
         self.assertIn('"/app.html"', precache)

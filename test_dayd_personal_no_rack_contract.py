@@ -41,13 +41,12 @@ class DayDPersonalBoundary(unittest.TestCase):
         self.assertIn("localDraft.remove()", APP)
         self.assertIn('$("dicho").value = escrito', APP)
 
-    def test_private_profile_presentation_uses_actual_host_schema_not_authority(self):
-        # The current /api/perfil returns identidad.huella, not .sha256.
-        self.assertIn("identity.huella", APP)
-        self.assertIn('mode.talk_mode === "private_hexelion"', APP)
-        self.assertIn("Neither value authenticates a user", APP)
-        self.assertIn('preferred === "private_rack" && verified', APP)
-        self.assertNotIn("d.identidad.sha256", APP)
+    def test_base_mvp_has_no_privileged_profile_selector(self):
+        self.assertIn('window.PreceptorProfile = "personal_mvp"',APP)
+        self.assertNotIn('id="app-profile-section"',HTML)
+        self.assertNotIn('name="app-profile"',HTML)
+        self.assertNotIn('preferred === "private_rack"',APP)
+        self.assertIn('personal_profile_private_route_denied',APP)
 
     def test_shared_thread_reads_and_writes_are_profile_gated(self):
         self.assertIn('async function sync(opts) {\n    if (root.PreceptorProfile !== "private_rack")', THREAD)
@@ -56,11 +55,11 @@ class DayDPersonalBoundary(unittest.TestCase):
         self.assertIn("personal_profile_shared_thread_denied", THREAD)
         self.assertIn('fetch("/api/conversacion"', THREAD)
 
-    def test_mini_is_not_the_founder_model(self):
-        self.assertIn("Personal mini-orchestrator · not Hexelion", THREAD)
-        self.assertIn('value="personal_mvp" checked', HTML)
-        self.assertIn("on_device_model_unavailable", MINI)
-        self.assertIn("remote_effect_not_authorized", MINI)
+    def test_mini_cannot_grant_private_authority(self):
+        self.assertIn('window.PreceptorProfile = "personal_mvp"',APP)
+        self.assertNotIn('value="private_rack"',HTML)
+        self.assertIn("on_device_model_unavailable",MINI)
+        self.assertIn("remote_effect_not_authorized",MINI)
 
     def test_closed_intents_and_no_automatic_rag_write(self):
         self.assertEqual(orquestador.INTENTS, frozenset({

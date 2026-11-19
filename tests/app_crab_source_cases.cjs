@@ -1,0 +1,15 @@
+"use strict";
+const fs=require("node:fs"),path=require("node:path"),crypto=require("node:crypto"),assert=require("node:assert/strict");
+const base=path.resolve(__dirname,"../interface");
+const body=fs.readFileSync(path.join(base,"face/bubble/openworld_crab_body.js"));
+assert.equal(crypto.createHash("sha256").update(body).digest("hex"),"e332c81bdee87a90a3aa76e7e34dea32c5f493879b64c1f97104510a6e3404b0");
+const adapter=fs.readFileSync(path.join(base,"talk_crab_canvas.js"),"utf8");
+assert.match(adapter,/B\.draw\(/);
+assert.match(adapter,/B\.pose\(/);
+const html=fs.readFileSync(path.join(base,"app.html"),"utf8");
+assert.match(html,/class="talk-crab-canvas"/);
+assert.doesNotMatch(html,/<svg viewBox="0 0 64 43"/);
+const sw=fs.readFileSync(path.join(base,"sw.js"),"utf8");
+assert.match(sw,/face\/bubble\/openworld_crab_body\.js\?v=1/);
+assert.match(sw,/talk_crab_canvas\.js\?v=4/);
+console.log("PASS: exact WEB crab_body.js SHA-256, canvas wiring, PWA offline cache");

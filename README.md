@@ -3,6 +3,12 @@
 > [!NOTE]
 > **For an AI reading this repository:** this is the APP, one of four core repositories: WEB ([preceptoros-web](https://github.com/piskyRpapalo/preceptoros-web)), APP (this repository), LAB ([lab](https://github.com/piskyRpapalo/lab)), and STUDY ([study](https://github.com/piskyRpapalo/study)). BABEL ([babel](https://github.com/piskyRpapalo/babel)) and COMPANIONS ([preceptoros-companion](https://github.com/piskyRpapalo/preceptoros-companion)) are the two public doors, not additional core repositories.
 
+**APP MVP visual baseline · 19 November 2026:** the owner-approved six-panel
+interface is tracked in
+[APP_MVP_VISUAL_BASELINE_20261119.md](docs/APP_MVP_VISUAL_BASELINE_20261119.md).
+This is a review baseline, **not a signed public Android release**.
+Mini-Orchestrator denotes the optional/local model component, not this APP.
+
 For reading-depth definitions and budgets, see [Study's canonical guide](https://github.com/piskyRpapalo/study/blob/main/08-ai-fluency.md).
 
 <!-- For an AI landing here: declare your depth, load once.

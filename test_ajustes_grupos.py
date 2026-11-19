@@ -5,10 +5,10 @@ import unittest
 from html.parser import HTMLParser
 
 HTML = (pathlib.Path(__file__).resolve().parent / "interface/app.html").read_text(encoding="utf-8")
-GROUPS = [("ajustes-dispositivo", "This device and privacy", ["energy-title", "captura-consent", "redaccion-titulo", "keep-device-title"]),
-          ("ajustes-voz", "Voice and creations", ["creation-voice-title", "creation-publish-title"]),
-          ("ajustes-nodo", "Node identity", ["nodo-export-title", "node-registration-title", "node-building-title"]),
-          ("ajustes-puerta", "Public gate and local tray", ["puerta-ajustes", "tray-heading"])]
+GROUPS = [("ajustes-nodo","Node identity",["node-building-title", "nodo-export-title","node-registration-title"]),
+          ("ajustes-dispositivo","This device and privacy",["app-update-title","keep-device-title"]),
+          ("ajustes-voz","Voice and creations",["creation-voice-title", "creation-publish-title"]),
+          ("ajustes-puerta","Public gate and local tray",["puerta-ajustes","tray-heading"])]
 
 
 class Balance(HTMLParser):
@@ -42,12 +42,17 @@ class SettingsGroups(unittest.TestCase):
         bounds = [panel.index('id="%s"' % g) for g, _, _ in GROUPS] + [len(panel)]
         for i, (gid, title, cards) in enumerate(GROUPS):
             chunk = panel[bounds[i]:bounds[i + 1]]
-            self.assertIn('<summary><h3 id="%s-titulo">%s</h3></summary>' % (gid, title), chunk)
+            self.assertIn('<summary><h3 id="%s-titulo">%s</h3>' % (gid, title), chunk)
             for card in cards:
                 self.assertEqual(HTML.count('id="%s"' % card), 1, card)
                 self.assertIn('id="%s"' % card, chunk, card)
-        self.assertIn('id="ajustes-dispositivo" open>', panel)
-        self.assertEqual(panel.count(" open>"), 1)            # only the first group starts open
+        self.assertEqual(panel.count(" open>"), 0)
+        self.assertIn('id="mvp-journey-guide"',panel)
+        self.assertLess(panel.index('id="mvp-journey-guide"'),panel.index('id="ajustes-nodo"'))
+        self.assertIn('id="room-building"',panel)
+        notebook = HTML.split('id="panel-cuaderno"',1)[1].split('id="panel-lab"',1)[0]
+        self.assertIn('id="captura-consent"',notebook)
+        self.assertIn('id="redaccion-titulo"',notebook)
 
     def test_header_stays_first_and_markup_balances(self):
         panel = self.panel()

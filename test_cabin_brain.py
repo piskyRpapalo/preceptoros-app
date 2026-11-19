@@ -20,9 +20,11 @@ class Cabina(unittest.TestCase):
         html = leer("interface/app.html")
         talk = html[html.index('id="panel-conversacion"'):]
         self.assertLess(talk.index('id="cabina-brain"'), talk.index('id="hilo"'))
-        for ident in ("brain-uso", "brain-opciones", "brain-heads", "brain-firmas"):
+        for ident in ("brain-uso", "brain-opciones", "brain-heads"):
             self.assertIn(f'id="{ident}"', talk)
         self.assertIn('role="radiogroup"', talk[:talk.index('id="hilo"')])
+        self.assertNotIn('id="brain-firmas"', talk[:talk.index('id="hilo"')])
+        self.assertIn('id="lab-boundary-group"', html)
 
     def test_sin_endpoint_nuevo_y_sin_firmar_fuera_de_boundary(self):
         conv = leer("interface/conversacion.js") + leer("interface/cabin_brain.js")
@@ -49,14 +51,14 @@ class Cabina(unittest.TestCase):
 
     def test_version_y_cache(self):
         html = leer("interface/app.html")
-        self.assertIn('<script src="/conversacion.js?v=7"></script>', html)
-        self.assertLess(html.index("/evidence_chip.js?v=3"), html.index("/cabin_brain.js?v=1"))
+        self.assertIn('<script src="/conversacion.js?v=8"></script>', html)
+        self.assertLess(html.index("/evidence_chip.js?v=3"), html.index("/cabin_brain.js?v=2"))
         self.assertIn('"/cabin_brain.js": ("cabin_brain.js"', leer("bin/preceptoros-pwa"))
-        self.assertIn('"/cabin_brain.js?v=1"', leer("interface/sw.js"))
+        self.assertIn('"/cabin_brain.js?v=2"', leer("interface/sw.js"))
         self.assertLess(len(leer("interface/cabin_brain.js").encode()), 8192)
         sw = leer("interface/sw.js")
-        self.assertIn('"/conversacion.js?v=7"', sw)
-        self.assertIn("preceptoros-armazon-v218", sw)
+        self.assertIn('"/conversacion.js?v=8"', sw)
+        self.assertIn("preceptoros-armazon-v232", sw)
 
     @unittest.skipUnless(shutil.which("node"), "node no esta")
     def test_casos_puros(self):

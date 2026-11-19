@@ -21,7 +21,8 @@ class OneVoicePerReading(unittest.TestCase):
         voices = dict(re.findall(r'(\w+): "([\w-]+)"', APP[APP.index("const vozDelPanel"):APP.index("function cargarPanel")]))
         self.assertEqual(set(voices), {"cuaderno", "lab", "harness", "ajustes"})
         for panel, voice in voices.items():
-            section = HTML[HTML.index('id="panel-%s"' % panel):]
+            owner = "lab-harness-group" if panel == "harness" else "panel-"+panel
+            section = HTML[HTML.index('id="%s"' % owner):]
             section = section[:section.index("</section>")]
             self.assertRegex(section, r'id="%s" role="status" aria-live="polite"' % voice, panel)
 

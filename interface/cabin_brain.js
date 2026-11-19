@@ -33,7 +33,15 @@
     if (!line || !box) return;
     const v = brainView(d), E = root.PreceptorEvidence;
     box.replaceChildren();
-    if (v.state === "NO_DATA") { say(line, "Brain · NO_DATA · " + v.cause + "."); if (heads) heads.replaceChildren(); return; }
+    const detail = doc.getElementById("talk-diagnostics-brain");
+    if (v.state === "NO_DATA") {
+      line.dataset.state = "NO_DATA"; line.dataset.cause = "brain_unavailable";
+      say(line, "Brain · not available yet. See technical evidence.");
+      if (detail) detail.textContent = "NO_DATA(brain_unavailable): " + v.cause;
+      if (heads) heads.replaceChildren(); return;
+    }
+    line.dataset.state = "MEASURED"; line.dataset.cause = "source_cerebro";
+    if (detail) detail.textContent = "MEASURED(brain_selection) · NO_DATA(heads_contract_not_published)";
     say(line, "Brain · " + v.label + " · " + v.name + (v.ready ? "" : " · not ready: its file is not on this disk"));
     v.options.forEach((o) => {
       const b = doc.createElement("button");

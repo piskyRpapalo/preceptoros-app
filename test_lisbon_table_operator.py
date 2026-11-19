@@ -25,7 +25,7 @@ class LisbonTableOperator(unittest.TestCase):
     def test_install_truth_and_minirouter_not_rack(self):
         s=GUIDE.read_text()
         for phrase in (
-            "personal_mvp","Try offline mini", "Hexelion is only on the Sovereign's rack",
+            "personal_mvp","Use Mini Orchestrator offline", "Hexelion is only on the Sovereign's rack",
             "http://127.0.0.1:8740/app",
             "NO_DATA(model_not_installed_or_verified)", "No model was bundled",
             "The v1.3 downloadable installer has older Ollama guidance",
@@ -43,7 +43,7 @@ class LisbonTableOperator(unittest.TestCase):
         self.assertIn("At the table, prepare a docs-only Companion HITL PR",js)
         self.assertIn("LISBON_TABLE_APP_ONEPAGE_20261119.md",old)
         self.assertNotIn("Only **after the room**",old)
-        self.assertIn("const Cache = \"preceptoros-armazon-v218\"",sw)
+        self.assertIn("const Cache = \"preceptoros-armazon-v232\"",sw)
         self.assertIn('src="/companion_onboarding.js?v=5"',html)
         self.assertIn('"/companion_onboarding.js?v=5"',sw)
 

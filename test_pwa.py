@@ -1025,7 +1025,9 @@ class TestZonaFrontera(unittest.TestCase):
         self.assertIn('fetch("/api/frontera"', app)
         self.assertIn('h.count', app)
         self.assertNotIn('hallazgos.length', app)
-        self.assertIn('data-i18n-aria="aria_frontera"', html)
+        self.assertIn('id="lab-boundary-group"',html)
+        self.assertIn('id="notebook-memory-group"',html)
+        self.assertIn('data-i18n-aria="aria_redaccion"',html)
 
 class TestRecibosCuaderno(unittest.TestCase):
     def test_gesto_individual_espera_recibo_y_lo_muestra_traducido(self):
@@ -1101,7 +1103,7 @@ class TestZonaPuerta(unittest.TestCase):
     def test_puerta_presenta_el_documento_servido_y_conserva_copia_fiel(self):
         app = pathlib.Path(AQUI, "interface", "app.js").read_text(encoding="utf-8")
         html = pathlib.Path(AQUI, "interface", "app.html").read_text(encoding="utf-8")
-        self.assertIn('const hechos = await Promise.allSettled([cargarCuaderno(), cargarPuerta()]);', app)   # the gate lives in Settings
+        self.assertIn('wireReaderGroup("ajustes-puerta", () => cargarPuerta())',app)
         self.assertIn('fetch(`/api/empieza-aqui?', app)
         self.assertIn("d.pegable", app)
         self.assertIn("d.llave", app)
@@ -1569,21 +1571,21 @@ class RutaAppContrato(unittest.TestCase):
         esperado = pathlib.Path(AQUI, "interface", "app.html").read_bytes()
         self.assertEqual(handler.wfile.getvalue(), esperado)
 
-    def test_documentos_conserva_el_icono_al_traducirse_el_rotulo(self):
+    def test_document_editor_reuses_one_notebook_storage(self):
         html = (pathlib.Path(AQUI) / "interface/app.html").read_text(encoding="utf-8")
-        css = (pathlib.Path(AQUI) / "interface/app.css").read_text(encoding="utf-8")
         js = (pathlib.Path(AQUI) / "interface/app.js").read_text(encoding="utf-8")
-        self.assertIn('id="tab-documentos"', html)
-        self.assertIn('data-panel="documentos"', html)
-        self.assertIn('el.textContent = v;', js)  # la traducción elimina iconos escritos en HTML
-        self.assertIn('.pestanas button[data-panel="documentos"]::before { content: "▤"; }', css)
+        self.assertIn('id="notebook-document-editor-toggle"',html)
+        self.assertIn('id="notebook-document-editor"',html)
+        self.assertIn('id="documentos-guardar"',html)
+        self.assertNotIn('id="tab-documentos"',html)
+        self.assertIn('wireNotebookDocumentEditor',js)
 
     def test_rutas_profundas_abren_la_zona_que_nombra_el_hash(self):
         js = (pathlib.Path(AQUI) / "interface/app.js").read_text(encoding="utf-8")
         self.assertIn("location.hash", js)
         self.assertIn("#tab-", js)
         self.assertIn("hashchange", js)
-        self.assertIn("findIndex((z) => z.id === pedida)", js)
+        self.assertIn("findIndex((z) => z.id === target)", js)
 
 
 class InsertorAncladoContrato(unittest.TestCase):
@@ -1599,7 +1601,7 @@ class InsertorAncladoContrato(unittest.TestCase):
         html = (root / "interface/app.html").read_text(encoding="utf-8")
         css = (root / "interface/app.css").read_text(encoding="utf-8")
         js = (root / "interface/app.js").read_text(encoding="utf-8")
-        self.assertEqual(html.count("<h1>"), 1)
+        self.assertEqual(html.count('<h1 aria-label="PreceptorOS">'), 1)
         self.assertLess(html.index('<nav class="pestanas"'), html.index("<main id=\"carril\""))
         self.assertLess(html.index("</main>"), html.index('id="form-chat"'))
         self.assertIn('id="ayuda-efimera"', html)

@@ -135,7 +135,7 @@ async function audit(page, where) {
     assert(box.height >= 44, 'Command button is 44 px');
     await b.focus(); await page.keyboard.press('Enter');
     assert.equal(await page.getAttribute('#tab-cuaderno', 'aria-selected'), 'true', 'Enter on «Open the Notebook» opens the Notebook');
-    seen.lab_cards_kept = await page.evaluate(() => document.querySelectorAll('#lab-bench > *, #notebook-loops > *').length);
+    seen.lab_cards_kept = await page.evaluate(() => document.querySelectorAll('#lab-bench > *, #lab-loops > *').length);
     await ctx.close();
   }
   // The fixture reaches the states the rack cannot show today; the real pass never shows WORKING (no producer).

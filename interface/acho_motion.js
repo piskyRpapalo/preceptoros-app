@@ -132,16 +132,6 @@
     });
   }
 
-  // Panel crest · each panel heading wears its own large spectrum, a sibling of the team spectrum.
-  function crests() {
-    doc.querySelectorAll(".panel > h2").forEach((h) => {
-      const panel = h.parentElement; if (panel.querySelector("#team") || h.nextElementSibling && h.nextElementSibling.classList.contains("acho-crest")) return;
-      const seed = "panel|" + panel.id, c = colourOf(seed), v = vector(seed);
-      const svg = spectrum(v, "acho-crest", c); svg.style.setProperty("--agente", colours[c]);
-      h.after(svg); svg.achoVector = v;
-    });
-  }
-
   // Compass guide · one Acho card per part of the rose. Touch a card: that part of the rose lights.
   // The words describe what compass.js draws (compass.py:547-556); nothing here measures.
   const guideText = {
@@ -185,7 +175,7 @@
   }
   function start() {
     const lane = doc.getElementById("carril") || doc.body; if (!lane) return;
-    scan(lane); tabs(); crests(); compassGuide();
+    scan(lane); tabs(); compassGuide();
     new root.MutationObserver((list) => {
       for (const m of list) {
         if (m.type === "attributes" && m.attributeName === "hidden" && m.target.classList.contains("panel") && !m.target.hidden) enter(m.target);

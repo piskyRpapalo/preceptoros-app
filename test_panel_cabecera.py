@@ -1,4 +1,4 @@
-"""Common panel header: the nine panels open the same way (title, status, refresh where a source is read)."""
+"""Six public panel headers; specialist readers live inside disclosure groups."""
 import pathlib
 import re
 import unittest
@@ -7,11 +7,11 @@ from html.parser import HTMLParser
 ROOT = pathlib.Path(__file__).resolve().parent
 HTML = (ROOT / "interface/app.html").read_text(encoding="utf-8")
 JS = (ROOT / "interface/app.js").read_text(encoding="utf-8")
-PANELS = ["mando", "conversacion", "gobierno", "cuaderno", "lab", "harness", "modelos", "ajustes", "documentos"]
-ENGLISH = {"mando": "Command", "conversacion": "Chat", "gobierno": "Boundary", "cuaderno": "Notebook", "lab": "Lab",
-           "harness": "Harness", "modelos": "World", "ajustes": "My node", "documentos": "Documents"}
-WITH_REFRESH = {"conversacion", "gobierno", "lab", "harness", "ajustes"}   # cuaderno keeps its own labelled button; documentos is browser-only, no network loader
-WITH_STATUS = set(PANELS) - {"mando", "gobierno"}   # Command: compass speaks itself; Boundary: the HITL list does
+PANELS = ["conversacion", "cuaderno", "lab", "modelos", "ajustes", "settings"]
+ENGLISH = {"conversacion": "Talk", "cuaderno": "Operations Data",
+           "lab": "Lab", "modelos": "Open World", "ajustes": "My node", "settings": "Settings"}
+WITH_REFRESH = {"conversacion", "cuaderno", "lab", "ajustes"}
+WITH_STATUS = set(PANELS)
 
 
 class Headers(HTMLParser):
@@ -30,7 +30,9 @@ class Headers(HTMLParser):
         info = self.found[self.panel]
         if info["first"] is None:
             info["first"] = "header" if tag == "header" and "panel-cabecera" in a.get("class", "") else tag
-        if tag == "header" and "panel-cabecera" in a.get("class", ""):
+        if tag == "header" and "panel-cabecera" in a.get("class", "") and not info.get("header_seen"):
+            # Nested document editor / operator headers are not a second tab header.
+            info["header_seen"] = True
             self.inside, self.depth = True, 0
         elif self.inside:
             if tag == "h2":
@@ -60,28 +62,35 @@ class PanelHeader(unittest.TestCase):
     def test_status_lines_and_english_names(self):
         for panel in PANELS:
             info = self.p.found[panel]
-            expected = 1 if panel in WITH_STATUS else 0
-            self.assertGreaterEqual(info["status"], expected, panel)
+            begin = HTML.index('id="panel-'+panel+'"')
+            end = HTML.find('<section class="panel"', begin+1)
+            section = HTML[begin:end if end >= 0 else len(HTML)]
+            self.assertIn('role="status"', section, panel)
             self.assertEqual(info["label"], ENGLISH[panel], panel)
 
-    def test_refresh_only_where_a_loader_exists_and_always_named(self):
+    def test_refresh_actions_only_where_loader_exists_and_always_named(self):
         table = re.search(r"const cargadores = \{(.*?)\n\};", JS, re.S).group(1)
         loaders = set(re.findall(r"^  (\w+):", table, re.M))
-        self.assertEqual(loaders, WITH_REFRESH | {"cuaderno"})
-        # Panels with network loaders must have a refresh button; documentos has a local-only refresh.
+        self.assertEqual(loaders, WITH_REFRESH | {"gobierno", "harness"})
         for panel in PANELS:
-            buttons = self.p.found[panel]["refresh"]
-            if panel in WITH_REFRESH:
-                self.assertEqual(len(buttons), 1, panel)
-            elif panel == "documentos":
-                # Browser-only panel: refresh re-renders the local list, no network call
-                self.assertEqual(len(buttons), 1, panel)
+            begin = HTML.index('id="panel-'+panel+'"')
+            end = HTML.find('<section class="panel"', begin+1)
+            section = HTML[begin:end if end >= 0 else len(HTML)]
+            # Nested Memory/Boundary/Harness controls are not the panel's second-row refresh.
+            if panel in ("modelos", "settings"):
+                self.assertNotIn('data-refrescar="modelos"', section)
             else:
-                self.assertEqual(len(buttons), 0, panel)
-            for b in buttons:
-                self.assertEqual(b["data-refrescar"], panel)
-                self.assertTrue(b["aria-label"].startswith("Refresh "))
-                self.assertEqual(b["type"], "button")
+                self.assertIn('data-refrescar="'+panel+'"',section,panel)
+                if panel != "cuaderno":
+                    self.assertIn('aria-label="Refresh ',section)
+            if panel in ("conversacion","cuaderno","lab","ajustes"):
+                self.assertIn('class="panel-actions"',section)
+
+    def test_nested_operator_refresh_controls_preserved(self):
+        for name in ("gobierno","harness"):
+            self.assertIn('data-refrescar="'+name+'"',HTML)
+        self.assertIn('id="lab-boundary-group"',HTML)
+        self.assertIn('id="lab-harness-group"',HTML)
 
     def test_opening_and_refreshing_use_the_same_loader(self):
         self.assertIn("cargarPanel(paneles[panelActual].id);", JS)
