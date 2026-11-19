@@ -557,6 +557,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         INTRINSECOS |= {"CONNECTED", "PAUSED", "PROCESSING", "SIMULATED", "UNAVAILABLE", "PENDING", "PRESENT",
                          "IDLE", "SPEAKING", "TONE", "PLAN_REFERENCE", "FRONT_DOOR", "GLIDE", "GREET",
                          "HEIGHT", "NEUTRAL", "PROPUESTA"}
+        # Visual-only Agents activity status, never a privacy policy.
+        INTRINSECOS |= {"VERIFIED_ACTIVE"}
         # Model choice is a draft, not a redaction policy or proof of inference.
         # JSON is the native JS serialization API, not a security policy.
         INTRINSECOS |= {"DRAFT_ONLY", "JSON", "MINI", "LOCAL"}  # MINI-LOCAL is a router label, not a scrub policy.

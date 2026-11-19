@@ -38,11 +38,12 @@
   }
   function render(p){
     const heading=$("superbot-orchestrator"),label=$("superbot-agent-count"),list=$("superbot-agent-tabs"),
-      detail=$("superbot-agent-detail"),hint=$("superbot-agent-hint");
-    if(!heading||!label||!list||!detail)return {state:"NO_DATA",cause:"missing_mount"};
+      names=$("superbot-agent-names"),detail=$("superbot-agent-detail"),hint=$("superbot-agent-hint");
+    if(!heading||!label||!list||!detail||!names)return {state:"NO_DATA",cause:"missing_mount"};
     if(!p||p.state!=="shown"||!Array.isArray(p.tasks)){
       heading.textContent="Mini Orchestrator · local mode";
       label.textContent="Agents · not connected";
+      names.textContent="";
       hint.textContent="Connect your orchestrator or create a plan to see referenced agents here.";
       list.replaceChildren();detail.replaceChildren();detail.hidden=true;agents=[];selected=null;lastSignature="";
       state("NO_DATA",clean(p?.cause,80)||"agent_roster_not_connected");
@@ -61,6 +62,7 @@
     const signature=JSON.stringify({plan:p.plan?.sha,synthetic:p.synthetic,agents:sorted});
     heading.textContent=(p.synthetic?"SYNTHETIC · ":"")+"Plan coordinator: "+(clean(p.orchestrator,60)||"not verified");
     label.textContent=number(sorted.length)+" agents referenced in plan"+(p.synthetic?" · SYNTHETIC":"");
+    names.textContent=sorted.map(a=>a.id).join(" · ");
     hint.textContent=sorted.length?"These are task references, not an authenticated agent registry. Select an agent to inspect its declared functions.":"No agents are referenced in this plan.";
     state(p.synthetic?"SYNTHETIC":"PLAN_REFERENCE",p.synthetic?"synthetic_fixture":"agent_cards_not_verified");
     if(signature===lastSignature)return {state:p.synthetic?"SYNTHETIC":"PLAN_REFERENCE",count:sorted.length};

@@ -40,7 +40,7 @@ class Flota(unittest.TestCase):
         self.assertIn('"/fleet_map.js": ("fleet_map.js"', leer("bin/preceptoros-pwa"))
         sw = leer("interface/sw.js")
         self.assertIn('"/fleet_map.js?v=1"', sw)
-        self.assertIn("preceptoros-armazon-v232", sw)
+        self.assertIn("preceptoros-armazon-v233", sw)
 
     def test_forced_colors_y_44px(self):
         css = leer("interface/app.css")
