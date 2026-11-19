@@ -30,12 +30,19 @@ test('opt-in mini provides local closed intents at desktop and mobile sizes', { 
       try {
         const r = await fetch(url);
         alive = r.ok;
+        // Drain the HTTP response before terminating the isolated PWA server.
+        // Otherwise Node/undici may assert on an unread, aborted response.
+        await r.arrayBuffer();
         if (alive) break;
       } catch (_) {}
       await new Promise(r=>setTimeout(r,100));
     }
     assert.equal(alive, true);
-    assert.equal((await fetch('http://127.0.0.1:'+port+'/offline_mini.js?v=1')).status, 200);
+    const routerAsset = await fetch('http://127.0.0.1:'+port+'/offline_mini.js?v=1');
+    assert.equal(routerAsset.status, 200);
+    const routerSource = await routerAsset.text();
+    assert.ok(routerSource.includes('PreceptorOfflineMini'),
+      'offline router must be real source served by the APP');
     browser = await chromium.launch({
       headless: true, executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
       args: ['--no-sandbox','--disable-dev-shm-usage'],
