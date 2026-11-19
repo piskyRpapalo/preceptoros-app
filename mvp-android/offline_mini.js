@@ -7,7 +7,7 @@
   'use strict';
   const contract = 'preceptoros.offline-mini/1';
   const commands = Object.freeze({
-    chat: 'tab-conversacion', documents: 'tab-documentos',
+    chat: 'tab-conversacion', documents: 'tab-cuaderno',
     lab: 'tab-lab', node: 'tab-ajustes',
   });
   function parse(raw) {

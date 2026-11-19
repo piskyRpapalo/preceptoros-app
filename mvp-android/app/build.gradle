@@ -12,12 +12,30 @@ if (!(mvpAppId in ['org.preceptoros.mvp', 'org.preceptoros.app'])) {
 }
 
 tasks.register('copyPanels', Copy) {
+    // The pinned source GGUF is owner-read-only. Gradle's Copy may preserve 0400
+    // on the generated build asset, so a subsequent clean build must restore
+    // write permission on that GENERATED copy only (never on the source).
+    doFirst {
+        if (project.hasProperty('offlineMiniModel')) {
+            def target = file('src/main/assets/offline-mini.gguf')
+            if (target.exists()) {
+                if (java.nio.file.Files.isSymbolicLink(target.toPath())) {
+                    throw new GradleException('Refusing to overwrite a symlinked model asset')
+                }
+                if (!target.setWritable(true, true)) {
+                    throw new GradleException('Generated model asset is not writable')
+                }
+            }
+        }
+    }
     from(rootProject.file('../interface')) {
         exclude 'legacy/**'
     }
     // Android-only capability: do not change or cache the browser/PWA shell.
     from(rootProject.file('android_review_bridge.js'))
     from(rootProject.file('offline_mini.js'))
+    from(rootProject.file('android_join_bridge.js'))
+    from(rootProject.file('legal')) { into 'licenses' }
     if (project.hasProperty('offlineMiniModel')) {
         from(project.file(project.property('offlineMiniModel'))) {
             rename { 'offline-mini.gguf' }
@@ -35,7 +53,7 @@ android {
         minSdk 26
         targetSdk 36
         versionCode mvpVersionCode
-        versionName (mvpAppId == 'org.preceptoros.app' ? '0.2.0-tank3-mini' : '0.1.0-mvp')
+        versionName (mvpAppId == 'org.preceptoros.app' ? '0.3.0-mvp' : '0.1.0-mvp')
     }
     signingConfigs {
         release {
