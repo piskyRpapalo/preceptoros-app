@@ -247,8 +247,11 @@ class Interface(unittest.TestCase):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf-8")
         pwa = (ROOT / "bin/preceptoros-pwa").read_text(encoding="utf-8")
         self.assertEqual(html.count('id="memoria-inicio"'), 1)
+        notebook = html.split('id="panel-cuaderno"', 1)[1].split('id="panel-lab"', 1)[0]
+        self.assertIn('id="notebook-memory-group"', notebook)
+        self.assertIn('id="memoria-inicio"', notebook)
         settings = html[html.index('id="panel-ajustes"'):]
-        self.assertIn('id="memoria-inicio"', settings[:settings.find('<section class="panel"', 1) if '<section class="panel"' in settings[1:] else None])
+        self.assertNotIn('id="memoria-inicio"', settings)
         self.assertIn('<script src="/memory_onboarding.js?v=1"></script>', html)
         self.assertIn('"/memory_onboarding.js?v=1"', sw)
         self.assertIn('"/memory_onboarding.js": ("memory_onboarding.js",', pwa)

@@ -444,25 +444,89 @@ BLANCA = {
 # sus cuatro zonas. Todo texto estático nuevo y sin enganche hará fallar
 # esta suite. Al reactivar idiomas, retirar esta excepción y traducir.
 APP_ENGLISH_FROZEN_COPY = {
-    "Technical Options",
-    "Advanced tools for operators. These panels are hidden by def",
-    "Sensor of your memory, never an actor",
-    "Signatures and authorization",
-    "Operational receipts and evidence",
-    "Loops, team and operator visibility",
-    "OpenWorld map and Acho language",
+    'Advanced admission tools (review required)',
+    'Available model information',
+    'Boundary',
+    'Building name',
+    'Choose a model',
+    'Choose model',
+    'Connected options',
+    'Create, import and download documents stored on this device.',
+    'Declare an assigned building (requires verified local servic',
+    'Getting started · installation guide',
+    'Harness',
+    'Memory and consent',
+    'Model preferences (draft only)',
+    'Offline mini router',
+    'Purpose of your node',
+    'Read and configure your local node identity. This does not r',
+    'Select an available model. A saved name is a draft, not an a',
+    'Technical evidence and causes',
+    'These steps are guidance, not verified accomplishments or ad',
+    'These tools do not create a LIVE node and require separate h',
+    'Use Mini Orchestrator offline',
+    'What will your building do?',
+    'Your private memory, consent, redaction and compass. Nothing',
+    'local draft only',
     "⚠ Documents are stored in your browser's localStorage, which",
-    "This setting controls what the Chat shows. It is stored loca",
-    "Personal MVP",
-    "Private rack",
-    "Offline mini router",
-    "Try offline mini",
-    "Purpose of your node",
-    # Day D: one local building draft, no Companion admission in the room.
-    "Building name",
-    "What will your building do?",
-    "local draft only",
 }
+
+# English-only visual copy explicitly audited for the APP MVP on 2026-11-19.
+# Future strings outside the pinned list remain a regression.
+APP_MVP_FROZEN_VISUAL_COPY_20261119 = {
+    'A public visitor can explore Open World without joining your',
+    'About this APP',
+    'Accessibility',
+    'Acho uses short local tones. Native speech is optional and s',
+    'Admission status and local tray',
+    'Agents observed, not assumed active',
+    'Agents, tools and execution evidence',
+    'Appearance',
+    'Appearance and accessibility apply to this browser only. You',
+    'Approvals, signatures and permissions',
+    'Availability and connection causes',
+    'Channels reported by this device',
+    'Color theme',
+    'Compass, consent and private memories',
+    'Configure an identity on this device. A saved ID is not a de',
+    'Connect your own resources when ready.',
+    'Connection and privacy',
+    'Connection details',
+    'Create a building draft on this device',
+    'Day, night or device preference',
+    'Delegations and their recorded outcomes',
+    'Fast',
+    'First steps, instructions and installation',
+    'Local model inventory, when available',
+    'Local node ID and identity controls',
+    'Loop runs, timing and measured outcomes',
+    'Normal',
+    'Operational receipts from Command',
+    'Optional voice and creation tools',
+    'Pause My node and Open World without deleting data',
+    "PreceptorOS includes Mini Orchestrator. This preview's offli",
+    'Prepare an admission request and review it before sending an',
+    'Proposals and external study references',
+    'Refresh',
+    'Reproducible tests and their evidence',
+    'Requests, responses and source evidence',
+    'Results of work started from plans',
+    'Saved plans and linked tasks',
+    'Settings are saved in this browser only. The current install',
+    'Shortcuts: Alt+Shift+R to read the current area, Alt+Shift+S',
+    'Slow',
+    'Speech speed',
+    'Start without an LLM.',
+    'Text size',
+    'Text size and optional animation',
+    'The Kill switch pauses My node and Open World in this browse',
+    'Understand PreceptorOS.',
+    'Updates, storage and privacy choices',
+    'Wait for human approval, your signed credential and a verifi',
+    'Weekly and monthly review receipts',
+    "What's local, what needs a service",
+}
+
 APP_DORMANT_DOCUMENT_KEYS = {"documentos_contenido", "documentos_titulo"}
 
 
@@ -497,7 +561,7 @@ def t_cara_sin_texto_suelto():
         "APP dejó de forzar inglés: reactivar gate bilingüe"
     sueltos = _textos_sueltos("interface/dashboard.html")
     sueltos += [(ruta, texto) for ruta, texto in _textos_sueltos("interface/app.html")
-                if texto not in APP_ENGLISH_FROZEN_COPY]
+                if texto not in (APP_ENGLISH_FROZEN_COPY | APP_MVP_FROZEN_VISUAL_COPY_20261119)]
     assert not sueltos, (
         "texto nuevo sin enganche; en APP solo se admite inglés congelado "
         "y un catálogo cerrado de excepciones:\n  " +

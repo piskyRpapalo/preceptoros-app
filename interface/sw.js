@@ -189,8 +189,21 @@
 // v216 · Lisbon table: docs-only Companion HITL PRs in the room; model at home.
 // v217 · My node preliminary Sign deployment: unsigned drafts no longer POST Aduana.
 // v218 · Documents tab icon restored after i18n updates; CSS v40.
-const Cache = "preceptoros-armazon-v218";
-const Armazon = ["/install.js?v=2", "/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=40", "/app.js?v=47", "/notebook.js?v=20", "/acho_sonido.js?v=3", "/memory_onboarding.js?v=1", "/conversacion.js?v=7", "/cabin_brain.js?v=1", "/fleet_map.js?v=1", "/plan_flow.js?v=1", "/plan_fixture.js?v=1", "/plan_panels.js?v=2", "/plan_composer.js?v=2", "/evidence_chip.js?v=3", "/energia_ui.js?v=2", "/modelos_web.js?v=3", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=2", "/node_building.js?v=1", "/companion_onboarding.js?v=5", "/zonas.js?v=3", "/documents.js?v=1", "/owner_model_slots.js?v=1", "/offline_mini.js?v=1", "/browser_mini_gate.js?v=1",
+// v219 · Technical options live in My node; Talk gives human text and detailed NO_DATA on request.
+// v220 · Notebook owns documents, Lab owns loops; Node identity first, guide last; no Back to MVP tab.
+// v221 · Five tabs only; Memory in Notebook, Boundary/Harness in Lab, all main sections closed.
+// v222 · Illustrated MVP navigation (bubble, note + pencil, test tube, hex node); Open World globe retained; Talk model menu focus.
+// v223 · Accessible violet OS / verifiable connection / reversible My node & Open World pause, clean Talk, aligned composer.
+// v224 · Sixth Settings panel, browser-only day/night, text size and reduced motion; Kill switch moved out of header.
+// v225 · Operations Data, installation guide first in My node, and Talk's in-flight crab.
+// v227 · canonical Open World crab body reused for Talk, offline; v226 was reserved by Superbot.
+// v228 · test-port-only, expressly simulated crab preview; optional and manually dismissible.
+// v229 · Talk companion dock stays visible before composer; WEB crab waves while idle, walks on pending.
+// v230 · unboxed crab at 70% scale; no visible Talk idle text, status still accessible.
+// v231 · My node three-step guide and visible admission disclosure, without automatic requests.
+// v232 · block historic tab-change Sting unless owner enabled Acho audio explicitly.
+const Cache = "preceptoros-armazon-v232";
+const Armazon = ["/install.js?v=2", "/assets/icono-192.png?v=2", "/assets/icono-512.png?v=2", "/assets/icono-512-maskable.png?v=2", "/", "/app", "/app.html", "/app.css?v=52", "/app.js?v=56", "/face/bubble/openworld_crab_body.js?v=1", "/talk_crab_canvas.js?v=4", "/notebook.js?v=23", "/acho_sonido.js?v=3", "/audio_accessibility.js?v=1", "/memory_onboarding.js?v=1", "/conversacion.js?v=8", "/cabin_brain.js?v=2", "/fleet_map.js?v=1", "/plan_flow.js?v=1", "/plan_fixture.js?v=1", "/superbot_talk.js?v=1", "/plan_panels.js?v=3", "/plan_composer.js?v=2", "/evidence_chip.js?v=3", "/energia_ui.js?v=2", "/modelos_web.js?v=5", "/connection_guard.js?v=1", "/ui_preferences.js?v=1", "/keep_device.js?v=1", "/acho_motion.js?v=4", "/team.js?v=2", "/hitl.js?v=7", "/hitl.css?v=5", "/insertor.js?v=2", "/creation_publish.js?v=2", "/creation_voice.js?v=1", "/node_registration.js?v=2", "/node_building.js?v=1", "/companion_onboarding.js?v=5", "/zonas.js?v=7", "/documents.js?v=1", "/owner_model_slots.js?v=1", "/offline_mini.js?v=1", "/browser_mini_gate.js?v=2",
                  "/transicion.js?v=2", "/sting.js?v=1", "/manifest.json",
                  // La brújula conserva su módulo y SVG. La hoja ornamental
                  // quedó en legacy; la estructura mínima no carga ese CSS.

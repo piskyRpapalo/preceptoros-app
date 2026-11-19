@@ -36,13 +36,11 @@ class CarcasaUnaPestana(unittest.TestCase):
     def test_cada_zona_tiene_una_tab_y_un_panel(self):
         app = _app()
         ids = [tab.get("data-panel") for tab in app.tabs]
-        self.assertEqual(ids, ["conversacion", "documentos", "lab", "ajustes",
-                               "mando", "gobierno", "cuaderno", "harness", "modelos"])
+        self.assertEqual(ids, ["conversacion", "cuaderno", "lab", "ajustes", "modelos", "settings"])
         self.assertEqual(len(ids), len(set(ids)))
         paneles = {panel["id"] for panel in app.panels}
-        self.assertEqual(paneles, {"panel-mando", "panel-conversacion", "panel-gobierno",
-                                   "panel-cuaderno", "panel-lab", "panel-harness",
-                                   "panel-modelos", "panel-ajustes", "panel-documentos"})
+        self.assertEqual(paneles, {"panel-conversacion", "panel-cuaderno", "panel-lab",
+                                   "panel-modelos", "panel-ajustes", "panel-settings"})
         self.assertEqual({tab.get("aria-controls") for tab in app.tabs}, paneles)
 
     def test_una_sola_zona_activa_y_cabezal_fijo(self):
@@ -97,7 +95,7 @@ class CarcasaUnaPestana(unittest.TestCase):
 
     def test_zona_inactiva_informa_no_data_y_hay_guion_vivo(self):
         app = _app()
-        for zona in ("lab", "harness", "modelos", "ajustes"):
+        for zona in ("lab", "cuaderno", "modelos", "ajustes"):
             self.assertIn(f"id=\"panel-{zona}\"", 
                           (RAIZ / "interface/app.html").read_text(encoding="utf-8"))
         tag, attrs = app.elements["guion-zona"]
@@ -136,15 +134,15 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class RedaccionEnAjustes(unittest.TestCase):
-    def test_redaccion_es_tarjeta_de_ajustes_y_frontera_queda_para_a2a(self):
+class RedaccionEnNotebook(unittest.TestCase):
+    def test_redaccion_es_memoria_y_boundary_esta_en_lab(self):
         html = (RAIZ / "interface/app.html").read_text(encoding="utf-8")
-        ajustes = html.split('id="panel-ajustes"', 1)[1]
-        frontera = html.split('id="panel-gobierno"', 1)[1].split("</section>", 1)[0]
-        self.assertIn('id="tarjeta-frontera"', ajustes)
-        self.assertNotIn('id="tarjeta-frontera"', frontera)
-        self.assertIn("NO_DATA", frontera)
-
+        notebook = html.split('id="panel-cuaderno"',1)[1].split('id="panel-lab"',1)[0]
+        lab = html.split('id="panel-lab"',1)[1].split('id="panel-modelos"',1)[0]
+        self.assertIn('id="tarjeta-frontera"',notebook)
+        self.assertIn('id="lab-boundary-group"',lab)
+        self.assertIn('id="hitl"',lab)
+        self.assertNotIn('id="tarjeta-frontera"',lab)
 
 class TecladoMovil(unittest.TestCase):
     def test_el_teclado_redimensiona_el_contenido(self):

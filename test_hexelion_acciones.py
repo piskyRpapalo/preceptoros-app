@@ -296,11 +296,12 @@ class LocalReads(unittest.TestCase):
 
 
 class Shell(unittest.TestCase):
-    def test_talk_has_a_question_mark_with_the_commands_and_the_chat_paints_actions(self):
+    def test_memory_contains_operator_commands_and_talk_keeps_actions(self):
         html = (ROOT / "interface/app.html").read_text(encoding="utf-8")
-        head = html[html.index('id="panel-conversacion"'):html.index('id="hilo"')]
-        self.assertIn('<details class="comandos" id="comandos-hexelion">', head)
-        self.assertIn('aria-label="Hexelion commands"', head)
+        head = html.split('id="panel-cuaderno"',1)[1].split('id="panel-lab"',1)[0]
+        self.assertIn('id="notebook-memory-group"',head)
+        self.assertIn('<details class="comandos" id="comandos-hexelion" hidden>',head)
+        self.assertIn('aria-label="Hexelion commands"',head)
         for cmd in ("/estado", "/capacidades", "/registro 5", "/firmas", "/lab", "/preceptores", "/ejecuta", "/escribe"):
             self.assertIn('data-comando="%s' % cmd, head)
         app = (ROOT / "interface/app.js").read_text(encoding="utf-8")
@@ -308,8 +309,8 @@ class Shell(unittest.TestCase):
         self.assertIn('#comandos-hexelion [data-comando]', app)
         self.assertIn('"ACTED", "ACTION_REFUSED"', (ROOT / "interface/notebook.js").read_text(encoding="utf-8"))
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf-8")
-        self.assertIn("preceptoros-armazon-v218", sw)
-        for asset in ('"/app.js?v=47"', '"/app.css?v=40"', '"/notebook.js?v=20"'):
+        self.assertIn("preceptoros-armazon-v232", sw)
+        for asset in ('"/app.js?v=56"', '"/app.css?v=52"', '"/notebook.js?v=23"'):
             self.assertIn(asset, sw)
 
 

@@ -95,16 +95,40 @@ body {
 .pestanas button { font-weight: 600; }
 .pestanas button::before { font-size: 20px; line-height: 1; }
 .pestanas button[data-panel="mando"]::before { content: "⌖"; }
-.pestanas button[data-panel="conversacion"]::before { content: "▱"; }
+.pestanas button[data-panel="conversacion"]::before { content: ""; display: block; width: 28px; height: 28px; flex: none; background: center / contain no-repeat url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M7%205.5h18a3.5%203.5%200%200%201%203.5%203.5v11a3.5%203.5%200%200%201-3.5%203.5H15l-7.5%205v-5H7A3.5%203.5%200%200%201%203.5%2020V9A3.5%203.5%200%200%201%207%205.5Z%22%20fill%3D%22%23EAF9F7%22%20stroke%3D%22%23167A75%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M8.5%2010h14%22%20stroke%3D%22%239DDAD4%22%20stroke-width%3D%221.4%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2210.5%22%20cy%3D%2216%22%20r%3D%221.8%22%20fill%3D%22%23278E9A%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%221.8%22%20fill%3D%22%23278E9A%22%2F%3E%3Ccircle%20cx%3D%2221.5%22%20cy%3D%2216%22%20r%3D%221.8%22%20fill%3D%22%23278E9A%22%2F%3E%3C%2Fsvg%3E"); }
 /* i18n replaces button text, so each primary zone needs a CSS icon. */
 .pestanas button[data-panel="documentos"]::before { content: "▤"; }
 .pestanas button[data-panel="gobierno"]::before { content: "⛨"; }
-.pestanas button[data-panel="cuaderno"]::before { content: "▤"; }
-.pestanas button[data-panel="lab"]::before { content: "⚗"; }
+.pestanas button[data-panel="cuaderno"]::before { content: ""; display: block; width: 28px; height: 28px; flex: none; background: center / contain no-repeat url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M6%203.5h15l5.5%205.5v18A2.5%202.5%200%200%201%2024%2029.5H8A2.5%202.5%200%200%201%205.5%2027V6A2.5%202.5%200%200%201%208%203.5Z%22%20fill%3D%22%23F3F8FF%22%20stroke%3D%22%23456D9B%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M21%203.5V9h5.5M10%2013h11M10%2017h8M10%2021h6%22%20fill%3D%22none%22%20stroke%3D%22%238DA9C7%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22m16.5%2026.2%202.4-5.1%206.5-6.6%203%203-6.7%206.6-5.2%202.1Z%22%20fill%3D%22%23F4B95B%22%20stroke%3D%22%239A5A22%22%20stroke-width%3D%221.3%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22m23.6%2016.2%203%203%22%20stroke%3D%22%239A5A22%22%20stroke-width%3D%221.2%22%2F%3E%3C%2Fsvg%3E"); }
+.pestanas button[data-panel="lab"]::before { content: ""; display: block; width: 28px; height: 28px; flex: none; background: center / contain no-repeat url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M11.5%204.5h11M13.5%205.5v14.3a7%207%200%200%200%2014%200V5.5%22%20transform%3D%22translate%28-3.5%200%29%22%20fill%3D%22none%22%20stroke%3D%22%23654D9C%22%20stroke-width%3D%222.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M10%2020c2.5-2.5%204.5.5%207.2-.5s3.7-2%206.3-.2v2a6.7%206.7%200%200%201-13.5%200Z%22%20fill%3D%22%2373CED0%22%20opacity%3D%22.96%22%2F%3E%3Cpath%20d%3D%22M9%204h16%22%20stroke%3D%22%23654D9C%22%20stroke-width%3D%222.4%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M18.8%209h3M18.8%2012h3M18.8%2015h3%22%20stroke%3D%22%23977EBD%22%20stroke-width%3D%221.4%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2224.6%22%20r%3D%221.1%22%20fill%3D%22%23F3FEFF%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2221.4%22%20r%3D%22.9%22%20fill%3D%22%23F3FEFF%22%2F%3E%3C%2Fsvg%3E"); }
 .pestanas button[data-panel="harness"]::before { content: "⌁"; }
 .pestanas button[data-panel="puerta"]::before { content: "⌂"; }
-.pestanas button[data-panel="modelos"]::before { content: "▦"; }
-.pestanas button[data-panel="ajustes"]::before { content: "⚙"; }
+.pestanas button[data-panel="modelos"]::before { content: "🌐"; font-size: 22px; }
+.pestanas button[data-panel="ajustes"]::before { content: ""; display: block; width: 28px; height: 28px; flex: none; background: center / contain no-repeat url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M16%202.8%2027.5%209.4v13.2L16%2029.2%204.5%2022.6V9.4Z%22%20fill%3D%22%23EDF4FF%22%20stroke%3D%22%23456EAE%22%20stroke-width%3D%222.15%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M16%209.5v13M10.4%2013l11.2%206M10.4%2019l11.2-6%22%20fill%3D%22none%22%20stroke%3D%22%2387A6D0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%224.2%22%20fill%3D%22%23F2B95B%22%20stroke%3D%22%23996623%22%20stroke-width%3D%221.4%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%221.6%22%20fill%3D%22%23FFFDF7%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%227.2%22%20r%3D%221.45%22%20fill%3D%22%23537FAF%22%2F%3E%3Ccircle%20cx%3D%228.6%22%20cy%3D%2220.3%22%20r%3D%221.45%22%20fill%3D%22%23537FAF%22%2F%3E%3Ccircle%20cx%3D%2223.4%22%20cy%3D%2220.3%22%20r%3D%221.45%22%20fill%3D%22%23537FAF%22%2F%3E%3C%2Fsvg%3E"); }
+
+/* Cohesive illustration family: comic bubble, paper + pencil, test tube, hexagonal node.
+ * Open World retains its blue globe. CSS sprites remain decorative; accessible names are the text truth.
+ */
+.pestanas button:is([data-panel="conversacion"],[data-panel="cuaderno"],[data-panel="lab"],[data-panel="ajustes"])::before {
+  filter: drop-shadow(0 1px 1px rgba(32, 52, 91, .16));
+  transition: filter .15s ease, transform .15s ease;
+}
+.pestanas button:is(:hover,[aria-selected="true"]):is([data-panel="conversacion"],[data-panel="cuaderno"],[data-panel="lab"],[data-panel="ajustes"])::before {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 2px 3px rgba(32, 52, 91, .32));
+}
+@media (prefers-reduced-motion: reduce) {
+  .pestanas button::before { transition: none !important; transform: none !important; }
+}
+@media (forced-colors: active) {
+  .pestanas button[data-panel="conversacion"]::before { content: "☏" !important; }
+  .pestanas button[data-panel="cuaderno"]::before { content: "✎" !important; }
+  .pestanas button[data-panel="lab"]::before { content: "⚗" !important; }
+  .pestanas button[data-panel="ajustes"]::before { content: "⬡" !important; }
+  .pestanas button:is([data-panel="conversacion"],[data-panel="cuaderno"],[data-panel="lab"],[data-panel="ajustes"])::before {
+    background: none !important; width: auto; height: auto; color: CanvasText; font-size: 22px; filter: none;
+  }
+}
 
 .carril { flex: 1; min-height: 0; overflow: hidden; position: relative; }
 .panel {
@@ -113,6 +137,12 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 .panel[hidden] { display: none; }
+/* Notebook and Lab are vertical scroll regions. Prevent their accordion cards
+ * (and action rails) from shrinking below their natural, readable height.
+ * Without this, each 76px summary is clipped to 8–24px in a 720px viewport. */
+:is(#panel-cuaderno, #panel-lab) > * {
+  flex-shrink: 0;
+}
 #panel-modelos { padding: .5rem; gap: .5rem; }
 #openworld-frame { display: block; flex: 1 1 auto; width: 100%; min-height: 16rem; border: 0; background: var(--paper); }
 #openworld-frame[hidden] { display: none; }
@@ -463,7 +493,6 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 #panel-cuaderno .notebook-heading.panel-cabecera { grid-template-columns: minmax(0, 1fr); }
 
 /* «?» Hexelion commands (2026-11-12): a native disclosure at the top of Talk; each command writes itself in the box. */
-#panel-conversacion .panel-cabecera { grid-template-columns: minmax(0, 1fr) auto auto; position: relative; }
 .comandos { grid-column: 3; grid-row: 1; }
 .comandos > summary { display: grid; place-items: center; list-style: none; font-weight: 700; }
 .comandos > summary::-webkit-details-marker { display: none; }
@@ -541,9 +570,8 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 /* Where am I (Claude, 2026-11-15, «what the carbon feels»): the rail shows its icons only; the selected one now wears
    its name under it, the rail's edges fade instead of cutting an icon in half, and a pressed tab gives under the thumb. */
 .carril-pestanas > .pestanas {
-  padding-bottom: 1.15rem;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
-          mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  padding-bottom: 2.6rem;
+  -webkit-mask-image: none; mask-image: none;
 }
 .pestanas button { position: relative; transition: transform .12s ease, background-color .2s ease; }
 .pestanas button:active { transform: scale(.9); }
@@ -557,13 +585,12 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 @media (forced-colors: active) { .carril-pestanas > .pestanas { -webkit-mask-image: none; mask-image: none; } .pestanas button[aria-selected="true"]::after { color: CanvasText; } }
 .pestanas button:first-child[aria-selected="true"]::after { left: 0; transform: none; }
 .pestanas button:last-child[aria-selected="true"]::after { left: auto; right: 0; transform: none; }
-/* Four primary zones always have a visible name. Icons alone make the
-   Documents and Lab steps between Talk and My node look like empty slots. */
+/* Six MVP tabs fit at 360px, with the same 44px touch target geometry. */
 .pestanas button:not([data-mvp="advanced"]) {
-  flex: 1 1 64px;
+  flex: 1 1 44px;
   width: auto;
-  min-width: 64px;
-  max-width: 155px;
+  min-width: 40px;
+  max-width: 120px;
 }
 .pestanas button:not([data-mvp="advanced"])::after {
   content: attr(aria-label);
@@ -572,11 +599,14 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
   left: 50%;
   right: auto;
   transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
   color: var(--ink-soft);
-  font-size: 10.5px;
-  line-height: 1.2;
+  font-size: 10px;
+  line-height: 1.18;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: normal;
   pointer-events: none;
 }
 .pestanas button:not([data-mvp="advanced"])[aria-selected="true"]::after {
@@ -679,106 +709,6 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 .pestanas [hidden] { display: none !important; }
 #mvp-start { display: grid; gap: .5rem; }
 #mvp-start .probar { min-height: 44px; justify-self: start; }
-#mvp-tools-status[data-state="HIDDEN"] { color: var(--ink); }
-
-/* Technical Options: always visible in header, never hidden inside hidden tools */
-.technical-options-close {
-  flex: 0 0 auto;
-  min-height: 44px;
-  max-width: 10rem;
-  padding: .35rem .55rem;
-  border: 1px solid var(--acento);
-  border-radius: var(--radio);
-  background: var(--paper);
-  color: var(--ink);
-  font: 700 .82rem/1.3 system-ui, sans-serif;
-  cursor: pointer;
-}
-.technical-options-close[hidden] { display: none !important; }
-.technical-options-close:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
-@media (max-width: 420px) {
-  .technical-options-close { max-width: 7rem; padding: .25rem .35rem; }
-}
-@media (forced-colors: active) { .technical-options-close { border-color: ButtonText; } }
-.header-actions {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 100;
-}
-.technical-options-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radio);
-  cursor: pointer;
-  font-size: 1.2rem;
-  color: var(--ink);
-}
-.technical-options-toggle:hover,
-.technical-options-toggle:focus-visible {
-  background: var(--hover);
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-.technical-options-menu {
-  position: absolute;
-  top: 3rem;
-  right: 0.5rem;
-  z-index: 101;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radio);
-  padding: 1rem;
-  max-width: 320px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-.technical-options-menu h2 {
-  font-size: 1rem;
-  margin: 0 0 0.5rem;
-}
-.technical-options-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.technical-options-list li {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--line);
-}
-.technical-options-list li:last-child {
-  border-bottom: none;
-}
-.technical-options-list .ir {
-  min-height: 44px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
-  color: var(--ink);
-  text-align: left;
-  padding: 0;
-}
-.technical-options-list .ir:hover,
-.technical-options-list .ir:focus-visible {
-  text-decoration: underline;
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-.technical-options-list .pie {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin: 0;
-}
 
 /* Chat Superbot: interlocutor header */
 .conv-interlocutor {
@@ -931,12 +861,6 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 
 /* Accessibility: forced colors mode */
 @media (forced-colors: active) {
-  .technical-options-toggle {
-    border-color: CanvasText;
-  }
-  .technical-options-menu {
-    border-color: CanvasText;
-  }
   .documentos-editor {
     border-color: CanvasText;
   }
@@ -948,28 +872,13 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
   }
 }
 
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .technical-options-menu {
-    box-shadow: none;
-  }
-}
-
 /* Narrow screens: 360px and 420px */
 @media (max-width: 420px) {
-  .technical-options-menu {
-    max-width: 280px;
-    right: 0;
-  }
   .documentos-item {
     grid-template-columns: 1fr;
   }
   .documentos-item-actions {
     justify-content: flex-start;
-  }
-  .header-actions {
-    top: 0.25rem;
-    right: 0.25rem;
   }
 }
 /* Owner's two independent model slots are a single My node section, not
@@ -1060,4 +969,444 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 #mini-local-toggle:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 @media (forced-colors: active) {
   .mini-mode-switch, #mini-local-toggle { border-color: ButtonText; }
+}
+
+/* Exact causes remain available on demand, not as the default Talk copy. */
+.talk-diagnostics { margin: .15rem 0 .35rem; font-size: .82rem; color: var(--ink-soft); }
+.talk-diagnostics summary { cursor: pointer; min-height: 44px; display: list-item; padding: .5rem; }
+.talk-diagnostics p { overflow-wrap: anywhere; margin: .2rem .5rem; }
+
+.brain-heads-details { flex: 1 1 auto; min-width: 0; }
+.brain-heads-details summary { cursor: pointer; min-height: 44px; padding: .3rem; }
+
+/* Shared action rail: consistent button geometry for Talk / Notebook / Lab / My node. */
+.panel-actions {
+  display: flex; align-items: stretch; flex-wrap: wrap; gap: .45rem;
+  width: 100%; margin: .15rem 0 .8rem; min-width: 0;
+}
+.panel-actions > button, .panel-actions .modelos-toggle {
+  appearance: none; box-sizing: border-box; display: flex;
+  flex: 1 1 0; justify-content: center; align-items: center;
+  gap: .4rem; min-width: 0; min-height: 48px; width: auto;
+  border-radius: 12px; border: 1px solid var(--line);
+  background: var(--paper); color: var(--ink);
+  padding: .5rem .65rem; font: 600 .89rem/1.3 system-ui, sans-serif;
+  text-align: center; white-space: normal; cursor: pointer;
+}
+.panel-actions > button:hover, .panel-actions .modelos-toggle:hover {
+  background: var(--hover);
+}
+.panel-actions > button:focus-visible, .panel-actions .modelos-toggle:focus-visible {
+  outline: 3px solid var(--acento); outline-offset: 2px;
+}
+.panel-actions > button[aria-expanded="true"],
+.panel-actions .modelos-toggle[aria-expanded="true"] {
+  border-color: var(--acento); border-width: 2px;
+}
+.panel-actions .talk-model-picker {
+  position: relative; flex: 1 1 0; width: auto; min-width: 0;
+}
+.panel-actions #modelos-toggle {
+  width: 100%; height: 100%; min-height: 48px; border-radius: 12px;
+}
+.panel-actions #modelos-menu {
+  position: absolute; inset: auto; top: calc(100% + .4rem);
+  inset-inline-start: 0; width: min(90vw, 31rem);
+  max-height: min(68vh, 42rem); overflow-y: auto;
+  z-index: 30; box-sizing: border-box; margin: 0;
+}
+#notebook-action-workspace { min-width: 0; }
+#notebook-action-workspace #plan-escribir > summary { display: none; }
+#notebook-action-workspace #plan-escribir[open],
+#notebook-action-workspace #notebook-document-editor:not([hidden]) {
+  margin: .5rem 0 1rem; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--paper); padding: .8rem;
+}
+@media (max-width: 420px) {
+  #notebook-actions { gap: .3rem; }
+  #notebook-actions > button { font-size: .78rem; padding: .5rem .25rem; }
+}
+@media (forced-colors: active) {
+  .panel-actions > button, .panel-actions .modelos-toggle { border-color: ButtonText; }
+}
+.talk-model-picker #modelos-menu[hidden] { display: none !important; }
+
+.talk-model-picker #modelos-menu[hidden],
+.talk-model-picker .model-available-catalog[hidden] { display: none !important; }
+.talk-model-picker .model-selection-connected { margin: .5rem 0; }
+.talk-model-picker .cabina-brain { box-shadow: none; border-width: 1px; }
+.talk-model-picker .mini-mode-switch { border: 1px solid var(--line); }
+.talk-model-picker .model-selection-config summary,
+.talk-model-picker .model-available-catalog summary { cursor: pointer; min-height: 44px; padding: .65rem 0; }
+#command-memory-management > summary { cursor: pointer; min-height: 44px; }
+[hidden] { display: none !important; }
+
+
+.notebook-document-entry { margin: .5rem 0; }
+#notebook-document-editor-toggle { min-height: 44px; }
+.notebook-document-editor { padding: .7rem; margin: .4rem 0 .8rem;
+  border: 1px solid var(--line); border-radius: var(--radio); }
+.notebook-document-editor[hidden] { display: none !important; }
+#mvp-journey-guide summary { cursor: pointer; min-height: 44px; }
+#node-identity-advanced summary, #node-declaration-advanced summary {
+  cursor: pointer; min-height: 44px; }
+
+/* All functional areas are native accordions, initially closed. */
+#panel-cuaderno > details > summary,
+#panel-lab > details > summary,
+#panel-ajustes > details > summary {
+  min-height: 44px; display: list-item; cursor: pointer; padding: .65rem .4rem;
+}
+#panel-lab .notebook-grid { display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: .65rem; }
+#panel-lab .notebook-card { border: 1px solid var(--line);
+  border-radius: var(--radio); padding: .6rem; min-width: 0; }
+
+/* Equal track widths avoid the intrinsic padding of flex buttons skewing Talk. */
+#talk-actions, #lab-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#notebook-actions, #mynode-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#talk-actions > .refrescar, #talk-actions #modelos-toggle { border-radius: 12px; }
+#talk-actions > .talk-model-picker { width: 100%; }
+
+
+/* MVP disclosure depth: same geometry, information hierarchy and keyboard semantics
+ * across Notebook / Lab / My node. Closed by default; no fabricated counts. */
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(150deg, #fffdf8 0%, #fcf6ea 100%);
+  box-shadow: 0 2px 0 #ded0b6, 0 6px 16px rgba(42, 35, 62, .07);
+  overflow: hidden;
+  margin: .55rem 0;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo:hover {
+  border-color: #b7abc7;
+  box-shadow: 0 3px 0 #d4c4af, 0 9px 18px rgba(42, 35, 62, .095);
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo[open] {
+  border-color: var(--acento);
+  background: var(--paper);
+  box-shadow: 0 2px 0 #c9bff0, 0 10px 24px rgba(73, 56, 135, .12);
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo > summary {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 1rem;
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: .62rem; row-gap: .15rem;
+  min-height: 64px;
+  padding: .75rem .85rem;
+  cursor: pointer;
+  list-style: none;
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo > summary::before {
+  content: "+";
+  grid-column: 1; grid-row: 1 / span 2;
+  align-self: center;
+  display: grid; place-items: center;
+  width: 1.5rem; height: 1.5rem;
+  background: var(--acento-tenue); border-radius: 7px;
+  color: var(--acento); font-size: 1rem; font-weight: 800;
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo[open] > summary::before { content: "−"; }
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo > summary > h3 {
+  grid-column: 2; grid-row: 1;
+  margin: 0; font-size: .98rem; line-height: 1.3; font-weight: 700;
+  min-width: 0; overflow-wrap: anywhere;
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo > summary > .fold-teaser {
+  grid-column: 2; grid-row: 2;
+  color: var(--ink-soft); font: 400 .77rem/1.35 system-ui, sans-serif;
+  overflow-wrap: anywhere;
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo > summary::after {
+  content: "⌄";
+  grid-column: 3; grid-row: 1 / span 2;
+  align-self: center; justify-self: center;
+  color: var(--ink-soft); font-size: 1.25rem;
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo[open] > summary::after {
+  content: "⌃"; color: var(--acento);
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo > summary:focus-visible {
+  outline: 3px solid var(--acento); outline-offset: -3px; border-radius: 12px;
+}
+:where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo[open] > :not(summary) {
+  margin-inline: .85rem; max-width: calc(100% - 1.7rem);
+}
+/* Talk keeps provenance, not a second dashboard. Open World reports only existing load state. */
+#talk-diagnostics { border: 1px solid var(--line); border-radius: 12px; background: #fcf7ed; padding-inline: .6rem; }
+#talk-diagnostics[open] { border-color: var(--acento); background: var(--paper); }
+#openworld-status { border-inline-start: 3px solid var(--acento); background: #fcf7ed;
+  border-radius: 4px 10px 10px 4px; padding: .45rem .7rem; }
+#openworld-frame { border-radius: 12px; box-shadow: 0 3px 16px rgba(42, 35, 62, .09); }
+.openworld-fallback { display: inline-flex; min-height: 44px; align-items: center; }
+@media (prefers-reduced-motion: reduce) {
+  :where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo {
+    transition: none; transform: none;
+  }
+}
+@media (forced-colors: active) {
+  :where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo,
+  #talk-diagnostics, #openworld-status { background: Canvas; color: CanvasText;
+    border-color: CanvasText; box-shadow: none; }
+  :where(#panel-cuaderno, #panel-lab, #panel-ajustes) > details.grupo > summary::before {
+    background: Canvas; color: CanvasText; outline: 1px solid CanvasText;
+  }
+}
+
+/* PreceptorOS brand and verifiable service state: one horizontal masthead. */
+.identidad {
+  width: 100%; max-width: 780px; margin-inline: auto;
+  display: flex; align-items: center; flex-wrap: wrap; gap: .65rem;
+  padding: .4rem 1rem .5rem;
+}
+.identidad > h1 { flex: 0 0 auto; font-size: clamp(1.08rem, 2.9vw, 1.42rem); }
+.brand-os { color: var(--acento); font-weight: 900; }
+.connection-controls { margin-inline-start: auto; min-width: 0; display: flex; align-items: center; gap: .55rem; }
+.connection-status { display: inline-flex; align-items: center; gap: .4rem;
+  white-space: nowrap; font-size: .81rem; font-weight: 650; color: var(--ink-soft); }
+.connection-status::before { content: ""; width: .55rem; height: .55rem;
+  border-radius: 50%; background: #9b917d; box-shadow: 0 0 0 2px #e5dfd2; }
+.connection-status[data-state="CONNECTED"]::before { background: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft); }
+.connection-status[data-state="CONNECTED"] { color: var(--ok); }
+.connection-kill { min-height: 44px; min-width: 90px; border-radius: 11px;
+  padding: .5rem .65rem; border: 1px solid #a85a64;
+  color: #882735; background: #fdf0f0; font-weight: 750; cursor: pointer; }
+.connection-kill[aria-pressed="true"] { background: #e7f4ed; color: var(--ok); border-color: var(--ok); }
+.connection-kill:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+@media (max-width: 380px) {
+  .identidad { gap: .3rem; padding-inline: .6rem; }
+  .connection-controls { gap: .3rem; }
+  .connection-kill { min-width: 75px; padding-inline: .4rem; font-size: .75rem; }
+  .connection-status { font-size: .75rem; }
+}
+/* Talk keeps the working model chooser and conversation, not the status/sensor boilerplate. */
+#panel-conversacion > .conv-interlocutor[hidden] { display: none !important; }
+#mynode-paused, #openworld-paused { padding: .65rem .75rem;
+  border: 1px solid var(--stop); border-radius: 11px; background: var(--stop-soft);
+  font-weight: 650; }
+#mynode-paused[hidden], #openworld-paused[hidden] { display: none !important; }
+#panel-ajustes[data-connection-paused="true"] > :not(#mynode-paused):not(.panel-cabecera) { opacity: .5; }
+/* Composer follows exactly the content width, inside the same left/right gutters. */
+#form-chat.redactar-anclado {
+  box-sizing: border-box; width: 100%; max-width: 780px; min-width: 0;
+  margin-inline: auto; padding: .55rem 1rem;
+  border-top: 1px solid var(--line);
+  border-inline: 0; border-radius: 0;
+  gap: .5rem; align-items: stretch;
+}
+#form-chat #dicho {
+  display: block; flex: 1 1 0; min-width: 0;
+  height: 48px; min-height: 48px; max-height: 160px;
+  border-radius: 10px; padding: .65rem .8rem; resize: vertical;
+}
+#form-chat #enviar { flex: 0 0 auto; min-height: 48px; height: 48px;
+  border-radius: 10px; align-self: flex-end; }
+@media (forced-colors: active) {
+  .connection-status::before { background: CanvasText !important; border: 2px solid CanvasText; }
+  .connection-kill { border-color: ButtonText; color: ButtonText; background: Canvas; }
+  .brand-os { color: CanvasText; text-decoration: underline; }
+}
+
+.connection-status[data-state="PAUSED"] { color: var(--stop); }
+.connection-status[data-state="PAUSED"]::before { background: var(--stop); box-shadow: 0 0 0 2px var(--stop-soft); }
+
+/* Sixth, owner-facing Settings gear; intentionally matches the 28px illustrated set. */
+.pestanas button[data-panel="settings"]::before {
+  content: "⚙"; display: block; width: 28px; height: 28px; flex: none;
+  font-size: 27px; line-height: 28px; color: #6b5bd0;
+  filter: drop-shadow(0 1px 1px rgba(32, 52, 91, .18));
+}
+.pestanas button[data-panel="settings"][aria-selected="true"]::before { color: #5e42ca; }
+.pestanas button[data-panel="settings"]:focus-visible { outline: 3px solid var(--acento); }
+#panel-settings > details.grupo {
+  border: 1px solid var(--line); border-radius: 14px; background: var(--paper);
+  margin-block: .5rem; box-shadow: 0 3px 12px rgba(42,35,62,.08); overflow: hidden;
+}
+#panel-settings > details.grupo > summary {
+  min-height: 64px; display: flex; flex-wrap: wrap; align-content: center;
+  align-items: center; gap: .2rem .65rem; padding: .65rem .85rem; cursor: pointer;
+  list-style: none; border-bottom: 1px solid transparent;
+}
+#panel-settings > details.grupo > summary::before {
+  content: "+"; display: grid; place-items: center; width: 24px; height: 24px;
+  border-radius: 7px; color: var(--acento); background: var(--acento-tenue); font-weight: 800;
+}
+#panel-settings > details.grupo[open] > summary::before { content: "−"; }
+#panel-settings > details.grupo[open] > summary { border-bottom-color: var(--line); }
+#panel-settings > details.grupo > summary h3 { margin: 0; flex: 1; font-size: .98rem; }
+#panel-settings > details.grupo > summary .fold-teaser {
+  flex: 1 0 100%; color: var(--ink-soft); font-size: .79rem; padding-inline-start: 34px;
+}
+#panel-settings > details.grupo > :not(summary) { margin: .75rem .85rem; }
+#panel-settings .settings-fieldset {
+  border: 1px solid var(--line); border-radius: 10px; display: grid; gap: .2rem; padding: .65rem;
+  min-width: 0;
+}
+#panel-settings .settings-fieldset legend { font-weight: 700; padding-inline: .3rem; }
+#panel-settings .settings-fieldset label, #panel-settings .settings-checkbox {
+  min-height: 44px; display: flex; align-items: center; gap: .65rem; cursor: pointer;
+  padding: .4rem .6rem; border-radius: 8px;
+}
+#panel-settings input[type=radio], #panel-settings input[type=checkbox] { min-width: 20px; min-height: 20px; accent-color: var(--acento); }
+#panel-settings label:has(input:checked) { background: var(--acento-tenue); font-weight: 650; }
+#panel-settings input:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
+#panel-settings .connection-kill { margin-block: .6rem; }
+#panel-settings .settings-group[open] { border-color: var(--acento); }
+html[data-text-scale="large"] { font-size: 100%; }
+/* Dark theme only when chosen (or by the explicitly chosen system preference).
+ * Keep measured states textual and the Open World iframe independent. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f0eafc; --ink-soft: #c4bad5; --line: #665775;
+  --paper: #28263d; --ground: #171526; --ok: #8ce0b3;
+  --ok-soft: #244537; --warn: #ffd38b; --warn-soft: #433626;
+  --stop: #ffb2bb; --stop-soft: #462a35;
+  --acento: #b5a4ff; --acento-tenue: #40345d;
+  --halo-alto: #3a2d54; --halo-bajo: #1b1d36;
+}
+html[data-theme="dark"] :is(#panel-cuaderno,#panel-lab,#panel-ajustes) > details.grupo {
+  background: linear-gradient(150deg, #30283e, #24263d);
+  box-shadow: 0 2px 0 #615271, 0 6px 16px rgba(0,0,0,.23);
+}
+html[data-theme="dark"] :is(#panel-cuaderno,#panel-lab,#panel-ajustes) > details.grupo[open] {
+  background: var(--paper); border-color: var(--acento); box-shadow: 0 2px 0 #685b91, 0 8px 20px rgba(0,0,0,.3);
+}
+html[data-theme="dark"] :is(#talk-diagnostics,#openworld-status) {
+  background: #27253b; color: var(--ink);
+}
+html[data-theme="dark"] :is(.connection-kill,.node-paused,.world-paused) {
+  background: var(--stop-soft); color: var(--stop); border-color: var(--stop);
+}
+html[data-theme="dark"] #connection-kill[aria-pressed="true"] {
+  background: var(--ok-soft); color: var(--ok); border-color: var(--ok);
+}
+html[data-theme="dark"] :is(#notebook-action-workspace #plan-escribir[open], #notebook-document-editor:not([hidden])) {
+  background: var(--paper);
+}
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important; transition-duration: .01ms !important;
+}
+@media (forced-colors: active) {
+  #panel-settings > details.grupo { background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow:none; }
+  .pestanas button[data-panel="settings"]::before { color: CanvasText; filter: none; }
+}
+
+/* Talk companion dock, aligned with the global "Write your answer" composer.
+   AtlasCrabBody comes byte-exact from WEB; only its display/label is adapted. */
+#talk-processing {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: .6rem;
+  width: 100%; max-width: 780px; min-width: 0;
+  min-height: 48px; margin: .1rem auto 0;
+  padding: .1rem 1rem 0;
+  color: var(--ink); background: var(--ground);
+}
+#talk-processing[hidden] { display: none !important; }
+#talk-processing .talk-crab-check {
+  flex: 0 0 72px; box-sizing: border-box;
+  height: 46px; padding: 0;
+  border: 0; border-radius: 0;
+  background: transparent; color: var(--ink); cursor: pointer;
+}
+#talk-processing .talk-crab-check:focus-visible {
+  outline: 3px solid var(--acento); outline-offset: 2px;
+}
+#talk-processing .talk-processing-track {
+  display: block; position: relative; height: 44px; width: 100%;
+  overflow: hidden;
+}
+#talk-processing .talk-processing-crab {
+  display: block; position: absolute; left: 5px; top: 2px;
+  width: 62px; height: 41px;
+}
+#talk-processing[data-state="PROCESSING"] .talk-processing-crab,
+#talk-processing[data-state="SIMULATED"] .talk-processing-crab {
+  animation: talk-crab-sidestep 3.6s ease-in-out infinite alternate;
+}
+#talk-processing .talk-crab-canvas { display: block; width: 62px; height: 41px; }
+#talk-processing .talk-processing-copy {
+  display: flex; flex-direction: column; gap: .2rem; min-width: 0;
+}
+#talk-processing .talk-processing-label[hidden] { display: none !important; }
+#talk-processing .talk-processing-label {
+  font-size: .83rem; font-weight: 650; line-height: 1.3;
+  color: var(--ink-soft); overflow-wrap: anywhere;
+}
+#talk-processing .talk-crab-detail {
+  font-size: .76rem; line-height: 1.3; color: var(--ink-soft);
+}
+#talk-processing .talk-crab-detail[hidden] { display: none !important; }
+#talk-processing[data-state="PROCESSING"] .talk-processing-label { color: var(--acento); }
+#panel-conversacion[data-thinking="true"] #talk-tasks { display: none !important; }
+@keyframes talk-crab-sidestep {
+  from { left: 0; }
+  to { left: calc(100% - 62px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #talk-processing .talk-processing-crab { animation: none !important; left: 5px !important; }
+}
+html[data-reduce-motion="true"] #talk-processing .talk-processing-crab {
+  animation: none !important; left: 5px !important;
+}
+@media (forced-colors: active) {
+  #talk-processing .talk-crab-check {
+    background: transparent; color: CanvasText;
+  }
+  #talk-processing .talk-processing-label,
+  #talk-processing .talk-crab-detail { color: CanvasText; }
+}
+
+/* Superbot takes the repeated visual Talk title's place. Main tabs remain untouched. */
+#panel-conversacion > .superbot-panel-header {
+  display: flex; align-items: flex-start; flex-wrap: wrap; gap: .5rem .7rem;
+  padding-bottom: .45rem; margin-bottom: .1rem; flex-shrink: 0;
+}
+.superbot-heading { display: grid; gap: .15rem; min-width: min(100%, 150px); flex: 1 1 190px; }
+.superbot-heading h3 { margin: 0; font-size: 1.03rem; }
+.superbot-orchestrator { color: var(--ink-soft); font-size: .83rem; overflow-wrap: anywhere; }
+.superbot-agents { margin: 0; flex: 1 1 172px; min-width: 0; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--paper); overflow: visible; }
+.superbot-agents summary { cursor: pointer; padding: .5rem .65rem; min-height: 44px;
+  display: flex; align-items: center; font-weight: 650; }
+.superbot-agents summary:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+.superbot-agents > :not(summary) { margin: .45rem .65rem; }
+.superbot-agent-tabs { display: flex; flex-wrap: wrap; gap: .35rem; }
+.superbot-agent-tab { min-height: 44px; padding: .45rem .7rem; border: 1px solid var(--line);
+  border-radius: 9px; background: var(--ground); color: var(--ink); cursor: pointer; }
+.superbot-agent-tab[aria-selected="true"] { border-color: var(--acento); background: var(--acento-tenue); font-weight: 700; }
+.superbot-agent-tab:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+.superbot-agent-detail { overflow-wrap: anywhere; border-top: 1px solid var(--line);
+  padding: .5rem 0 .6rem; }
+.superbot-agent-detail h4 { margin: 0 0 .35rem; }
+.superbot-agent-detail ul { margin: .35rem 0; padding-inline-start: 1.4rem; }
+#panel-settings > details.grupo { flex-shrink: 0; }
+.settings-audio { border-top: 1px solid var(--line); padding-top: .6rem; min-width: 0; }
+.settings-audio h4 { margin: .1rem 0 .45rem; }
+.settings-audio select { min-height: 44px; border-radius: 8px; padding: .4rem;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--line); }
+.settings-audio-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-block: .7rem; }
+.settings-audio-actions button { flex: 1 1 135px; min-height: 44px;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--line);
+  border-radius: 9px; cursor: pointer; }
+.settings-audio-actions button:disabled { opacity: .55; cursor: not-allowed; }
+.settings-audio-actions button:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+@media (forced-colors: active) {
+  .superbot-agents, .superbot-agent-tab, .settings-audio-actions button { border: 1px solid ButtonText; }
+}
+
+
+/* Test-port preview only: never appears on the ordinary URL. */
+#talk-processing .talk-crab-preview-stop {
+  min-height: 36px; padding: .25rem .5rem; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit;
+}
+#talk-processing .talk-crab-preview-stop:focus-visible {
+  outline: 3px solid var(--acento); outline-offset: 2px;
 }

@@ -9,166 +9,118 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=40">
+<link rel="stylesheet" href="/app.css?v=52">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
 
 <header class="barra">
   <div class="identidad">
-    <h1>PreceptorOS</h1>
-    <div class="estado-fila">
-      <span class="acho-estado" id="acho-estado" aria-hidden="true"></span>
-      <p class="estado" id="estado" aria-live="polite" data-i18n="comprobando">checking…</p>
-      <button id="modelos-toggle" class="modelos-toggle" type="button"
-              aria-haspopup="dialog" aria-expanded="false" aria-controls="modelos-menu">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        <span class="sr" data-i18n="lab_modelos_titulo">Modelos locales</span>
-      </button>
+    <h1 aria-label="PreceptorOS">Preceptor<span class="brand-os">OS</span></h1>
+    <div class="connection-controls" role="group" aria-label="App connection controls">
+      <span id="connection-status" class="connection-status" role="status" aria-live="polite"
+        data-state="NO_DATA" data-cause="service_not_checked" data-acho="silent">Checking connection…</span>
     </div>
-    <section id="modelos-menu" class="modelos-menu" role="dialog" data-i18n-aria="lab_modelos_titulo" aria-label="Modelos locales" tabindex="-1" hidden>
-      <h2 data-i18n="lab_modelos_titulo">Modelos locales</h2>
-      <p id="modelo-activo" role="status" aria-live="polite"></p>
-      <p id="modelos-estado" role="status" aria-live="polite" data-i18n="modelos_cargando">Consultando los modelos locales…</p>
-      <ul class="turnos" id="modelos-lista"></ul>
-    </section>
   </div>
-  <!-- Technical Options: always visible in header, never hidden inside hidden tools -->
-  <div class="header-actions">
-    <button type="button" id="technical-options-toggle" class="technical-options-toggle"
-            aria-haspopup="menu" aria-expanded="false" aria-controls="technical-options-menu">
-      <span>⚙</span>
-      <span class="sr">Technical Options</span>
-    </button>
-  </div>
-  <section id="technical-options-menu" class="technical-options-menu" role="menu" aria-label="Technical Options" tabindex="-1" hidden>
-    <h2>Technical Options</h2>
-    <p class="pie">Advanced tools for operators. These panels are hidden by default, not removed.</p>
-    <ul class="technical-options-list" role="menu" aria-label="Advanced tools">
-      <li role="none"><button type="button" role="menuitem" class="ir" data-ir="mando" id="tech-opt-mando">Command</button><span class="pie">Sensor of your memory, never an actor</span></li>
-      <li role="none"><button type="button" role="menuitem" class="ir" data-ir="gobierno" id="tech-opt-gobierno">Boundary</button><span class="pie">Signatures and authorization</span></li>
-      <li role="none"><button type="button" role="menuitem" class="ir" data-ir="cuaderno" id="tech-opt-cuaderno">Notebook</button><span class="pie">Operational receipts and evidence</span></li>
-      <li role="none"><button type="button" role="menuitem" class="ir" data-ir="harness" id="tech-opt-harness">Harness</button><span class="pie">Loops, team and operator visibility</span></li>
-      <li role="none"><button type="button" role="menuitem" class="ir" data-ir="modelos" id="tech-opt-modelos">World</button><span class="pie">OpenWorld map and Acho language</span></li>
-      <li role="none"><button type="button" role="menuitem" class="ir" id="technical-options-dismiss">← Back to MVP</button></li>
-    </ul>
-  </section>
 <div class="carril-pestanas">
-<button type="button" id="technical-options-close" class="technical-options-close" aria-label="Close technical view and return to MVP" title="Back to MVP" hidden>← Back to MVP</button>
-<button type="button" class="flecha" id="panel-anterior" aria-label="Previous panel" title="Previous panel" aria-controls="pestanas">←</button>
 <nav class="pestanas" id="pestanas" role="tablist" aria-orientation="horizontal" aria-label="Zonas">
-  <!-- Four main zones: Chat · Documents · Lab · My node -->
-  <button id="tab-conversacion" role="tab" aria-controls="panel-conversacion" aria-selected="true" tabindex="0" data-panel="conversacion" data-i18n="tab_chat" aria-label="Chat" title="Chat">▱ Chat</button>
-  <button id="tab-documentos" role="tab" aria-controls="panel-documentos" aria-selected="false" tabindex="-1" data-panel="documentos" data-i18n="tab_documents" aria-label="Documents" title="Documents">▤ Documents</button>
-  <button id="tab-lab" role="tab" aria-controls="panel-lab" aria-selected="false" tabindex="-1" data-panel="lab" data-i18n="tab_lab" aria-label="Lab" title="Lab">⚗ Lab</button>
-  <button id="tab-ajustes" role="tab" aria-controls="panel-ajustes" aria-selected="false" tabindex="-1" data-panel="ajustes" data-i18n="tab_mynode" aria-label="My node" title="My node">⌂ My node</button>
-  <!-- Advanced zones: hidden by default, accessible via Technical Options -->
-  <button id="tab-mando" role="tab" aria-controls="panel-mando" aria-selected="false" tabindex="-1" data-panel="mando" data-i18n="tab_mando" aria-label="Command" title="Command" data-mvp="advanced" hidden>Command</button>
-  <button id="tab-gobierno" role="tab" aria-controls="panel-gobierno" aria-selected="false" tabindex="-1" data-panel="gobierno" data-i18n="tab_frontera" aria-label="Boundary" title="Boundary" data-mvp="advanced" hidden>Boundary</button>
-  <button id="tab-cuaderno" role="tab" aria-controls="panel-cuaderno" aria-selected="false" tabindex="-1" data-panel="cuaderno" data-i18n="tab_cuaderno" aria-label="Notebook" title="Notebook" data-mvp="advanced" hidden>Notebook</button>
-  <button id="tab-harness" role="tab" aria-controls="panel-harness" aria-selected="false" tabindex="-1" data-panel="harness" data-i18n="tab_harness" aria-label="Harness" title="Harness" data-mvp="advanced" hidden>Harness</button>
-  <button id="tab-modelos" role="tab" aria-controls="panel-modelos" aria-selected="false" tabindex="-1" data-panel="modelos" data-i18n="tab_mundo" aria-label="World" title="World" data-mvp="advanced" hidden>World</button>
+  <!-- Six owner-facing zones in visual, keyboard and swipe order. -->
+  <button id="tab-conversacion" role="tab" aria-controls="panel-conversacion" aria-selected="true" tabindex="0" data-panel="conversacion" data-i18n="tab_chat" aria-label="Talk" title="Talk">Talk</button>
+  <button id="tab-cuaderno" role="tab" aria-controls="panel-cuaderno" aria-selected="false" tabindex="-1" data-panel="cuaderno" data-i18n="tab_cuaderno" aria-label="Operations Data" title="Operations Data">Operations Data</button>
+  <button id="tab-lab" role="tab" aria-controls="panel-lab" aria-selected="false" tabindex="-1" data-panel="lab" data-i18n="tab_lab" aria-label="Lab" title="Lab">Lab</button>
+  <button id="tab-ajustes" role="tab" aria-controls="panel-ajustes" aria-selected="false" tabindex="-1" data-panel="ajustes" data-i18n="tab_mynode" aria-label="My node" title="My node">My node</button>
+  <button id="tab-modelos" role="tab" aria-controls="panel-modelos" aria-selected="false" tabindex="-1" data-panel="modelos" data-i18n="tab_mundo" aria-label="Open World" title="Open World">Open World</button>
+  <button id="tab-settings" role="tab" aria-controls="panel-settings" aria-selected="false" tabindex="-1" data-panel="settings" aria-label="Settings" title="Settings">Settings</button>
 </nav>
-<button type="button" class="flecha" id="panel-siguiente" aria-label="Next panel" title="Next panel" aria-controls="pestanas">→</button>
 </div>
 </header>
 
 <main id="carril" class="carril">
 
-  <!-- la brujula · sensor de tu memoria, nunca actuador -->
-  <section class="panel" id="panel-mando" role="tabpanel" aria-labelledby="tab-mando" tabindex="0" aria-label="Command" hidden>
-    <header class="panel-cabecera"><h2 class="sr" id="h-mando">Command</h2></header>
-    <section class="mando-decide" id="mando-decide" aria-labelledby="mando-decide-titulo">
-      <h3 id="mando-decide-titulo">Needs your decision</h3>
-      <p class="pie" id="mando-decide-estado" role="status" aria-live="polite">NO_DATA: not read yet.</p>
-      <ul>
-        <li><span id="mando-firmas-texto">Pull requests awaiting your signature</span> <span id="mando-firmas-estado"></span>
-          <button type="button" class="ir" data-ir="gobierno" id="mando-ir-firmas">Open Boundary</button></li>
-        <li><span id="mando-tareas-texto">Delegated tasks that need your authorization</span> <span id="mando-tareas-estado"></span>
-          <button type="button" class="ir" data-ir="cuaderno" id="mando-ir-tareas">Open the Notebook</button></li>
-      </ul>
-      <h4 data-i18n="plan_tasks_title">Tasks of the plan</h4>
-      <p class="pie" id="mando-plan-estado" role="status" aria-live="polite">NO_DATA: not read yet.</p>
-      <ul class="plan-decidir" id="mando-plan-tareas"></ul>
-      <p class="pie" id="mando-plan-nota" role="status" aria-live="polite" data-i18n="plan_grant_note">Authorizing makes a grant for that one task. Grants are not built yet: NO_DATA.</p>
-    </section>
-    <div id="compass-container">
-      <div id="compass-svg-hueco"></div>
-      <p id="compass-rango"></p>
-      <p id="compass-aviso" role="status" aria-live="polite"></p>
-      <div id="compass-controles">
-        <button type="button" id="compass-modo-camino" aria-pressed="true">The Path</button>
-        <button type="button" id="compass-modo-detalle" aria-pressed="false">Detail</button>
-      </div>
-    </div>
-  </section>
-
   <!-- hablar -->
-  <section class="panel" id="panel-conversacion" role="tabpanel" aria-labelledby="tab-conversacion" tabindex="0" aria-label="Chat">
-    <header class="panel-cabecera">
-      <h2 class="sr" id="h-conversacion">Chat</h2>
-      <!-- Interlocutor header: shows name and type of conversation partner -->
-      <div class="conv-interlocutor" id="conv-interlocutor" role="status" aria-live="polite" data-state="loading" data-acho="waiting">
-        <span class="conv-interlocutor-glyph" id="conv-interlocutor-glyph" aria-hidden="true">◇</span>
-        <span class="conv-interlocutor-name" id="conv-interlocutor-name">Loading…</span>
-        <span class="conv-interlocutor-type" id="conv-interlocutor-type"></span>
+  <section class="panel" id="panel-conversacion" role="tabpanel" aria-labelledby="tab-conversacion" tabindex="0" aria-label="Talk">
+        <header class="panel-cabecera superbot-panel-header">
+      <h2 id="h-conversacion" class="sr">Talk</h2>
+      <div class="superbot-heading" role="group" aria-label="Agents and selected orchestrator">
+        <h3 id="superbot-title">Agents</h3>
+        <span class="superbot-orchestrator" id="superbot-orchestrator">Mini Orchestrator · local mode</span>
       </div>
-      <p class="pie conv-destinos" id="conv-destinos" role="status" aria-live="polite">NO_DATA: the shared thread has not been read yet.</p>
-      <ul class="conv-estados" id="conv-estados" aria-label="Agents and what the evidence says each is doing"></ul>
-      <button type="button" class="refrescar" data-refrescar="conversacion" aria-label="Refresh the shared thread" title="Refresh the shared thread">↻</button>
-      <details class="comandos" id="comandos-hexelion">
-        <summary class="refrescar" id="comandos-hexelion-abrir" aria-label="Hexelion commands" title="Hexelion commands">?</summary>
-        <div class="comandos-lista" id="comandos-hexelion-lista">
-          <p class="pie" id="comandos-hexelion-nota">A message that starts with / is an action: Hexelion runs it in its own worktrees and proposes; it never merges or signs. No model runs. Tap one to write it.</p>
-          <ul>
-            <li><button type="button" data-comando="/estado" id="cmd-estado"><code id="cmd-estado-texto">/estado</code> rack and house services</button></li>
-            <li><button type="button" data-comando="/capacidades" id="cmd-capacidades"><code id="cmd-capacidades-texto">/capacidades</code> what Hexelion may do</button></li>
-            <li><button type="button" data-comando="/registro 5" id="cmd-registro"><code id="cmd-registro-texto">/registro 5</code> last receipts</button></li>
-            <li><button type="button" data-comando="/firmas" id="cmd-firmas"><code id="cmd-firmas-texto">/firmas</code> what awaits your signature</button></li>
-            <li><button type="button" data-comando="/lab" id="cmd-lab"><code id="cmd-lab-texto">/lab</code> Lab results</button></li>
-            <li><button type="button" data-comando="/preceptores" id="cmd-preceptores"><code id="cmd-preceptores-texto">/preceptores</code> which preceptors are working</button></li>
-            <li><button type="button" data-comando="/dispositivos" id="cmd-dispositivos"><code id="cmd-dispositivos-texto">/dispositivos</code> devices and their roles</button></li>
-            <li><button type="button" data-comando="/modelos" id="cmd-modelos"><code id="cmd-modelos-texto">/modelos</code> models by node</button></li>
-            <li><button type="button" data-comando="/ejecuta @hexelion- git status" id="cmd-ejecuta"><code id="cmd-ejecuta-texto">/ejecuta [@worktree] &lt;command&gt;</code> run one command</button></li>
-            <li><button type="button" data-comando="/escribe @hexelion- notes.md :: " id="cmd-escribe"><code id="cmd-escribe-texto">/escribe @worktree &lt;path&gt; :: &lt;text&gt;</code> write one file</button></li>
-            <li><button type="button" data-comando="@ayuda " id="cmd-ayuda"><code id="cmd-ayuda-texto">@ayuda</code> help for this panel</button></li>
-          </ul>
-          <p class="pie" id="comandos-hexelion-frases">Or just say it, no slash: «how is the rack?» · «what can you do?» · «what did you do?» · «what awaits my signature?» · «lab results» · «which preceptors are working?» · «what devices are connected?» · «what models do we have?» (also in Spanish and Portuguese). These only read.</p>
-        </div>
-      </details></header>
-    <div class="cabina-brain" id="cabina-brain" role="group" aria-label="Brain and signatures">
-      <p class="pie brain-uso" id="brain-uso" role="status" aria-live="polite">Brain · NO_DATA · not read yet.</p>
+      <details class="superbot-agents" id="superbot-agent-disclosure" data-state="NO_DATA"
+        data-cause="agent_roster_not_connected" data-acho="silent">
+        <summary aria-label="Show agents referenced in the selected plan">
+          <span id="superbot-agent-count">Agents · not connected</span>
+        </summary>
+        <p class="pie" id="superbot-agent-hint">Connect your orchestrator or create a plan to see referenced agents here.</p>
+        <nav class="superbot-agent-tabs" id="superbot-agent-tabs" role="tablist" aria-label="Agents in this plan"></nav>
+        <div id="superbot-agent-detail" class="superbot-agent-detail" role="region"
+          aria-label="Selected agent functions" hidden></div>
+      </details>
+    </header>
+    <div class="panel-actions" id="talk-actions" role="group" aria-label="Talk actions">
+      <div class="talk-model-picker" role="group" aria-label="Model selection">
+      <button id="modelos-toggle" class="modelos-toggle" type="button"
+              aria-haspopup="dialog" aria-expanded="false" aria-controls="modelos-menu">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        <span>Choose model</span>
+      </button>
+    <section id="modelos-menu" class="modelos-menu" role="dialog" aria-label="Model selection" tabindex="-1" hidden>
+      <h3>Choose a model</h3>
+      <p class="pie">Select an available model. A saved name is a draft, not an active connection.</p>
+      <p id="modelo-activo" role="status" aria-live="polite"></p>
+      <p id="modelos-estado" role="status" aria-live="polite" data-i18n="modelos_cargando">Consultando los modelos locales…</p>
+      <div class="model-selection-connected"><h4>Connected options</h4>
+    <div class="cabina-brain" id="cabina-brain" role="group" aria-label="Connected model options">
+      <p class="pie brain-uso" id="brain-uso" role="status" aria-live="polite" data-state="NO_DATA" data-cause="brain_not_read_yet">Brain · checking availability…</p>
       <div class="brain-opciones" id="brain-opciones" role="radiogroup" aria-label="Choose the brain"></div>
-      <p class="pie brain-heads" id="brain-heads"></p>
-      <button type="button" class="brain-firmas" id="brain-firmas">Signatures · not read yet →</button>
+      <p class="pie brain-heads" id="brain-heads" hidden></p>
+
     </div>
-    <div class="mini-mode-switch" role="group" aria-label="Offline mini router">
-      <button type="button" id="mini-local-toggle" aria-pressed="false">Try offline mini</button>
+    <div class="mini-mode-switch" role="group" aria-label="Mini Orchestrator offline mode">
+      <button type="button" id="mini-local-toggle" aria-pressed="false">Use Mini Orchestrator offline</button>
       <p class="pie" id="mini-local-mode-status" role="status" aria-live="polite"
-         data-state="NO_DATA" data-acho="NO_DATA">NO_DATA(mini_inactive) · Talk uses your configured model if one exists.</p>
+         data-state="NO_DATA" data-acho="NO_DATA">Mini Orchestrator offline mode is off. Talk uses your configured model if available.</p>
     </div>
+      </div>
+      <details class="model-available-catalog"><summary>Available model information</summary>
+        <ul class="turnos" id="modelos-lista"></ul></details>
+      <details class="model-selection-config"><summary>Model preferences (draft only)</summary>
+        <div id="owner-model-slots-mount"></div></details>
+    </section>
+      </div>
+      <button type="button" class="refrescar" data-refrescar="conversacion" aria-label="Refresh Talk" title="Refresh Talk">Refresh</button>
+    </div>
+      <!-- Provenance hooks are present for readers, but not a duplicate model chooser. -->
+      <div class="conv-interlocutor" id="conv-interlocutor" hidden aria-hidden="true"
+        data-state="NO_DATA" data-acho="silent" data-cause="model_reply_not_verified">
+        <span id="conv-interlocutor-glyph" aria-hidden="true"></span>
+        <span id="conv-interlocutor-name"></span>
+        <span id="conv-interlocutor-type"></span>
+      </div>
+      <p id="conv-destinos" hidden data-state="NO_DATA" data-cause="thread_not_read_yet"></p>
+      <ul id="conv-estados" hidden></ul>
+    <p class="estado sr" id="estado" role="status" aria-live="polite"
+      data-state="NO_DATA" data-cause="no_verified_talk_turn" data-acho="silent">
+      No verified conversation turn yet.
+    </p>
     <p class="pie" id="talk-tasks" role="status" aria-live="polite" hidden></p>
-    <div class="talk-plan" id="talk-plan" role="status" aria-live="polite" hidden></div>
-    <details class="grupo plan-escribir" id="plan-escribir" data-state="writing" data-acho="waiting">
-      <summary><h3 data-i18n="plan_write_title">Write a plan</h3></summary>
-      <label for="plan-titulo" data-i18n="plan_title_label">Title</label>
-      <input type="text" id="plan-titulo" autocomplete="off" aria-describedby="plan-ref">
-      <label for="plan-texto" data-i18n="plan_write_label">Your plan, as long as it needs to be. It is kept whole: never cut.</label>
-      <textarea id="plan-texto" rows="6" aria-describedby="plan-ref"></textarea>
-      <p class="pie" id="plan-ref">Empty.</p>
-      <button type="button" id="plan-guardar" class="plan-guardar" data-i18n="plan_store" disabled>Store the plan</button>
-      <p class="pie" id="plan-guardar-estado" role="status" aria-live="polite" aria-atomic="true"></p>
-      <p class="pie" id="plan-nota" data-i18n="plan_store_note">Stored privately on this device. Storing is not a task: nothing is proposed, authorized or run.</p>
-      <button type="button" id="plan-releer" class="plan-guardar" data-i18n="plan_read_back" hidden>Read it back</button>
-      <details id="plan-leido" hidden><summary data-i18n="plan_read_back_title">The stored text</summary><pre id="plan-leido-texto" class="plan-leido"></pre></details>
-    </details>
-    <ol class="hilo" id="hilo" aria-live="polite" aria-label="Shared thread: you, Hexelion and the rack preceptors"></ol>
+    <ol class="hilo" id="hilo" aria-live="polite" aria-label="Conversation history"></ol>
   </section>
 
-  <!-- Documents: personal documents, local-first, explicit consent -->
-  <section class="panel" id="panel-documentos" role="tabpanel" aria-labelledby="tab-documentos" tabindex="0" aria-label="Documents" hidden>
+  <!-- Operations Data owns documents and receipts; Lab owns measured loops. -->
+  <section class="panel" id="panel-cuaderno" role="tabpanel" aria-labelledby="tab-cuaderno" tabindex="0" aria-label="Operations Data" hidden>
+    <header class="panel-cabecera"><h2 id="notebook-title">Operations Data</h2></header>
+    <div class="panel-actions" id="notebook-actions" role="group" aria-label="Operations Data actions">
+      <button type="button" id="notebook-document-editor-toggle" aria-expanded="false" aria-controls="notebook-document-editor">Document Editor</button>
+      <button type="button" id="notebook-plan-toggle" aria-expanded="false" aria-controls="plan-escribir">Write a plan</button>
+      <button type="button" id="notebook-refresh" class="refrescar" data-refrescar="cuaderno" aria-label="Refresh Operations Data">Refresh</button>
+    </div>
+    <p class="pie" id="notebook-subtitle">Documents, plans, requests and operation receipts. Loop measurements live in Lab.</p>
+    <p class="sr" id="notebook-bench-pointer">Benchmarks are measured in one place: they live in Lab.</p>
+    <p class="pie" id="notebook-status" role="status" aria-live="polite">NO_DATA: the Notebook has not been read yet.</p>
+    <div class="panel-action-workspace" id="notebook-action-workspace">
+    <section id="notebook-document-editor" class="notebook-document-editor" aria-labelledby="h-documentos" hidden>
     <header class="panel-cabecera">
-      <h2 class="sr" id="h-documentos">Documents</h2>
+      <h2 class="sr" id="h-documentos">Document Editor</h2>
       <p class="pie" id="documentos-estado" role="status" aria-live="polite">Your documents stay local until you explicitly share them.</p>
       <button type="button" class="refrescar" data-refrescar="documentos" aria-label="Refresh Documents" title="Refresh Documents">↻</button>
     </header>
@@ -201,221 +153,61 @@
       Do not store passwords, keys, or other sensitive material here.
       Use Download to keep a safe copy outside the browser.
     </p>
-  </section>
-
-  <!-- frontera -->
-  <section class="panel" id="panel-gobierno" role="tabpanel" aria-labelledby="tab-gobierno" tabindex="0" data-i18n-aria="aria_frontera" aria-label="Boundary" hidden>
-    <header class="panel-cabecera"><h2 data-i18n="tab_frontera" id="h-gobierno">Boundary</h2>
-      <button type="button" class="refrescar" data-refrescar="gobierno" aria-label="Refresh the signature list" title="Refresh the signature list">↻</button></header>
-    <section class="hitl" id="hitl" aria-labelledby="hitl-titulo">
-      <button type="button" class="hitl-cabecera" id="hitl-cabecera" aria-expanded="false" aria-controls="hitl-cuerpo"><span id="hitl-titulo"><span data-i18n="hitl_titulo">Firmas HITL</span> · <span id="hitl-n">…</span></span></button>
-      <div class="hitl-cuerpo" id="hitl-cuerpo" hidden>
-        <p class="pie" data-i18n="hitl_intro">Los PRs que esperan tu firma. Nada se firma hasta que pulsas «Sí, firmo y fusiono».</p>
-        <button type="button" id="hitl-recargar" data-i18n="hitl_recargar">Actualizar lista</button>
-        <p class="pie hitl-estado" id="hitl-estado" role="status" aria-live="polite" data-i18n="hitl_estado">NO_DATA: la lista se lee al abrir Boundary.</p>
-        <ul class="hitl-lista" id="hitl-lista"></ul>
-        <div class="hitl-detalle" id="hitl-detalle" hidden>
-          <h4 id="hitl-detalle-titulo"></h4>
-          <pre class="hitl-resumen" id="hitl-resumen"></pre>
-          <div class="hitl-botones">
-            <button type="button" class="hitl-si" id="hitl-si" data-i18n="hitl_si">Sí, firmo y fusiono</button>
-            <button type="button" class="hitl-no" id="hitl-no" data-i18n="hitl_no">No</button>
-          </div>
+    </section>
+    <div class="talk-plan" id="talk-plan" role="status" aria-live="polite" hidden></div>
+    <details class="grupo plan-escribir" id="plan-escribir" data-state="writing" data-acho="waiting">
+      <summary><h3 data-i18n="plan_write_title">Write a plan</h3></summary>
+      <label for="plan-titulo" data-i18n="plan_title_label">Title</label>
+      <input type="text" id="plan-titulo" autocomplete="off" aria-describedby="plan-ref">
+      <label for="plan-texto" data-i18n="plan_write_label">Your plan, as long as it needs to be. It is kept whole: never cut.</label>
+      <textarea id="plan-texto" rows="6" aria-describedby="plan-ref"></textarea>
+      <p class="pie" id="plan-ref">Empty.</p>
+      <button type="button" id="plan-guardar" class="plan-guardar" data-i18n="plan_store" disabled>Store the plan</button>
+      <p class="pie" id="plan-guardar-estado" role="status" aria-live="polite" aria-atomic="true"></p>
+      <p class="pie" id="plan-nota" data-i18n="plan_store_note">Stored privately on this device. Storing is not a task: nothing is proposed, authorized or run.</p>
+      <button type="button" id="plan-releer" class="plan-guardar" data-i18n="plan_read_back" hidden>Read it back</button>
+      <details id="plan-leido" hidden><summary data-i18n="plan_read_back_title">The stored text</summary><pre id="plan-leido-texto" class="plan-leido"></pre></details>
+    </details>
+    </div>
+    <details class="grupo" id="notebook-memory-group">
+      <summary><h3 id="notebook-memory-title">Memory</h3><span class="fold-teaser">Compass, consent and private memories</span></summary>
+      <p class="pie">Your private memory, consent, redaction and compass. Nothing is saved without consent.</p>
+    <section class="mando-decide" id="mando-decide" aria-labelledby="mando-decide-titulo">
+      <h3 id="mando-decide-titulo">Needs your decision</h3>
+      <p class="pie" id="mando-decide-estado" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <ul>
+        <li><span id="mando-firmas-texto">Pull requests awaiting your signature</span> <span id="mando-firmas-estado"></span>
+          <button type="button" class="ir" data-ir="gobierno" id="mando-ir-firmas">Open Boundary</button></li>
+        <li><span id="mando-tareas-texto">Delegated tasks that need your authorization</span> <span id="mando-tareas-estado"></span>
+          <button type="button" class="ir" data-ir="cuaderno" id="mando-ir-tareas">Open the Notebook</button></li>
+      </ul>
+      <h4 data-i18n="plan_tasks_title">Tasks of the plan</h4>
+      <p class="pie" id="mando-plan-estado" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <ul class="plan-decidir" id="mando-plan-tareas"></ul>
+      <p class="pie" id="mando-plan-nota" role="status" aria-live="polite" data-i18n="plan_grant_note">Authorizing makes a grant for that one task. Grants are not built yet: NO_DATA.</p>
+    </section>
+      <details class="comandos" id="comandos-hexelion" hidden>
+        <summary class="refrescar" id="comandos-hexelion-abrir" aria-label="Hexelion commands" title="Hexelion commands">?</summary>
+        <div class="comandos-lista" id="comandos-hexelion-lista">
+          <p class="pie" id="comandos-hexelion-nota">A message that starts with / is an action: Hexelion runs it in its own worktrees and proposes; it never merges or signs. No model runs. Tap one to write it.</p>
+          <ul>
+            <li><button type="button" data-comando="/estado" id="cmd-estado"><code id="cmd-estado-texto">/estado</code> rack and house services</button></li>
+            <li><button type="button" data-comando="/capacidades" id="cmd-capacidades"><code id="cmd-capacidades-texto">/capacidades</code> what Hexelion may do</button></li>
+            <li><button type="button" data-comando="/registro 5" id="cmd-registro"><code id="cmd-registro-texto">/registro 5</code> last receipts</button></li>
+            <li><button type="button" data-comando="/firmas" id="cmd-firmas"><code id="cmd-firmas-texto">/firmas</code> what awaits your signature</button></li>
+            <li><button type="button" data-comando="/lab" id="cmd-lab"><code id="cmd-lab-texto">/lab</code> Lab results</button></li>
+            <li><button type="button" data-comando="/preceptores" id="cmd-preceptores"><code id="cmd-preceptores-texto">/preceptores</code> which preceptors are working</button></li>
+            <li><button type="button" data-comando="/dispositivos" id="cmd-dispositivos"><code id="cmd-dispositivos-texto">/dispositivos</code> devices and their roles</button></li>
+            <li><button type="button" data-comando="/modelos" id="cmd-modelos"><code id="cmd-modelos-texto">/modelos</code> models by node</button></li>
+            <li><button type="button" data-comando="/ejecuta @hexelion- git status" id="cmd-ejecuta"><code id="cmd-ejecuta-texto">/ejecuta [@worktree] &lt;command&gt;</code> run one command</button></li>
+            <li><button type="button" data-comando="/escribe @hexelion- notes.md :: " id="cmd-escribe"><code id="cmd-escribe-texto">/escribe @worktree &lt;path&gt; :: &lt;text&gt;</code> write one file</button></li>
+            <li><button type="button" data-comando="@ayuda " id="cmd-ayuda"><code id="cmd-ayuda-texto">@ayuda</code> help for this panel</button></li>
+          </ul>
+          <p class="pie" id="comandos-hexelion-frases">Or just say it, no slash: «how is the rack?» · «what can you do?» · «what did you do?» · «what awaits my signature?» · «lab results» · «which preceptors are working?» · «what devices are connected?» · «what models do we have?» (also in Spanish and Portuguese). These only read.</p>
         </div>
-        <p class="pie hitl-resultado" id="hitl-resultado" role="status" aria-live="polite"></p>
-      </div>
-    </section>
-    <p class="pie" id="a2a-politica" role="status" lang="en">NO_DATA: this node has no A2A policy written yet. Boundary is where you will write how other agents may reach it. The redaction filter now lives in Ajustes.</p>
-  </section>
-
-  <!-- Notebook is an observational projection: receipts are source, not a new scheduler. Live lists (agents, loops,
-       reviews) come from notebook.js; a category with no reader yet says NO_DATA with its cause. -->
-  <section class="panel" id="panel-cuaderno" role="tabpanel" aria-labelledby="tab-cuaderno" tabindex="0" aria-label="Notebook" hidden>
-    <header class="notebook-heading panel-cabecera">
-      <h2 id="notebook-title">Notebook · Hexelion</h2>
-      <p class="pie" id="notebook-subtitle">Agents, loops and reviews with their sources. A declared receipt does not prove that a process is still running.</p>
-      <button type="button" class="probar" id="notebook-refresh" data-refrescar="cuaderno">Refresh readings</button>
-      <p class="pie" id="notebook-status" role="status" aria-live="polite">NO_DATA: the Notebook has not been read yet.</p>
-    </header>
-    <details class="grupo" open>
-      <summary><h3 id="notebook-turns-title">Requests and answers</h3></summary>
-      <p class="pie" id="notebook-turns-status" role="status" aria-live="polite">NO_DATA: the requests have not been read yet.</p>
-      <div id="notebook-turns" class="notebook-grid"></div>
-    </details>
-    <details class="grupo" open>
-      <summary><h3 id="notebook-tasks-title">Delegated tasks</h3></summary>
-      <p class="pie" id="notebook-tasks-status" role="status" aria-live="polite">NO_DATA: the tasks have not been read yet.</p>
-      <div id="notebook-tasks" class="notebook-grid"></div>
-    </details>
-    <details class="grupo" open>
-      <summary><h3 id="notebook-plans-title" data-i18n="plan_notebook_title">Plans and their tasks</h3></summary>
-      <p class="pie" id="notebook-plans-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
-      <div id="notebook-plans" class="notebook-grid"></div>
-    </details>
-    <details class="grupo" open>
-      <summary><h3 id="notebook-agents-title">Agents observed</h3></summary>
-      <div id="notebook-agents" class="notebook-grid"></div>
-    </details>
-    <details class="grupo" open>
-      <summary><h3 id="notebook-loops-title">Node loops</h3></summary>
-      <div id="notebook-loops" class="notebook-grid"></div>
-    </details>
-    <details class="grupo" open>
-      <summary><h3 id="notebook-reports-title">Reviews · WBR / MBR</h3></summary>
-      <div id="notebook-reports" class="notebook-grid"></div>
-    </details>
-    <p class="pie" id="notebook-bench-pointer">Benchmark runs are measurements: they live in Lab.</p>
-    <details class="grupo">
-      <summary><h3 id="tx-05">Command receipts</h3></summary>
-      <div id="notebook-receipts" class="notebook-grid"><p class="pie" id="tx-27">NO_DATA: the Notebook has not been read yet.</p></div>
-    </details>
-    <details class="grupo">
-      <summary><h3 id="tx-06">Studies and proposals</h3></summary>
-      <ul class="turnos"><li id="tx-28">NO_DATA: studies are published in their own repository; no local copy is read here</li></ul>
-    </details>
-  </section>
-
-  <section class="panel" id="panel-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0" aria-label="Lab" hidden>
-    <header class="panel-cabecera"><h2 data-i18n="tab_lab" id="h-lab">Lab</h2>
-      <p class="pie" id="lab-estado" role="status" aria-live="polite" data-i18n="lab_cargando">Checking the local Lab…</p>
-      <button type="button" class="refrescar" data-refrescar="lab" aria-label="Refresh the Lab" title="Refresh the Lab">↻</button></header>
-    <p class="pie" id="lab-rack-estado" role="status" aria-live="polite" hidden></p>
-    <a id="lab-rack-enlace" href="#" target="_blank" rel="noopener noreferrer" hidden>Rack Lab</a>
-    <p class="pie" id="lab-turno-pointer">Requests and their answers are kept in the Notebook; Talk shows the latest one.</p>
-    <details class="grupo" open>
-      <summary><h3 id="lab-runs-title" data-i18n="plan_lab_title">Runs from plans</h3></summary>
-      <p class="pie" id="lab-runs-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
-      <div id="lab-runs" class="notebook-grid"></div>
-    </details>
-    <details class="grupo">
-      <summary><h3 id="lab-bench-title">Benchmarks · reproducible runs</h3></summary>
-      <p class="pie" id="lab-bench-status" role="status" aria-live="polite">NO_DATA: the benchmark runs have not been read yet.</p>
-      <div id="lab-bench" class="notebook-grid"></div>
-    </details>
-    <details class="grupo" open>
-      <summary><h3 data-i18n="lab_canales_titulo">Canales recientes</h3></summary>
-      <ul class="turnos" id="lab-canales"></ul>
-    </details>
-    <details class="grupo" open>
-      <summary><h3 data-i18n="lab_modelos_titulo">Modelos locales</h3></summary>
-      <ul class="turnos" id="lab-modelos"></ul>
-    </details>
-    <details class="grupo">
-      <summary><h3 id="tx-10">Loops and their documents</h3></summary>
-      <p id="tx-11" class="pie">Each loop of the lab says when it last ran and how it ended. Its documents are read in the Notebook.</p>
-      <div class="ir-fila"><button id="tx-12" type="button" class="ir" data-ir="harness">See the loops</button>
-      <button id="tx-13" type="button" class="ir" data-ir="cuaderno">Open the Notebook</button></div>
-    </details>
-  </section>
-  <section class="panel" id="panel-harness" role="tabpanel" aria-labelledby="tab-harness" tabindex="0" aria-label="Harness" hidden>
-    <header class="panel-cabecera"><h2 data-i18n="tab_harness" id="h-harness">Harness</h2>
-      <p class="pie" id="harness-frescura" role="status" aria-live="polite" data-i18n="harness_cargando">Reading local cycles…</p>
-      <button type="button" class="refrescar" data-refrescar="harness" aria-label="Refresh the loops and the team" title="Refresh the loops and the team">↻</button></header>
-    <section class="fleet-zona" aria-labelledby="fleet-h">
-      <h3 id="fleet-h">Fleet</h3>
-      <p class="pie" id="fleet-estado" role="status" aria-live="polite">Fleet · NO_DATA · not read yet.</p>
-      <div class="fleet" id="fleet"></div>
-    </section>
-    <section class="plan-agentes" aria-labelledby="harness-plan-h">
-      <h3 id="harness-plan-h" data-i18n="plan_harness_title">Agents and capabilities in the plan</h3>
-      <p class="pie" id="harness-plan-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
-      <ul id="harness-plan-agents"></ul>
-    </section>
-    <div class="team" id="team"></div>
-    <details class="grupo" id="harness-operator-visibility">
-      <summary><h3 id="harness-operator-visibility-title">Operator visibility · local agents</h3></summary>
-      <p class="pie" id="harness-operator-visibility-help">Use a tool you control, such as SentinelX or Desktop Commander, to give a paid or local agent scoped visibility into your own computer. The tool connection is separate from PreceptorOS and does not grant execution rights by itself.</p>
-      <p class="pie" id="harness-operator-visibility-state" role="status" aria-live="polite">NO_DATA: no verified operator connection is reported by this panel.</p>
-      <ol id="harness-operator-visibility-steps" aria-label="Connect an operator tool safely">
-        <li id="harness-operator-step-1">Connect your computer in the tool you choose. Keep credentials private.</li>
-        <li id="harness-operator-step-2">Grant the minimum required scope, and check which agent can read or act.</li>
-        <li id="harness-operator-step-3">Verify a fresh, attributed receipt before calling an action complete.</li>
-        <li id="harness-operator-step-4">Revoke access in the tool when the task is finished.</li>
-      </ol>
-      <p class="pie" id="harness-operator-visibility-policy">Read-only observation, messaging, remote execution and deployment are different permissions. A running CLI is not proof that it received a message. Harness must show NO_DATA until a trusted adapter supplies fresh evidence.</p>
-    </details>
-    <details class="grupo" id="harness-cli">
-      <summary><h3 id="harness-cli-title">Agent questions to Hexelion</h3></summary>
-      <p class="pie" id="harness-cli-why">Rack CLI preceptors ask Hexelion in their own thread, so your conversation stays yours. Read only.</p>
-      <p class="pie" id="harness-cli-status" role="status" aria-live="polite">NO_DATA: the agents' questions have not been read yet.</p>
-      <div id="harness-cli-turns" class="turnos"></div>
-    </details>
-    <details class="harness-motor">
-      <summary data-i18n="harness_motor">Engine: measured cycles</summary>
-      <p class="pie" id="harness-causa" hidden></p>
-      <ul class="turnos" id="harness-bucles"></ul>
-    </details>
-  </section>
-  <section class="panel" id="panel-modelos" role="tabpanel" aria-labelledby="tab-modelos" tabindex="0" aria-label="World" hidden>
-    <header class="panel-cabecera"><h2 class="sr" id="h-modelos">World</h2>
-      <p class="pie" id="openworld-status" role="status" aria-live="polite">OpenWorld no se solicita hasta abrir esta zona.</p></header>
-    <button id="openworld-retry" type="button" class="probar" data-i18n="world_retry" hidden>Reintentar OpenWorld</button>
-    <iframe id="openworld-frame" data-i18n-aria="world_frame_title" title="OpenWorld · mapa, partida efímera y Acho" loading="lazy"
-            referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
-            allow="autoplay; fullscreen" hidden></iframe>
-    <a class="openworld-fallback" data-i18n="world_open_new" href="https://preceptoros.org/openworld/" target="_blank" rel="noopener noreferrer">Abrir OpenWorld en otra pestaña</a>
-  </section>
-  <section class="panel" id="panel-ajustes" role="tabpanel" aria-labelledby="tab-ajustes" tabindex="0" aria-label="My node" hidden>
-    <header class="panel-cabecera"><h2 data-i18n="tab_mynode" id="h-ajustes">My node</h2>
-      <p class="pie" id="ajustes-estado" role="status" aria-live="polite">NO_DATA: Settings are read when this tab opens.</p>
-      <button type="button" class="refrescar" data-refrescar="ajustes" aria-label="Refresh My node" title="Refresh My node">↻</button></header>
-    <!-- Day D: creating a building means making a private local draft, not
-         requesting Companion admission, sending feedback or publishing. -->
-    <section class="tarjeta room-building" id="room-building" aria-labelledby="room-building-title">
-      <h3 id="room-building-title">Create your building</h3>
-      <p class="pie" id="room-building-help">Prepare one building draft; no identity or ownership is verified here. Make a draft, download it to your device, and decide what to do with it at home. No GitHub account, model, node, or permission is required today.</p>
-      <form id="room-building-form" autocomplete="off">
-        <label for="room-building-name">Building name</label>
-        <input id="room-building-name" name="name" maxlength="80" required aria-describedby="room-building-help">
-        <label for="room-building-purpose">What will your building do?</label>
-        <textarea id="room-building-purpose" name="purpose" rows="3" maxlength="600" required aria-describedby="room-building-help"></textarea>
-        <button type="submit" id="room-building-create" class="probar">Create my building draft</button>
-      </form>
-      <p id="room-building-status" role="status" aria-live="polite" aria-atomic="true"
-         data-state="NO_DATA" data-acho="NO_DATA">NO_DATA(building_draft_not_created).</p>
-      <pre id="room-building-draft" class="companion-draft" aria-label="Your building draft" hidden></pre>
-      <button type="button" id="room-building-download" class="probar" disabled>Download my draft</button>
-      <button type="button" id="room-building-clear" class="probar">Clear draft</button>
-      <p class="pie">Created means <strong>local draft only</strong>. OpenWorld publication: NO_DATA(world_publication_not_verified). Hexelion stays on the founder's private rack. At the Lisbon table, prepare a docs-only Companion HITL PR if you have GitHub; otherwise keep this draft. Connect your own model at home later. Feedback stays on the node owner's hardware.</p>
-    </section>
-    <!-- My node journey: 10 visible steps from install to revoke access -->
-    <section class="tarjeta mvp-start" id="mvp-start" aria-labelledby="mvp-start-title">
-      <h3 id="mvp-start-title">My node journey</h3>
-      <ol class="mvp-journey" id="mvp-journey" aria-label="Setup steps">
-        <li class="mvp-step" data-step="1" data-state="pending"><span class="mvp-step-glyph">○</span> Install PreceptorOS</li>
-        <li class="mvp-step" data-step="2" data-state="pending"><span class="mvp-step-glyph">○</span> Name your mini orchestrator</li>
-        <li class="mvp-step" data-step="3" data-state="pending"><span class="mvp-step-glyph">○</span> Select a model</li>
-        <li class="mvp-step" data-step="4" data-state="pending"><span class="mvp-step-glyph">○</span> Configure agents</li>
-        <li class="mvp-step" data-step="5" data-state="pending"><span class="mvp-step-glyph">○</span> Prepare personal building</li>
-        <li class="mvp-step" data-step="6" data-state="pending"><span class="mvp-step-glyph">○</span> Generate declaration</li>
-        <li class="mvp-step" data-step="7" data-state="pending"><span class="mvp-step-glyph">○</span> Request admission</li>
-        <li class="mvp-step" data-step="8" data-state="pending"><span class="mvp-step-glyph">○</span> Check acceptance or rejection</li>
-        <li class="mvp-step" data-step="9" data-state="pending"><span class="mvp-step-glyph">○</span> Verify presence in OpenWorld</li>
-        <li class="mvp-step" data-step="10" data-state="pending"><span class="mvp-step-glyph">○</span> Revoke access</li>
-      </ol>
-      <p id="mvp-node-state" role="status" aria-live="polite" data-state="NO_DATA" data-acho="NO_DATA">Local identity setup is available below. Deployment to another computer is not connected here: NO_DATA(node_deployment_E2E_not_verified).</p>
-      <button type="button" id="mvp-open-node" class="probar" aria-controls="ajustes-nodo">Open node identity setup</button>
-      <!-- Profile selector: explicit choice, no auto-detection -->
-      <section class="tarjeta" id="app-profile-section" aria-labelledby="app-profile-title">
-        <h3 id="app-profile-title">App profile</h3>
-        <p class="pie">This setting controls what the Chat shows. It is stored locally and never sent to the server.</p>
-        <div role="radiogroup" aria-label="Choose app profile">
-          <label class="profile-radio">
-            <input type="radio" name="app-profile" value="personal_mvp" checked>
-            <span class="profile-label"><strong>Personal MVP</strong> — your own mini orchestrator, no Hexelion</span>
-          </label>
-          <label class="profile-radio">
-            <input type="radio" name="app-profile" value="private_rack">
-            <span class="profile-label"><strong>Private rack</strong> — Hexelion and rack agents (Soberano only)</span>
-          </label>
-        </div>
-        <p id="app-profile-status" role="status" aria-live="polite" class="pie">Profile: personal_mvp</p>
-      </section>
-      <div id="owner-model-slots-mount"></div>
-      <p class="pie" id="mvp-tools-status" role="status" aria-live="polite" data-state="HIDDEN" data-acho="HIDDEN">Advanced tools are available via Technical Options in the header.</p>
-    </section>
-    <details class="grupo ajustes-grupo" id="ajustes-dispositivo" open>
-      <summary><h3 id="ajustes-dispositivo-titulo">This device and privacy</h3></summary>
+      </details>
+    <details class="grupo" id="command-memory-management">
+      <summary><h3>Memory and consent</h3></summary>
     <section class="tarjeta memoria-inicio" id="memoria-inicio" aria-labelledby="memoria-inicio-titulo" data-state="loading" data-acho="waiting">
       <h3 id="memoria-inicio-titulo">Your private memory</h3>
       <p id="memoria-inicio-estado" role="status" aria-live="polite" aria-atomic="true">Reading whether your memory exists…</p>
@@ -430,27 +222,6 @@
         <button type="button" class="probar" id="memoria-inicio-boton" disabled aria-describedby="memoria-inicio-nota">Create my private memory</button>
         <p class="pie" id="memoria-inicio-nota">This is your consent for your own device. It is not a signature and authorizes nothing else.</p>
       </div>
-    </section>
-    <section class="tarjeta" id="app-update" aria-labelledby="app-update-title">
-      <h3 id="app-update-title" data-i18n="update_title">This app · install and update</h3>
-      <p class="pie"><strong data-i18n="update_installed_label">Installed on this device:</strong> <span id="update-installed">NO_DATA: not read yet.</span></p>
-      <p class="pie"><strong data-i18n="update_served_label">Served by the rack now:</strong> <span id="update-served">NO_DATA: not read yet.</span></p>
-      <p class="pie"><strong data-i18n="update_release_label">Signed public release:</strong> <span id="update-release">NO_DATA · no verified release manifest exists, so none is offered.</span></p>
-      <p id="update-state" role="status" aria-live="polite" aria-atomic="true">NO_DATA: not checked.</p>
-      <button type="button" class="probar" id="update-check" style="min-height:44px" data-i18n="update_check">Check for update</button>
-      <button type="button" class="probar" id="update-reload" style="min-height:44px" disabled data-i18n="update_reload">Reload to use the update</button>
-      <button type="button" class="probar" id="install-app" style="min-height:44px" disabled data-i18n="install_button">Install PreceptorOS</button>
-      <p class="pie" id="install-state" role="status" aria-live="polite">NO_DATA: install state not read yet.</p>
-      <p class="pie" data-i18n="update_note">An update replaces only the offline copy of the app's files. Your memory and settings on the rack, and this browser's identity key, are not touched.</p>
-    </section>
-    <section class="tarjeta" aria-labelledby="energy-title">
-      <h3 id="energy-title" data-i18n="energy_title">Rack energy · read only</h3>
-      <p class="pie" data-i18n="energy_help">Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.</p>
-      <button type="button" class="probar" id="energy-read" style="min-height:44px" data-i18n="energy_read">Read energy</button>
-      <p id="energy-status" role="status" aria-live="polite" aria-atomic="true" data-i18n="energy_not_checked">NO_DATA: not checked.</p>
-      <details><summary data-i18n="energy_receipt">Machine-readable receipt</summary>
-        <pre class="payload" id="energy-json"></pre>
-      </details>
     </section>
     <details id="captura-consent" class="tarjeta">
       <summary id="captura-consent-summary" data-i18n="cuaderno_consent_legacy">Training consent · captured turns</summary>
@@ -498,45 +269,255 @@
         <pre class="payload" id="payload" data-i18n="sin_llamada">(sin llamada todavía)</pre>
       </details>
     </div>
-    <section class="tarjeta" lang="en" aria-labelledby="keep-device-title">
-      <h3 id="keep-device-title">Keep this app on this device</h3>
-      <p class="pie" id="keep-device-help">Asks the browser not to clear this app's storage. Nothing is asked until you press the button.</p>
-      <button type="button" id="keep-device" class="probar">Keep it</button>
-      <p class="pie" id="keep-device-status" role="status" aria-live="polite">Not asked yet.</p>
-    </section>
     </details>
-    <details class="grupo ajustes-grupo" id="ajustes-voz">
-      <summary><h3 id="ajustes-voz-titulo">Voice and creations</h3></summary>
-    <section class="tarjeta" lang="en" aria-labelledby="acho-sonido-titulo">
-      <h3 id="acho-sonido-titulo">Turn sounds</h3>
-      <label for="acho-sonido"><input type="checkbox" id="acho-sonido" aria-describedby="acho-sonido-estado">
-        Play a short tone when a request to Hexelion gets its answer</label>
-      <p class="pie" id="acho-sonido-estado" role="status" aria-live="polite">Turn sounds are off. The words are always on screen and for screen readers.</p>
+    <!-- Technical cause codes belong to Memory, never the default Talk face. -->
+    <details class="talk-diagnostics" id="talk-diagnostics"><summary>Technical evidence and causes</summary>
+      <p class="pie" id="talk-diagnostics-thread">NO_DATA(thread_not_read_yet)</p>
+      <p class="pie" id="talk-diagnostics-brain">NO_DATA(brain_not_read_yet)</p>
+      <p class="pie" id="talk-diagnostics-mini">NO_DATA(mini_inactive)</p>
+    </details>
+    <div id="compass-container">
+      <div id="compass-svg-hueco"></div>
+      <p id="compass-rango"></p>
+      <p id="compass-aviso" role="status" aria-live="polite"></p>
+      <div id="compass-controles">
+        <button type="button" id="compass-modo-camino" aria-pressed="true">The Path</button>
+        <button type="button" id="compass-modo-detalle" aria-pressed="false">Detail</button>
+      </div>
+    </div>
+    </details>
+    <details class="grupo">
+      <summary><h3 id="notebook-turns-title">Requests and answers</h3><span class="fold-teaser">Requests, responses and source evidence</span></summary>
+      <p class="pie" id="notebook-turns-status" role="status" aria-live="polite">NO_DATA: the requests have not been read yet.</p>
+      <div id="notebook-turns" class="notebook-grid"></div>
+    </details>
+    <details class="grupo">
+      <summary><h3 id="notebook-tasks-title">Delegated tasks</h3><span class="fold-teaser">Delegations and their recorded outcomes</span></summary>
+      <p class="pie" id="notebook-tasks-status" role="status" aria-live="polite">NO_DATA: the tasks have not been read yet.</p>
+      <div id="notebook-tasks" class="notebook-grid"></div>
+    </details>
+    <details class="grupo">
+      <summary><h3 id="notebook-plans-title" data-i18n="plan_notebook_title">Plans and their tasks</h3><span class="fold-teaser">Saved plans and linked tasks</span></summary>
+      <p class="pie" id="notebook-plans-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <div id="notebook-plans" class="notebook-grid"></div>
+    </details>
+    <details class="grupo">
+      <summary><h3 id="notebook-agents-title">Agents observed</h3><span class="fold-teaser">Agents observed, not assumed active</span></summary>
+      <div id="notebook-agents" class="notebook-grid"></div>
+    </details>
+    <details class="grupo">
+      <summary><h3 id="notebook-reports-title">Reviews · WBR / MBR</h3><span class="fold-teaser">Weekly and monthly review receipts</span></summary>
+      <div id="notebook-reports" class="notebook-grid"></div>
+    </details>
+    <details class="grupo">
+      <summary><h3 id="tx-05">Command receipts</h3><span class="fold-teaser">Operational receipts from Command</span></summary>
+      <div id="notebook-receipts" class="notebook-grid"><p class="pie" id="tx-27">NO_DATA: the Notebook has not been read yet.</p></div>
+    </details>
+    <details class="grupo">
+      <summary><h3 id="tx-06">Studies and proposals</h3><span class="fold-teaser">Proposals and external study references</span></summary>
+      <ul class="turnos"><li id="tx-28">NO_DATA: studies are published in their own repository; no local copy is read here</li></ul>
+    </details>
+  </section>
+
+  <section class="panel" id="panel-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0" aria-label="Lab" hidden>
+    <header class="panel-cabecera"><h2 data-i18n="tab_lab" id="h-lab">Lab</h2></header>
+    <div class="panel-actions" id="lab-actions" role="group" aria-label="Lab actions">
+      <button type="button" id="lab-bench-toggle" aria-expanded="false" aria-controls="lab-bench-group">Benchmarks</button>
+      <button type="button" class="refrescar" data-refrescar="lab" aria-label="Refresh the Lab" title="Refresh the Lab">Refresh</button>
+    </div>
+    <details class="grupo">
+      <summary><h3 id="lab-runs-title" data-i18n="plan_lab_title">Runs from plans</h3><span class="fold-teaser">Results of work started from plans</span></summary>
+      <p class="pie" id="lab-runs-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <p class="sr" id="lab-turno-pointer">Requests and their answers are kept in the Notebook.</p>
+      <div id="lab-runs" class="notebook-grid"></div>
+    </details>
+    <details class="grupo" id="lab-bench-group">
+      <summary><h3 id="lab-bench-title">Benchmarks · reproducible runs</h3><span class="fold-teaser">Reproducible tests and their evidence</span></summary>
+      <p class="pie" id="lab-bench-status" role="status" aria-live="polite">NO_DATA: the benchmark runs have not been read yet.</p>
+      <div id="lab-bench" class="notebook-grid"></div>
+    </details>
+    <details class="grupo">
+      <summary><h3 data-i18n="lab_canales_titulo">Canales recientes</h3><span class="fold-teaser">Channels reported by this device</span></summary>
+      <ul class="turnos" id="lab-canales"></ul>
+    </details>
+    <details class="grupo">
+      <summary><h3 data-i18n="lab_modelos_titulo">Modelos locales</h3><span class="fold-teaser">Local model inventory, when available</span></summary>
+      <ul class="turnos" id="lab-modelos"></ul>
+    </details>
+    <details class="grupo" id="lab-loops-group">
+      <summary><h3 id="tx-10">Lab loops</h3><span class="fold-teaser">Loop runs, timing and measured outcomes</span></summary>
+      <p id="tx-11" class="pie">Measured loop runs and their outcomes are read here. Documents stay in Operations Data.</p>
+      <p id="lab-loops-status" class="pie" role="status" aria-live="polite" data-state="NO_DATA" data-cause="loop_sensor_not_read">Loop sensor not read yet.</p>
+      <div id="lab-loops" class="notebook-grid"></div>
+    </details>
+    <details class="grupo" id="lab-connection-diagnostics">
+      <summary><h3>Connection details</h3><span class="fold-teaser">Availability and connection causes</span></summary>
+      <p class="pie" id="lab-estado" role="status" aria-live="polite" data-i18n="lab_cargando">Checking the local Lab…</p>
+      <p class="pie" id="lab-rack-estado" role="status" aria-live="polite" hidden></p>
+      <a id="lab-rack-enlace" href="#" target="_blank" rel="noopener noreferrer" hidden>Rack Lab</a>
+    </details>
+    <details class="grupo" id="lab-boundary-group">
+      <summary><h3>Boundary</h3><span class="fold-teaser">Approvals, signatures and permissions</span></summary>
+    <header class="panel-cabecera"><h2 data-i18n="tab_frontera" id="h-gobierno">Boundary</h2>
+      <button type="button" class="refrescar" data-refrescar="gobierno" aria-label="Refresh the signature list" title="Refresh the signature list">↻</button></header>
+    <section class="hitl" id="hitl" aria-labelledby="hitl-titulo">
+      <button type="button" class="hitl-cabecera" id="hitl-cabecera" aria-expanded="false" aria-controls="hitl-cuerpo"><span id="hitl-titulo"><span data-i18n="hitl_titulo">Firmas HITL</span> · <span id="hitl-n">…</span></span></button>
+      <div class="hitl-cuerpo" id="hitl-cuerpo" hidden>
+        <p class="pie" data-i18n="hitl_intro">Los PRs que esperan tu firma. Nada se firma hasta que pulsas «Sí, firmo y fusiono».</p>
+        <button type="button" id="hitl-recargar" data-i18n="hitl_recargar">Actualizar lista</button>
+        <p class="pie hitl-estado" id="hitl-estado" role="status" aria-live="polite" data-i18n="hitl_estado">NO_DATA: la lista se lee al abrir Boundary.</p>
+        <ul class="hitl-lista" id="hitl-lista"></ul>
+        <div class="hitl-detalle" id="hitl-detalle" hidden>
+          <h4 id="hitl-detalle-titulo"></h4>
+          <pre class="hitl-resumen" id="hitl-resumen"></pre>
+          <div class="hitl-botones">
+            <button type="button" class="hitl-si" id="hitl-si" data-i18n="hitl_si">Sí, firmo y fusiono</button>
+            <button type="button" class="hitl-no" id="hitl-no" data-i18n="hitl_no">No</button>
+          </div>
+        </div>
+        <p class="pie hitl-resultado" id="hitl-resultado" role="status" aria-live="polite"></p>
+      </div>
     </section>
-    <section class="tarjeta" lang="en" aria-labelledby="creation-voice-title">
-      <h3 id="creation-voice-title">Creation voice</h3>
-      <p id="creation-voice-help">Generate the drawing guidance and your author statement with one local voice.</p>
-      <form id="creation-voice-form">
-        <label id="creation-voice-label" for="creation-voice-text">Your author statement</label>
-        <textarea id="creation-voice-text" required rows="3" maxlength="1024"></textarea>
-        <button id="creation-voice-generate" type="submit" style="min-height:44px;min-width:44px">Generate voice downloads</button>
-      </form>
-      <p id="creation-voice-status" role="status" aria-live="polite">Nothing generated yet.</p>
-      <div id="creation-voice-downloads"></div>
+    <p class="pie" id="a2a-politica" role="status" lang="en">NO_DATA: this node has no A2A policy written yet. Boundary is where you will write how other agents may reach it. The redaction filter now lives in Ajustes.</p>
+    </details>
+    <details class="grupo" id="lab-harness-group">
+      <summary><h3>Harness</h3><span class="fold-teaser">Agents, tools and execution evidence</span></summary>
+    <header class="panel-cabecera"><h2 data-i18n="tab_harness" id="h-harness">Harness</h2>
+      <p class="pie" id="harness-frescura" role="status" aria-live="polite" data-i18n="harness_cargando">Reading local cycles…</p>
+      <button type="button" class="refrescar" data-refrescar="harness" aria-label="Refresh the loops and the team" title="Refresh the loops and the team">↻</button></header>
+    <section class="fleet-zona" aria-labelledby="fleet-h">
+      <h3 id="fleet-h">Fleet</h3>
+      <p class="pie" id="fleet-estado" role="status" aria-live="polite">Fleet · NO_DATA · not read yet.</p>
+      <div class="fleet" id="fleet"></div>
     </section>
-    <section class="tarjeta" aria-labelledby="creation-publish-title">
-      <h3 id="creation-publish-title">Publish a signed creation</h3>
-      <p class="pie" id="creation-publish-help">Choose a creation package. Its author signature is verified before it is kept; nothing is sent until you press the button.</p>
-      <form id="creation-publish-form">
-        <label id="creation-publish-label" for="creation-publish-file">Creation package (.json, up to 25 MiB)</label>
-        <input id="creation-publish-file" type="file" accept="application/json,.json" required>
-        <button id="creation-publish-send" type="submit" disabled>Verify and import</button>
-      </form>
-      <p class="pie" id="creation-publish-status" role="status" aria-live="polite">No creation chosen or sent.</p>
+    <section class="plan-agentes" aria-labelledby="harness-plan-h">
+      <h3 id="harness-plan-h" data-i18n="plan_harness_title">Agents and capabilities in the plan</h3>
+      <p class="pie" id="harness-plan-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
+      <ul id="harness-plan-agents"></ul>
+    </section>
+    <div class="team" id="team"></div>
+    <details class="grupo" id="harness-operator-visibility">
+      <summary><h3 id="harness-operator-visibility-title">Operator visibility · local agents</h3></summary>
+      <p class="pie" id="harness-operator-visibility-help">Use a tool you control, such as SentinelX or Desktop Commander, to give a paid or local agent scoped visibility into your own computer. The tool connection is separate from PreceptorOS and does not grant execution rights by itself.</p>
+      <p class="pie" id="harness-operator-visibility-state" role="status" aria-live="polite">NO_DATA: no verified operator connection is reported by this panel.</p>
+      <ol id="harness-operator-visibility-steps" aria-label="Connect an operator tool safely">
+        <li id="harness-operator-step-1">Connect your computer in the tool you choose. Keep credentials private.</li>
+        <li id="harness-operator-step-2">Grant the minimum required scope, and check which agent can read or act.</li>
+        <li id="harness-operator-step-3">Verify a fresh, attributed receipt before calling an action complete.</li>
+        <li id="harness-operator-step-4">Revoke access in the tool when the task is finished.</li>
+      </ol>
+      <p class="pie" id="harness-operator-visibility-policy">Read-only observation, messaging, remote execution and deployment are different permissions. A running CLI is not proof that it received a message. Harness must show NO_DATA until a trusted adapter supplies fresh evidence.</p>
+    </details>
+    <details class="grupo" id="harness-cli">
+      <summary><h3 id="harness-cli-title">Agent questions to Hexelion</h3></summary>
+      <p class="pie" id="harness-cli-why">Rack CLI preceptors ask Hexelion in their own thread, so your conversation stays yours. Read only.</p>
+      <p class="pie" id="harness-cli-status" role="status" aria-live="polite">NO_DATA: the agents' questions have not been read yet.</p>
+      <div id="harness-cli-turns" class="turnos"></div>
+    </details>
+    <details class="harness-motor">
+      <summary data-i18n="harness_motor">Engine: measured cycles</summary>
+      <p class="pie" id="harness-causa" hidden></p>
+      <ul class="turnos" id="harness-bucles"></ul>
+    </details>
+    </details>
+  </section>
+  <section class="panel" id="panel-modelos" role="tabpanel" aria-labelledby="tab-modelos" tabindex="0" aria-label="Open World" hidden>
+    <header class="panel-cabecera"><h2 id="h-modelos">Open World</h2></header>
+    <p id="openworld-paused" class="world-paused" role="status" hidden>
+      Open World is paused by the Kill switch. Reconnect above to load the map.
+    </p>
+    <p class="pie" id="openworld-status" role="status" aria-live="polite">OpenWorld no se solicita hasta abrir esta zona.</p>
+    <button id="openworld-retry" type="button" class="probar" data-i18n="world_retry" hidden>Reintentar OpenWorld</button>
+    <iframe id="openworld-frame" data-i18n-aria="world_frame_title" title="OpenWorld · mapa, partida efímera y Acho" loading="lazy"
+            referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+            allow="autoplay; fullscreen" hidden></iframe>
+    <a class="openworld-fallback" data-i18n="world_open_new" href="https://preceptoros.org/openworld/" target="_blank" rel="noopener noreferrer">Abrir OpenWorld en otra pestaña</a>
+  </section>
+  <section class="panel" id="panel-ajustes" role="tabpanel" aria-labelledby="tab-ajustes" tabindex="0" aria-label="My node" hidden>
+    <header class="panel-cabecera"><h2 data-i18n="tab_mynode" id="h-ajustes">My node</h2></header>
+    <div class="panel-actions" id="mynode-actions" role="group" aria-label="My node actions">
+      <button type="button" id="mynode-identity-toggle" aria-expanded="false" aria-controls="ajustes-nodo">Node identity</button>
+      <button type="button" id="mynode-building-toggle" aria-expanded="false" aria-controls="room-building">Create building</button>
+      <button type="button" class="refrescar" data-refrescar="ajustes" aria-label="Refresh My node" title="Refresh My node">Refresh</button>
+    </div>
+    <p id="mynode-paused" class="node-paused" role="status" hidden>
+      My node connections are paused. Talk and documents remain available.
+    </p>
+    <p class="pie" id="ajustes-estado" role="status" aria-live="polite">NO_DATA: Settings are read when this tab opens.</p>
+    <details class="grupo" id="mvp-journey-guide">
+      <summary><h3>Getting started · installation guide</h3><span class="fold-teaser">First steps, instructions and installation</span></summary>
+      <p class="pie">These steps are guidance, not verified accomplishments or admission decisions.</p>
+      <ol id="mvp-three-steps" aria-label="PreceptorOS in three steps">
+        <li><strong>Understand PreceptorOS.</strong> Own your inference, models, agents and experiments on your devices. Nothing from another owner's rack is bundled.</li>
+        <li><strong>Start without an LLM.</strong> Read local information, make a building draft, organise documents and inspect explicit receipts. Mini-Orchestrator routing is not a verified model answer.</li>
+        <li><strong>Connect your own resources when ready.</strong> Choose a model you control, prepare a node identity and send a separate review request for Open World participation. Only a signed approval and verified heartbeat can make a node LIVE.</li>
+      </ol>
+      <p class="pie">A public visitor can explore Open World without joining your node. No request is sent merely by opening this guide.</p>
+    <!-- Extended journey; never claim progress from the appearance of a step. -->
+    <section class="tarjeta mvp-start" id="mvp-start" aria-labelledby="mvp-start-title">
+      <h3 id="mvp-start-title">My node journey · getting started</h3>
+      <ol class="mvp-journey" id="mvp-journey" aria-label="Setup steps">
+        <li class="mvp-step" data-step="1" data-state="pending"><span class="mvp-step-glyph">○</span> Install PreceptorOS</li>
+        <li class="mvp-step" data-step="2" data-state="pending"><span class="mvp-step-glyph">○</span> Explore Mini Orchestrator</li>
+        <li class="mvp-step" data-step="3" data-state="pending"><span class="mvp-step-glyph">○</span> Connect another model (optional)</li>
+        <li class="mvp-step" data-step="4" data-state="pending"><span class="mvp-step-glyph">○</span> Configure agents</li>
+        <li class="mvp-step" data-step="5" data-state="pending"><span class="mvp-step-glyph">○</span> Prepare personal building</li>
+        <li class="mvp-step" data-step="6" data-state="pending"><span class="mvp-step-glyph">○</span> Generate declaration</li>
+        <li class="mvp-step" data-step="7" data-state="pending"><span class="mvp-step-glyph">○</span> Request admission</li>
+        <li class="mvp-step" data-step="8" data-state="pending"><span class="mvp-step-glyph">○</span> Check acceptance or rejection</li>
+        <li class="mvp-step" data-step="9" data-state="pending"><span class="mvp-step-glyph">○</span> Verify presence in OpenWorld</li>
+        <li class="mvp-step" data-step="10" data-state="pending"><span class="mvp-step-glyph">○</span> Revoke access</li>
+      </ol>
+      <p id="mvp-node-state" role="status" aria-live="polite" data-state="NO_DATA" data-acho="NO_DATA">Local identity setup is available below. Deployment to another computer is not connected here: NO_DATA(node_deployment_E2E_not_verified).</p>
+      <button type="button" id="mvp-open-node" hidden class="probar" aria-controls="ajustes-nodo">Open node identity setup</button>
+      <p class="pie" id="mvp-tools-status" role="status" aria-live="polite" data-state="HIDDEN" data-acho="HIDDEN">Advanced tools are hidden. Open them in My node.</p>
     </section>
     </details>
     <details class="grupo ajustes-grupo" id="ajustes-nodo">
-      <summary><h3 id="ajustes-nodo-titulo">Node identity</h3></summary>
+      <summary><h3 id="ajustes-nodo-titulo">Node identity</h3><span class="fold-teaser">Local node ID and identity controls</span></summary>
+      <p class="pie">Read and configure your local node identity. This does not register, deploy or approve a remote node.</p>
+      <section id="node-admission-path" class="tarjeta" aria-labelledby="node-admission-path-title"
+               data-state="DRAFT_ONLY" data-acho="DRAFT_ONLY" data-cause="admission_requires_owner_review">
+        <h3 id="node-admission-path-title">Bring your node to Open World</h3>
+        <ol aria-label="Node admission steps">
+          <li>Configure an identity on this device. A saved ID is not a deployed node.</li>
+          <li>Prepare an admission request and review it before sending anything. The owner must explicitly consent.</li>
+          <li>Wait for human approval, your signed credential and a verified heartbeat. Only then can Open World show your node as LIVE.</li>
+        </ol>
+        <button id="node-admission-open" type="button" class="probar"
+                aria-controls="node-identity-advanced" aria-expanded="false">Prepare admission request</button>
+        <p id="node-admission-state" class="pie" role="status" aria-live="polite"
+           data-state="DRAFT_ONLY" data-acho="DRAFT_ONLY" data-cause="request_not_sent">No request sent. Review is required.</p>
+      </section>
+    <section class="tarjeta" aria-labelledby="node-building-title">
+      <h3 id="node-building-title" data-i18n="node_building_title">Identidad local y edificio del nodo</h3>
+      <p id="node-building-help" data-i18n="node_building_help">La identidad pública se guarda solo en esta puerta. La llave del latido nunca llega al navegador. La declaración se envía a Aduana únicamente al confirmar.</p>
+      <button type="button" id="node-identity-read" class="probar" data-i18n="node_building_read">Leer identidad local</button>
+      <form id="node-identity-form">
+        <label id="node-identity-label" for="node-identity-id" data-i18n="node_building_node_id">ID canónico del nodo (flota/2)</label>
+        <input id="node-identity-id" name="node_id" required maxlength="64" pattern="[a-z0-9][a-z0-9._-]{0,63}" autocomplete="off">
+        <label class="fila-switch" for="node-identity-consent">
+          <input type="checkbox" id="node-identity-consent">
+          <span data-i18n="node_building_provision_consent">Guardar este ID en la configuración local de esta PWA.</span>
+        </label>
+        <button type="submit" id="node-identity-save" class="probar" data-i18n="node_building_provision">Provisionar identidad local</button>
+      </form>
+      <p id="node-identity-status" role="status" aria-live="polite" data-i18n="node_building_unread">La identidad local no se ha leído todavía.</p>
+      <details class="grupo" id="node-declaration-advanced">
+        <summary>Declare an assigned building (requires verified local service)</summary>
+      <form id="node-building-form">
+        <label class="fila-switch" for="node-building-consent">
+          <input type="checkbox" id="node-building-consent" disabled>
+          <span data-i18n="node_building_declare_consent">Confirmo que quiero declarar el edificio ya asignado al nodo configurado. Se enviará una petición a Aduana.</span>
+        </label>
+        <button type="submit" id="node-building-submit" class="probar" disabled data-i18n="node_building_declare">Declarar edificio asignado</button>
+      </form>
+      <p id="node-building-status" role="status" aria-live="polite" data-i18n="node_building_none">No se ha declarado ningún edificio desde esta pantalla.</p>
+      </details>
+    </section>
+    <details class="grupo" id="node-identity-advanced">
+      <summary>Advanced admission tools (review required)</summary>
+      <p class="pie">These tools do not create a LIVE node and require separate human authorization.</p>
     <section class="tarjeta" aria-labelledby="nodo-export-title">
       <h3 id="nodo-export-title" data-i18n="nodo_export_titulo">Identidad del nodo</h3>
       <p class="pie" data-i18n="nodo_export_ayuda">Elige una cédula ya firmada por ti. Esta app no firma.</p>
@@ -566,30 +547,8 @@
       <p id="node-registration-status" role="status" aria-live="polite" data-i18n="node_registration_draft">Draft only. Nothing has been sent.</p>
       <pre id="node-registration-preview" data-i18n-aria="node_registration_preview_aria" aria-label="Canonical pending credential preview"></pre>
     </section>
-    <section class="tarjeta" aria-labelledby="node-building-title">
-      <h3 id="node-building-title" data-i18n="node_building_title">Identidad local y edificio del nodo</h3>
-      <p id="node-building-help" data-i18n="node_building_help">La identidad pública se guarda solo en esta puerta. La llave del latido nunca llega al navegador. La declaración se envía a Aduana únicamente al confirmar.</p>
-      <button type="button" id="node-identity-read" class="probar" data-i18n="node_building_read">Leer identidad local</button>
-      <form id="node-identity-form">
-        <label id="node-identity-label" for="node-identity-id" data-i18n="node_building_node_id">ID canónico del nodo (flota/2)</label>
-        <input id="node-identity-id" name="node_id" required maxlength="64" pattern="[a-z0-9][a-z0-9._-]{0,63}" autocomplete="off">
-        <label class="fila-switch" for="node-identity-consent">
-          <input type="checkbox" id="node-identity-consent">
-          <span data-i18n="node_building_provision_consent">Guardar este ID en la configuración local de esta PWA.</span>
-        </label>
-        <button type="submit" id="node-identity-save" class="probar" data-i18n="node_building_provision">Provisionar identidad local</button>
-      </form>
-      <p id="node-identity-status" role="status" aria-live="polite" data-i18n="node_building_unread">La identidad local no se ha leído todavía.</p>
-      <form id="node-building-form">
-        <label class="fila-switch" for="node-building-consent">
-          <input type="checkbox" id="node-building-consent" disabled>
-          <span data-i18n="node_building_declare_consent">Confirmo que quiero declarar el edificio ya asignado al nodo configurado. Se enviará una petición a Aduana.</span>
-        </label>
-        <button type="submit" id="node-building-submit" class="probar" disabled data-i18n="node_building_declare">Declarar edificio asignado</button>
-      </form>
-      <p id="node-building-status" role="status" aria-live="polite" data-i18n="node_building_none">No se ha declarado ningún edificio desde esta pantalla.</p>
-    </section>
-    <section class="tarjeta" lang="en" aria-labelledby="companion-onboard-title">
+    </details>
+    <section class="tarjeta" lang="en" aria-labelledby="companion-onboard-title" hidden>
       <h3 id="companion-onboard-title">Join OpenWorld · propose your one building</h3>
       <p class="pie" id="companion-onboard-help">Fill in your project details to generate a portable handoff draft. The draft stays in your browser until you copy or download it. Nothing is sent, published, or registered here.</p>
       <form id="companion-onboard-form" autocomplete="off">
@@ -626,8 +585,81 @@
       <p class="pie"><a data-rotulo="companion-guide" href="https://github.com/piskyRpapalo/preceptoros-companion" target="_blank" rel="noopener noreferrer">Open the public Companion guide</a> · <a data-rotulo="companion-download-page" href="https://preceptoros.org/get-the-app/" target="_blank" rel="noopener noreferrer">Get the app</a></p>
     </section>
     </details>
-    <details class="grupo ajustes-grupo" id="ajustes-puerta">
-      <summary><h3 id="ajustes-puerta-titulo">Public gate and local tray</h3></summary>
+    <!-- Day D: creating a building means making a private local draft, not
+         requesting Companion admission, sending feedback or publishing. -->
+    <details class="grupo tarjeta room-building" id="room-building" aria-labelledby="room-building-title">
+      <summary><h3 id="room-building-title">Create your building</h3><span class="fold-teaser">Create a building draft on this device</span></summary>
+      <p class="pie" id="room-building-help">Prepare one building draft; no identity or ownership is verified here. Make a draft, download it to your device, and decide what to do with it at home. No GitHub account, model, node, or permission is required today.</p>
+      <form id="room-building-form" autocomplete="off">
+        <label for="room-building-name">Building name</label>
+        <input id="room-building-name" name="name" maxlength="80" required aria-describedby="room-building-help">
+        <label for="room-building-purpose">What will your building do?</label>
+        <textarea id="room-building-purpose" name="purpose" rows="3" maxlength="600" required aria-describedby="room-building-help"></textarea>
+        <button type="submit" id="room-building-create" class="probar">Create my building draft</button>
+      </form>
+      <p id="room-building-status" role="status" aria-live="polite" aria-atomic="true"
+         data-state="NO_DATA" data-acho="NO_DATA">NO_DATA(building_draft_not_created).</p>
+      <pre id="room-building-draft" class="companion-draft" aria-label="Your building draft" hidden></pre>
+      <button type="button" id="room-building-download" class="probar" disabled>Download my draft</button>
+      <button type="button" id="room-building-clear" class="probar">Clear draft</button>
+      <p class="pie">Created means <strong>local draft only</strong>. OpenWorld publication: NO_DATA(world_publication_not_verified). Your models stay on your device. At the Lisbon table, prepare a docs-only Companion HITL PR if you have GitHub; otherwise keep this draft. Connect your own model at home later. Feedback stays on the node owner's hardware.</p>
+    </details>
+    <details class="grupo ajustes-grupo" id="ajustes-dispositivo">
+      <summary><h3 id="ajustes-dispositivo-titulo">This device and privacy</h3><span class="fold-teaser">Updates, storage and privacy choices</span></summary>
+    <section class="tarjeta" id="app-update" aria-labelledby="app-update-title">
+      <h3 id="app-update-title" data-i18n="update_title">This app · install and update</h3>
+      <p class="pie"><strong data-i18n="update_installed_label">Installed on this device:</strong> <span id="update-installed">NO_DATA: not read yet.</span></p>
+      <p class="pie"><strong data-i18n="update_served_label">Available on this device:</strong> <span id="update-served">NO_DATA: not read yet.</span></p>
+      <p class="pie"><strong data-i18n="update_release_label">Signed public release:</strong> <span id="update-release">NO_DATA · no verified release manifest exists, so none is offered.</span></p>
+      <p id="update-state" role="status" aria-live="polite" aria-atomic="true">NO_DATA: not checked.</p>
+      <button type="button" class="probar" id="update-check" style="min-height:44px" data-i18n="update_check">Check for update</button>
+      <button type="button" class="probar" id="update-reload" style="min-height:44px" disabled data-i18n="update_reload">Reload to use the update</button>
+      <button type="button" class="probar" id="install-app" style="min-height:44px" disabled data-i18n="install_button">Install PreceptorOS</button>
+      <p class="pie" id="install-state" role="status" aria-live="polite">NO_DATA: install state not read yet.</p>
+      <p class="pie" data-i18n="update_note">An update replaces only the offline copy of the app's files. Your local settings, and this browser's identity key, are not touched.</p>
+    </section>
+    <section class="tarjeta" aria-labelledby="energy-title" hidden data-reason="energy_not_verified_for_base_mvp">
+      <h3 id="energy-title" data-i18n="energy_title">Rack energy · read only</h3>
+      <p class="pie" data-i18n="energy_help">Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.</p>
+      <button type="button" class="probar" id="energy-read" style="min-height:44px" data-i18n="energy_read">Read energy</button>
+      <p id="energy-status" role="status" aria-live="polite" aria-atomic="true" data-i18n="energy_not_checked">NO_DATA: not checked.</p>
+      <details><summary data-i18n="energy_receipt">Machine-readable receipt</summary>
+        <pre class="payload" id="energy-json"></pre>
+      </details>
+    </section>
+    <section class="tarjeta" lang="en" aria-labelledby="keep-device-title">
+      <h3 id="keep-device-title">Keep this app on this device</h3>
+      <p class="pie" id="keep-device-help">Asks the browser not to clear this app's storage. Nothing is asked until you press the button.</p>
+      <button type="button" id="keep-device" class="probar">Keep it</button>
+      <p class="pie" id="keep-device-status" role="status" aria-live="polite">Not asked yet.</p>
+    </section>
+    </details>
+    <details class="grupo ajustes-grupo" id="ajustes-voz" hidden>
+      <summary><h3 id="ajustes-voz-titulo">Voice and creations</h3><span class="fold-teaser">Optional voice and creation tools</span></summary>
+    <section class="tarjeta" lang="en" aria-labelledby="creation-voice-title">
+      <h3 id="creation-voice-title">Creation voice</h3>
+      <p id="creation-voice-help">Generate the drawing guidance and your author statement with one local voice.</p>
+      <form id="creation-voice-form">
+        <label id="creation-voice-label" for="creation-voice-text">Your author statement</label>
+        <textarea id="creation-voice-text" required rows="3" maxlength="1024"></textarea>
+        <button id="creation-voice-generate" type="submit" style="min-height:44px;min-width:44px">Generate voice downloads</button>
+      </form>
+      <p id="creation-voice-status" role="status" aria-live="polite">Nothing generated yet.</p>
+      <div id="creation-voice-downloads"></div>
+    </section>
+    <section class="tarjeta" aria-labelledby="creation-publish-title">
+      <h3 id="creation-publish-title">Publish a signed creation</h3>
+      <p class="pie" id="creation-publish-help">Choose a creation package. Its author signature is verified before it is kept; nothing is sent until you press the button.</p>
+      <form id="creation-publish-form">
+        <label id="creation-publish-label" for="creation-publish-file">Creation package (.json, up to 25 MiB)</label>
+        <input id="creation-publish-file" type="file" accept="application/json,.json" required>
+        <button id="creation-publish-send" type="submit" disabled>Verify and import</button>
+      </form>
+      <p class="pie" id="creation-publish-status" role="status" aria-live="polite">No creation chosen or sent.</p>
+    </section>
+    </details>
+    <details class="grupo ajustes-grupo" id="ajustes-puerta" hidden>
+      <summary><h3 id="ajustes-puerta-titulo">Public gate and local tray</h3><span class="fold-teaser">Admission status and local tray</span></summary>
     <details class="tarjeta grupo" id="puerta-ajustes">
       <summary id="tx-24">Public gate</summary>
     <p class="pie" id="puerta-estado" role="status" aria-live="polite" data-i18n="puerta_cargando">Leyendo la puerta local…</p>
@@ -645,6 +677,74 @@
   </section>
     </details>
   </section>
+  <!-- Settings: UI preferences and browser-level connection controls only; no node administration. -->
+  <section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings"
+    tabindex="0" aria-label="Settings" hidden>
+    <header class="panel-cabecera"><h2 id="h-settings">Settings</h2></header>
+    <p class="pie">Appearance and accessibility apply to this browser only. Your node identity and documents are unchanged.</p>
+
+    <details class="grupo settings-group" id="settings-appearance">
+      <summary><h3>Appearance</h3><span class="fold-teaser">Day, night or device preference</span></summary>
+      <fieldset class="settings-fieldset" id="settings-theme-group">
+        <legend>Color theme</legend>
+        <label><input type="radio" name="settings-theme" value="system"> Follow device</label>
+        <label><input type="radio" name="settings-theme" value="light"> Day · light</label>
+        <label><input type="radio" name="settings-theme" value="dark"> Night · dark</label>
+      </fieldset>
+    </details>
+
+    <details class="grupo settings-group" id="settings-accessibility">
+      <summary><h3>Accessibility</h3><span class="fold-teaser">Text size and optional animation</span></summary>
+      <fieldset class="settings-fieldset" id="settings-text-group">
+        <legend>Text size</legend>
+        <label><input type="radio" name="settings-text" value="normal"> Default</label>
+        <label><input type="radio" name="settings-text" value="large"> Larger text</label>
+      </fieldset>
+      <label class="settings-checkbox"><input type="checkbox" id="settings-reduce-motion">
+        Reduce animations (also respects your device setting)</label>
+      <section class="settings-audio" aria-labelledby="settings-audio-title">
+        <h4 id="settings-audio-title">Audio and spoken guidance</h4>
+        <p class="pie">Acho uses short local tones. Native speech is optional and starts only when you request it. Your screen reader and keyboard work independently. No microphone is opened.</p>
+        <label class="settings-checkbox" for="acho-sonido"><input type="checkbox" id="acho-sonido" aria-describedby="acho-sonido-estado">
+          Enable Acho turn sounds</label>
+        <p class="pie" id="acho-sonido-estado" role="status" aria-live="polite">Turn sounds are off. The words are always on screen and for screen readers.</p>
+        <label class="settings-checkbox" for="settings-speech-enable">
+          <input type="checkbox" id="settings-speech-enable" aria-describedby="settings-audio-status">
+          Enable spoken guidance on request</label>
+        <label for="settings-speech-rate">Speech speed</label>
+        <select id="settings-speech-rate" aria-label="Native speech speed">
+          <option value="0.8">Slow</option>
+          <option value="1" selected>Normal</option>
+          <option value="1.2">Fast</option>
+        </select>
+        <div class="settings-audio-actions" role="group" aria-label="Audio accessibility actions">
+          <button type="button" id="settings-sound-test">Test sound</button>
+          <button type="button" id="settings-speech-read" aria-keyshortcuts="Alt+Shift+R" disabled>Read current area</button>
+          <button type="button" id="settings-speech-stop" aria-keyshortcuts="Alt+Shift+S">Stop speech</button>
+        </div>
+        <p class="pie">Shortcuts: Alt+Shift+R to read the current area, Alt+Shift+S to stop, outside text fields. Use Tab and Enter for navigation.</p>
+        <p class="pie" id="settings-audio-status" role="status" aria-live="polite" aria-atomic="true"
+          data-state="NO_DATA" data-cause="speech_not_checked" data-acho="silent">Spoken guidance is off until you enable it.</p>
+      </section>
+    </details>
+
+    <details class="grupo settings-group" id="settings-connection">
+      <summary><h3>Connection and privacy</h3><span class="fold-teaser">Pause My node and Open World without deleting data</span></summary>
+      <p class="pie">The Kill switch pauses My node and Open World in this browser. It does not power off hardware, disconnect Talk or revoke remote credentials.</p>
+      <button type="button" id="connection-kill" class="connection-kill"
+        aria-pressed="false" aria-label="Pause My node and Open World"
+        title="Disconnect My node and Open World in this browser">Kill switch</button>
+      <p class="pie" id="settings-connection-note" role="status" aria-live="polite">No changes to stored documents or node identity.</p>
+    </details>
+
+    <details class="grupo settings-group" id="settings-about">
+      <summary><h3>About this APP</h3><span class="fold-teaser">What's local, what needs a service</span></summary>
+      <p class="pie">PreceptorOS includes Mini Orchestrator. This preview's offline fallback uses deterministic routing; a language-model reply requires a verified model runtime. A successful health check does not prove model inference or node admission.</p>
+      <p class="pie">Settings are saved in this browser only. The current installation may be a static preview.</p>
+      <button type="button" id="settings-reset" class="probar">Restore display defaults</button>
+      <p class="pie" id="settings-status" role="status" aria-live="polite"></p>
+    </details>
+  </section>
 </main>
 
 <section class="ayuda-efimera" id="ayuda-efimera" role="region" aria-live="polite" aria-atomic="true" aria-labelledby="ayuda-efimera-titulo" hidden>
@@ -655,6 +755,24 @@
   <ul id="ayuda-efimera-base"></ul>
   <p id="ayuda-efimera-nota"></p>
 </section>
+<!-- Talk's same Open World crab, always present beside the global composer.
+     A greeting is a visual cue, not evidence of a model response. -->
+<div id="talk-processing" class="talk-processing" role="group" aria-label="Talk activity"
+     data-state="IDLE" data-acho="silent" data-crab-render="NO_DATA">
+  <button type="button" id="talk-crab-check" class="talk-crab-check"
+          aria-label="Check Talk activity" aria-describedby="talk-processing-label"
+          title="Check Talk activity">
+    <span class="talk-processing-track" aria-hidden="true">
+      <span class="talk-processing-crab">
+        <canvas class="talk-crab-canvas" width="88" height="58" aria-hidden="true"></canvas>
+      </span>
+    </span>
+  </button>
+  <span class="talk-processing-copy">
+    <span id="talk-processing-label" class="talk-processing-label" role="status" aria-live="polite" aria-atomic="true" hidden></span>
+    <span id="talk-crab-detail" class="talk-crab-detail" role="status" aria-live="polite" hidden></span>
+  </span>
+</div>
 <form class="redactar redactar-anclado" id="form-chat" aria-describedby="insertor-instrucciones">
   <p class="sr" id="insertor-instrucciones" data-i18n="insertor_instrucciones">Use an @panel tag to route a question, @ayuda for local temporary help, or @name to address a preceptor in the shared thread.</p>
   <label class="sr" for="dicho" data-i18n="lo_que_dices">Lo que dices</label>
@@ -663,26 +781,32 @@
 </form>
 
 <p class="sr" id="guion-zona" role="status" aria-live="polite" aria-atomic="true">Active zone: Talk.</p>
-<script src="/zonas.js?v=3"></script>
+<script src="/face/bubble/openworld_crab_body.js?v=1"></script>
+<script src="/talk_crab_canvas.js?v=4"></script>
+<script src="/ui_preferences.js?v=1"></script>
+<script src="/connection_guard.js?v=1"></script>
+<script src="/zonas.js?v=7"></script>
 <script src="/transicion.js?v=2"></script>
 <script src="/sting.js?v=1"></script>
-<script src="/modelos_web.js?v=3"></script>
+<script src="/modelos_web.js?v=5"></script>
 <script src="/insertor.js?v=2"></script>
 <script src="/evidence_chip.js?v=3"></script>
-<script src="/conversacion.js?v=7"></script>
-<script src="/cabin_brain.js?v=1"></script>
+<script src="/conversacion.js?v=8"></script>
+<script src="/cabin_brain.js?v=2"></script>
 <script src="/acho_motion.js?v=4"></script>
 <script src="/team.js?v=2"></script>
 <script src="/fleet_map.js?v=1"></script>
 <script src="/plan_flow.js?v=1"></script>
 <script src="/plan_fixture.js?v=1"></script>
-<script src="/plan_panels.js?v=2"></script>
+<script src="/superbot_talk.js?v=1"></script>
+<script src="/plan_panels.js?v=3"></script>
 <script src="/plan_composer.js?v=2"></script>
 <script src="/hitl.js?v=7"></script>
-<script src="/notebook.js?v=20"></script>
+<script src="/notebook.js?v=23"></script>
 <script src="/acho_sonido.js?v=3"></script>
+<script src="/audio_accessibility.js?v=1"></script>
 <script src="/memory_onboarding.js?v=1"></script>
-<script src="/app.js?v=47"></script>
+<script src="/app.js?v=56"></script>
 <script src="/creation_voice.js?v=1"></script>
 <script src="/keep_device.js?v=1"></script>
 <script src="/install.js?v=2"></script>
@@ -694,7 +818,7 @@
 <script src="/documents.js?v=1"></script>
 <script src="/owner_model_slots.js?v=1"></script>
 <script src="/offline_mini.js?v=1"></script>
-<script src="/browser_mini_gate.js?v=1"></script>
+<script src="/browser_mini_gate.js?v=2"></script>
 <script>PreceptorNodeRegistration.mount(document);</script>
 <script>PreceptorCompanionOnboarding.mount(document); PreceptorCompanionOnboarding.mountBuilding(document);</script>
 <script>PreceptorDocuments.mount(document);</script>

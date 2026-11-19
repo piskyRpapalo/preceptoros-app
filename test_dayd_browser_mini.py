@@ -22,13 +22,13 @@ class MiniBrowserDoor(unittest.TestCase):
         self.assertIn("root.PreceptorProfile === 'private_rack'", parser)
         self.assertIn("root.PreceptorMiniBrowserEnabled = false", gate)
         self.assertIn("root.PreceptorAndroidMiniModel", gate)
-        self.assertIn("NOT Hexelion", gate)
+        self.assertIn("deterministic routing only, not a model", gate)
         self.assertNotIn("fetch(", gate)
         self.assertNotIn("XMLHttpRequest", gate)
         self.assertNotIn("localStorage", gate)
         self.assertNotIn("navigator.sendBeacon", gate)
 
-    def test_four_zones_and_accessible_explicit_toggle(self):
+    def test_five_zones_and_accessible_explicit_toggle(self):
         html=(ROOT / "interface/app.html").read_text(encoding="utf8")
         css=(ROOT / "interface/app.css").read_text(encoding="utf8")
         sw=(ROOT / "interface/sw.js").read_text(encoding="utf8")
@@ -36,12 +36,13 @@ class MiniBrowserDoor(unittest.TestCase):
         self.assertIn('id="mini-local-mode-status" role="status" aria-live="polite"',html)
         self.assertIn('data-state="NO_DATA" data-acho="NO_DATA"',html)
         self.assertIn('src="/offline_mini.js?v=1"',html)
-        self.assertIn('src="/browser_mini_gate.js?v=1"',html)
-        self.assertIn('const Cache = "preceptoros-armazon-v218"',sw)
-        for asset in ("/offline_mini.js?v=1","/browser_mini_gate.js?v=1"):
+        self.assertIn('src="/browser_mini_gate.js?v=2"',html)
+        self.assertIn('const Cache = "preceptoros-armazon-v232"',sw)
+        for asset in ("/offline_mini.js?v=1","/browser_mini_gate.js?v=2"):
             self.assertIn('"'+asset+'"',sw)
-        for panel in ("conversacion","documentos","lab","ajustes"):
+        for panel in ("conversacion","cuaderno","lab","ajustes","modelos"):
             self.assertIn('id="tab-'+panel+'"',html)
+        self.assertNotIn('id="tab-documentos"',html)
         self.assertIn('min-height: 44px',css)
         self.assertIn('mini-mode-switch',css)
         self.assertIn(':focus-visible',css)

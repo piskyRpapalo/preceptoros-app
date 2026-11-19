@@ -46,6 +46,38 @@
     };
     const noData = (cause) => `${NO_DATA}: ${cause}`;
 
+    function pauseWorld() {
+      if (frameTimer !== null) win.clearTimeout(frameTimer);
+      if (probeTimer !== null) win.clearTimeout(probeTimer);
+      frameTimer = null;
+      probeTimer = null;
+      frame.removeAttribute("src");
+      frame.hidden = true;
+      retry.hidden = true;
+      worldState = "paused";
+      worldCause = "owner_paused_node_and_world";
+      worldStatus.dataset.state = "PAUSED";
+      worldStatus.dataset.cause = worldCause;
+      worldStatus.textContent = "Open World is paused by you.";
+    }
+
+    function resumeWorld() {
+      if (worldState !== "paused") return;
+      worldState = "idle";
+      worldCause = null;
+      worldStatus.dataset.state = "NO_DATA";
+      worldStatus.dataset.cause = "openworld_not_requested_since_reconnect";
+      retry.hidden = true;
+      refreshLabels();
+      const tab = doc.getElementById("tab-modelos");
+      if (tab && tab.getAttribute("aria-selected") === "true") openWorld();
+    }
+
+    doc.addEventListener("mvp-connection-change", (event) => {
+      if (event.detail && event.detail.paused) pauseWorld();
+      else resumeWorld();
+    });
+
     function setWorldFailure(cause) {
       if (frameTimer !== null) win.clearTimeout(frameTimer);
       frameTimer = null;
@@ -71,6 +103,10 @@
     frame.addEventListener("error", () => setWorldFailure("iframe_load_error"));
 
     async function openWorld() {
+      if (win.PreceptorConnectionGuard?.isPaused()) {
+        pauseWorld();
+        return;
+      }
       if (worldState !== "idle") return;
       worldState = "checking";
       frame.hidden = true;
@@ -86,6 +122,7 @@
         });
         if (probeTimer !== null) win.clearTimeout(probeTimer);
         probeTimer = null;
+        if (win.PreceptorConnectionGuard?.isPaused() || worldState === "paused") return;
         if (!response || (response.type !== "opaque" && response.ok !== true)) {
           setWorldFailure("openworld_http_unavailable");
           return;
@@ -99,6 +136,7 @@
       } catch (error) {
         if (probeTimer !== null) win.clearTimeout(probeTimer);
         probeTimer = null;
+        if (worldState === "paused" || win.PreceptorConnectionGuard?.isPaused()) return;
         setWorldFailure(error && error.name === "AbortError" ? "openworld_probe_timeout" : "openworld_unreachable");
       }
     }
@@ -225,15 +263,16 @@
       }
     });
     doc.addEventListener("pointerdown", (event) => {
-      if (!menu.hidden && !menu.contains(event.target) && event.target !== toggle) closeCatalog(false);
+      if (!menu.hidden && !menu.contains(event.target) && !toggle.contains(event.target)) closeCatalog(false);
     });
     menu.addEventListener("focusout", (event) => {
-      if (event.relatedTarget && !menu.contains(event.relatedTarget)) closeCatalog(false);
+      if (event.relatedTarget && !menu.contains(event.relatedTarget) && !toggle.contains(event.relatedTarget)) closeCatalog(false);
     });
     refreshLabels();
+    if (win.PreceptorConnectionGuard?.isPaused()) pauseWorld();
     activeStatus.textContent = noData("hexelion_model_not_measured");
 
-    return Object.freeze({ openWorld, refreshCatalog, setActiveModel, toggleCatalog, retryWorld, refreshLabels,
+    return Object.freeze({ openWorld, pauseWorld, resumeWorld, refreshCatalog, setActiveModel, toggleCatalog, retryWorld, refreshLabels,
       state: () => worldState, activeModel: () => activeModel });
   }
 

@@ -5,11 +5,8 @@
  * the thread's own copy once the thread is read: the thread is the source, the bubble was only a draft of it.
  * Read-only except send(), which posts the person's addressed message; a message is never authority.
  *
- * Superbot: two profiles, explicit, no auto-detection.
- *   - private_rack: Soberano, Hexelion, rack agents.
- *   - personal_mvp: collaborator, personal mini-orchestrator, no Hexelion.
- * The profile is set via root.PreceptorProfile (explicit configuration).
- * An endpoint available does NOT authorize a profile change.
+ * SuperBot provides provenance of the conversation. The MVP doesn't let
+ * user preference grant private installation identity or model access.
  */
 (function (root) {
   "use strict";
@@ -18,31 +15,19 @@
     external: "external", door: "door (not a model)", unknown: "unknown voice" };
   let seen = 0, routes = {}, names = {}, busy = false, timer = null;
 
-  // Interlocutor header: shows name and type of conversation partner
-  // Profile is explicit: private_rack or personal_mvp. No auto-detection.
+  // One owner-facing SuperBot conversation, never a private-rack persona.
   function paintInterlocutor() {
-    var container = doc.getElementById("conv-interlocutor");
-    var glyph = doc.getElementById("conv-interlocutor-glyph");
-    var nameEl = doc.getElementById("conv-interlocutor-name");
-    var typeEl = doc.getElementById("conv-interlocutor-type");
-    if (!container || !glyph || !nameEl || !typeEl) return;
-
-    var profile = root.PreceptorProfile || "personal_mvp";
-    if (profile === "private_rack") {
-      glyph.textContent = "■";
-      nameEl.textContent = "Hexelion";
-      typeEl.textContent = "Private rack brain";
-      container.dataset.state = "private";
-      container.dataset.acho = "private";
-    } else {
-      // personal_mvp: show the configured mini-orchestrator name
-      var orchestrator = root.PreceptorOrchestratorName || "Your mini orchestrator";
-      glyph.textContent = "●";
-      nameEl.textContent = orchestrator;
-      typeEl.textContent = "Personal mini-orchestrator · not Hexelion";
-      container.dataset.state = "personal";
-      container.dataset.acho = "personal";
-    }
+    const container = doc.getElementById("conv-interlocutor");
+    const glyph = doc.getElementById("conv-interlocutor-glyph");
+    const name = doc.getElementById("conv-interlocutor-name");
+    const type = doc.getElementById("conv-interlocutor-type");
+    if (!container || !glyph || !name || !type) return;
+    glyph.textContent = "●";
+    name.textContent = "Conversation";
+    type.textContent = "Choose an available model above, or use Mini Orchestrator offline.";
+    container.dataset.state = "NO_DATA";
+    container.dataset.acho = "NO_DATA";
+    container.dataset.cause = "model_reply_not_verified";
   }
 
   function chip(m) {
@@ -97,7 +82,11 @@
     const tags = (f) => list.filter(f).map((d) => "@" + d.id).join(" ");
     say(out, "Answers here: " + tags((d) => d.route === "station") +
       " · Reads the thread: " + tags((d) => d.route === "thread") +
-      " · NO_DATA, no transport: " + tags((d) => !d.addressable));
+      " · Unavailable: " + tags((d) => !d.addressable));
+    out.dataset.state = "MEASURED";
+    out.dataset.cause = "source_thread_destinations";
+    const detail = doc.getElementById("talk-diagnostics-thread");
+    if (detail) detail.textContent = list.some((d) => !d.addressable) ? "NO_DATA(destination_transport_unavailable)" : "MEASURED(thread_destinations_read)";
     out.title = list.map((d) => "@" + d.id + ": " + d.transport).join("\n");
   }
 
@@ -106,8 +95,11 @@
     if (root.PreceptorProfile !== "private_rack") {
       // Do not pull the private rack's thread into a personal interface.
       routes = {}; names = {};
-      say(doc.getElementById("conv-destinos"),
-        "NO_DATA(personal_profile_shared_thread_denied) · No private thread was read.");
+      const line = doc.getElementById("conv-destinos");
+      say(line, "Personal profile: the private rack conversation was not read.");
+      if (line) { line.dataset.state = "NO_DATA"; line.dataset.cause = "personal_profile_shared_thread_denied"; }
+      const detail = doc.getElementById("talk-diagnostics-thread");
+      if (detail) detail.textContent = "NO_DATA(personal_profile_shared_thread_denied)";
       return { state: "NO_DATA", cause: "personal_profile_shared_thread_denied" };
     }
     if (busy) return null;

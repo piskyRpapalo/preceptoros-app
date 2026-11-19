@@ -1,4 +1,5 @@
 /* app-dayd-mini · opt-in browser control for the shared offline router.
+ * It performs deterministic routing only, not a model inference.
  * No duplicate intent parser, storage, credential, model or execution API.
  */
 (function (root) {
@@ -21,15 +22,17 @@
     status.dataset.state = state;
     status.dataset.acho = state;
     status.dataset.cause = cause;
+    const detail = document.getElementById("talk-diagnostics-mini");
+    if (detail) detail.textContent = state + "(" + cause + ")";
   }
   function paint(active) {
     button.setAttribute('aria-pressed', String(active));
-    button.textContent = active ? 'Use my configured model' : 'Try offline mini';
+    button.textContent = active ? 'Use my configured model' : 'Use Mini Orchestrator offline';
     const mini = document.getElementById('offline-mini-status');
     if (mini) mini.hidden = !active;
     say(active
-      ? 'DRAFT_ONLY · MINI-LOCAL is a deterministic router, NOT Hexelion. No bundled large model, tools or network. Unverified free prompts: NO_DATA. Switch off to try your own model.'
-      : 'NO_DATA(mini_inactive) · Talk uses your configured model if one exists. No model turn has been verified.',
+      ? 'Mini Orchestrator offline mode is on: deterministic routing only. No external model, network or tools. Switch off to use your configured model.'
+      : 'Mini Orchestrator offline mode is off. Talk uses your configured model if available; no model reply is verified yet.',
       active ? 'DRAFT_ONLY' : 'NO_DATA',
       active ? 'browser_mini_opted_in_no_model' : 'browser_mini_off');
   }
@@ -41,7 +44,7 @@
     if (root.PreceptorProfile === 'private_rack') {
       root.PreceptorMiniBrowserEnabled = false;
       paint(false);
-      say('NO_DATA(private_rack_mini_switch_blocked) · Private rack Talk keeps its authorized backend.',
+      say('The current connection keeps its configured backend; switching Mini Orchestrator offline mode is not authorized here.',
         'NO_DATA', 'rack_profile_read_only');
       return;
     }
@@ -49,7 +52,7 @@
         typeof root.PreceptorOfflineMini.mount !== 'function') {
       root.PreceptorMiniBrowserEnabled = false;
       paint(false);
-      say('NO_DATA(mini_module_unavailable). Your Chat was not changed.',
+      say('Mini Orchestrator offline mode is unavailable; your Talk connection was not changed.',
         'NO_DATA', 'mini_module_not_loaded');
       return;
     }

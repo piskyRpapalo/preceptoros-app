@@ -99,7 +99,8 @@ class TheServersOwnWords(unittest.TestCase):
 
 class EnglishFirstPaint(unittest.TestCase):
     def test_the_first_words_on_screen_are_english(self):
-        self.assertIn('data-i18n="comprobando">checking…</p>', HTML)
+        self.assertIn('id="connection-status"', HTML)
+        self.assertIn('Checking connection…</span>', HTML)
         self.assertIn('aria-atomic="true">Active zone: Talk.</p>', HTML)
         for spanish in ("comprobando…</p>", "Zona activa", "Publicar una creación", "Paquete de creación",
                         "Verificar e importar", "ninguna creación"):

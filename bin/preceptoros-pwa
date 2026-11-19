@@ -365,7 +365,10 @@ ESTATICOS = {
     "/energia_ui.js": ("energia_ui.js", "application/javascript; charset=utf-8"),
     "/app.css": ("app.css", "text/css; charset=utf-8"),
     "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+    "/talk_crab_canvas.js": ("talk_crab_canvas.js", "application/javascript; charset=utf-8"),
     "/modelos_web.js": ("modelos_web.js", "application/javascript; charset=utf-8"),
+    "/connection_guard.js": ("connection_guard.js", "application/javascript; charset=utf-8"),
+    "/ui_preferences.js": ("ui_preferences.js", "application/javascript; charset=utf-8"),
     "/keep_device.js": ("keep_device.js", "application/javascript; charset=utf-8"),
     "/acho_motion.js": ("acho_motion.js", "application/javascript; charset=utf-8"),
     "/team.js": ("team.js", "application/javascript; charset=utf-8"),
@@ -380,6 +383,8 @@ ESTATICOS = {
     "/plan_panels.js": ("plan_panels.js", "application/javascript; charset=utf-8"),
     "/plan_composer.js": ("plan_composer.js", "application/javascript; charset=utf-8"),
     "/acho_sonido.js": ("acho_sonido.js", "application/javascript; charset=utf-8"),
+    "/audio_accessibility.js": ("audio_accessibility.js", "application/javascript; charset=utf-8"),
+    "/superbot_talk.js": ("superbot_talk.js", "application/javascript; charset=utf-8"),
     "/firmas.js": ("firmas.js", "application/javascript; charset=utf-8"),
     "/hitl.js": ("hitl.js", "application/javascript; charset=utf-8"),
     "/hitl.css": ("hitl.css", "text/css; charset=utf-8"),
@@ -412,7 +417,7 @@ CARA_LENGUA = ("tabla_semantica", "comic_tokens", "comic_accents", "valores", "g
                "comic_atoms", "bubble_light", "bubble_language", "bubble_bestiary", "bubble_world", "core",
                "isometric_floor_projection", "world_camera", "map_zoom", "fog_of_war",
                "atlas-coord", "canon", "combate_ticks", "escuadron", "wave_render", "worm_transition",
-               "escena", "sea-floor", "gdpr-art25-ephemeral-crab", "crab_render_hd",
+               "escena", "sea-floor", "gdpr-art25-ephemeral-crab", "crab_render_hd", "openworld_crab_body",
                "bubble_icons", "db", "army-wave-panel", "summon-wave-card", "summon_reveal", "auth", "taller")
 ESTATICOS["/face/face.js"] = ("face/face.js", "application/javascript; charset=utf-8")
 ESTATICOS["/face/face_world.js"] = ("face/face_world.js", "application/javascript; charset=utf-8")

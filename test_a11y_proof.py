@@ -18,7 +18,10 @@ EN = APP[APP.index("  en: {"):APP.index("  fr: {")] if "  fr: {" in APP else APP
 
 class FailuresAreNoData(unittest.TestCase):
     def test_settings_never_says_read_when_a_reader_failed(self):
-        self.assertIn('h.status === "rejected" || h.value === false', APP)
+        self.assertIn('"Choose a section to inspect this device."',APP)
+        self.assertIn('wireReaderGroup("notebook-memory-group"',APP)
+        self.assertIn('wireReaderGroup("ajustes-puerta"',APP)
+        self.assertNotIn('Promise.allSettled([cargarCuaderno(), cargarPuerta()])',APP)
         for reader in ("async function cargarPuerta", "async function cargarCuaderno"):
             body = APP[APP.index(reader):APP.index("\n}\n", APP.index(reader))]
             self.assertIn("return false;", body, reader)
