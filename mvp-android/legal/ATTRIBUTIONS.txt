@@ -1,0 +1,12 @@
+PreceptorOS APP · third-party notices · 2026-11-19
+This package is the PreceptorOS APP. Mini Orchestrator is its local component, not the name of this application.
+
+SmolLM2-135M-Instruct — upstream HuggingFaceTB/SmolLM2-135M-Instruct, https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct
+Model distributed as GGUF Q4_K_M. Apache-2.0; see Apache-2.0.txt.
+Pinned model SHA256: ed5fa30c487b282ec156c29062f1222e5c20875a944ac98289dbd242e947f747.
+
+llama.cpp / ggml — upstream https://github.com/ggml-org/llama.cpp, pinned native runtime commit f2cc7282ce0042641df55e0e563b75e824e2b647.
+MIT; see llama.cpp-MIT.txt. This native binary executes on ARM64 offline.
+
+PreceptorOS app source: https://github.com/piskyRpapalo/preceptoros-app.
+These notices are not a guarantee of model accuracy, node registration or network service availability.
