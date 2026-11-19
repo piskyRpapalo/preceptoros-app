@@ -83,6 +83,46 @@ class JournalError(Exception):
     """Raised when the journal cannot perform an operation."""
 
 
+def _check_path_security(db_path: Path) -> None:
+    """Reject symlinks and non-regular files to avoid path races.
+
+    Raises JournalError if the path is a symlink, does not exist (and is not
+    a new file to be created), or is not a regular file.
+    """
+    # If the path exists, refuse to follow symlinks
+    if db_path.exists() or db_path.is_symlink():
+        if db_path.is_symlink():
+            raise JournalError("journal path is a symlink: rejected for security")
+        # Use os.stat with O_NOFOLLOW when available to avoid TOCTOU
+        try:
+            fd = os.open(str(db_path), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            try:
+                st = os.fstat(fd)
+            finally:
+                os.close(fd)
+            import stat as _stat
+            if not _stat.S_ISREG(st.st_mode):
+                raise JournalError("journal path is not a regular file: rejected for security")
+        except OSError as e:
+            raise JournalError(f"journal path security check failed: {e}")
+
+
+def _check_file_permissions(db_path: Path) -> None:
+    """Ensure the journal file has restrictive permissions (0600).
+
+    Raises JournalError if the file exists with insecure permissions.
+    """
+    if db_path.exists():
+        st = db_path.stat()
+        import stat as _stat
+        mode = _stat.S_IMODE(st.st_mode)
+        # Must be 0600 (owner read/write only)
+        if mode != 0o600:
+            raise JournalError(
+                f"journal file has insecure permissions {oct(mode)}: expected 0o600"
+            )
+
+
 def open_journal(db_path: Path) -> sqlite3.Connection:
     """Open or create the journal database, initializing schema if needed.
 
@@ -92,10 +132,34 @@ def open_journal(db_path: Path) -> sqlite3.Connection:
     if fcntl is None:
         raise JournalError("platform lacks fcntl: journal cannot guarantee atomicity")
     db_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+
+    # Security: reject symlinks and non-regular files
+    _check_path_security(db_path)
+
+    # Security: check existing file permissions
+    if db_path.exists():
+        _check_file_permissions(db_path)
+
     con = sqlite3.connect(str(db_path), timeout=30, isolation_level=None)
     try:
+        # Check existing schema version before writing — fail closed on tamper.
+        # The metadata table may not exist yet (new DB), so catch OperationalError.
+        try:
+            existing_version_row = con.execute(
+                "SELECT value FROM metadata WHERE key = 'schema_version'"
+            ).fetchone()
+        except sqlite3.OperationalError:
+            existing_version_row = None
+        if existing_version_row is not None:
+            existing_version = int(existing_version_row[0])
+            if existing_version != SCHEMA_VERSION:
+                con.close()
+                raise JournalError(
+                    f"journal schema version mismatch: have {existing_version}, "
+                    f"expected {SCHEMA_VERSION} — incompatible, failing closed"
+                )
         con.executescript(JOURNAL_SCHEMA)
-        # Record schema version
+        # Record schema version (only on new DB or matching version)
         con.execute(
             "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
             ("schema_version", str(SCHEMA_VERSION)),
@@ -108,15 +172,21 @@ def open_journal(db_path: Path) -> sqlite3.Connection:
 
 def _acquire_lock(db_path: Path):
     """Acquire an exclusive file lock. Returns (fd, con) for caller to release.
-    
+
     Follows the canales.py pattern: flock on the file descriptor, then a separate
     sqlite3 connection to the same path with BEGIN IMMEDIATE.
+    Rejects symlinks and non-regular files using O_NOFOLLOW when available.
     """
     if fcntl is None:
         raise JournalError("platform lacks fcntl")
+    # Security: reject symlinks before opening
+    if db_path.is_symlink():
+        raise JournalError("journal path is a symlink: rejected for security")
     if not db_path.is_file():
         raise JournalError("journal file absent")
-    fd = os.open(str(db_path), os.O_RDWR, 0o600)
+    # Open with O_NOFOLLOW when available to avoid TOCTOU
+    flags = os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(str(db_path), flags, 0o600)
     fcntl.flock(fd, fcntl.LOCK_EX)
     con = sqlite3.connect(str(db_path), timeout=30, isolation_level=None)
     return fd, con
@@ -128,6 +198,15 @@ def _release_lock(fd: int):
         fcntl.flock(fd, fcntl.LOCK_UN)
     finally:
         os.close(fd)
+
+
+def _require_tz_aware(now: dt.datetime) -> None:
+    """Reject naive datetimes — only timezone-aware values are accepted.
+
+    Raises JournalError if the datetime has no tzinfo.
+    """
+    if now.tzinfo is None:
+        raise JournalError("naive datetime rejected: provide a timezone-aware datetime")
 
 
 def claim_grant(
@@ -151,9 +230,15 @@ def claim_grant(
     - Grant already consumed → REJECTED
     - Grant already revoked → REJECTED
     - Grant expired (expires_at <= now) → REJECTED
+    - Naive datetime passed → REJECTED
     """
     if now is None:
         now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    # Security: reject naive datetimes
+    try:
+        _require_tz_aware(now)
+    except JournalError as e:
+        return {"state": "REJECTED", "cause": str(e)}
     ts = now.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Check expiry before acquiring lock (fast path)
@@ -220,9 +305,16 @@ def revoke_grant(
     Returns a dict with keys: state, cause, n (row id on success).
     A revoked grant cannot be consumed, and a consumed grant cannot be revoked
     (the consumption record stands).
+
+    Naive datetime → REJECTED.
     """
     if now is None:
         now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    # Security: reject naive datetimes
+    try:
+        _require_tz_aware(now)
+    except JournalError as e:
+        return {"state": "REJECTED", "cause": str(e)}
     ts = now.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     try:
@@ -268,9 +360,11 @@ def get_consumed_grant_ids(db_path: Path) -> set | None:
     """Return the set of grant_ids that have been successfully consumed.
 
     Returns None if the journal is absent or corrupt (fail-closed sentinel
-    for evaluate_authorization).
+    for evaluate_authorization). Symlinks are rejected.
     """
     try:
+        if db_path.is_symlink():
+            return None
         if not db_path.is_file():
             return None
         con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
@@ -289,9 +383,11 @@ def get_consumed_grant_ids(db_path: Path) -> set | None:
 def get_revoked_grant_ids(db_path: Path) -> set | None:
     """Return the set of grant_ids that have been revoked.
 
-    Returns None if the journal is absent or corrupt.
+    Returns None if the journal is absent or corrupt. Symlinks are rejected.
     """
     try:
+        if db_path.is_symlink():
+            return None
         if not db_path.is_file():
             return None
         con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
@@ -308,7 +404,9 @@ def get_revoked_grant_ids(db_path: Path) -> set | None:
 
 
 def journal_exists(db_path: Path) -> bool:
-    """Check whether the journal file exists and is readable."""
+    """Check whether the journal file exists and is a regular file (not a symlink)."""
+    if db_path.is_symlink():
+        return False
     return db_path.is_file()
 
 
@@ -323,16 +421,28 @@ def journal_path(base: Path | None = None) -> Path:
 
 
 def init_journal(db_path: Path | None = None) -> Path:
-    """Create the journal database if it doesn't exist. Returns the path."""
+    """Create the journal database if it doesn't exist. Returns the path.
+
+    The returned connection is properly closed. New files are created with
+    mode 0600 (owner read/write only).
+    """
     if db_path is None:
         db_path = journal_path()
-    open_journal(db_path)
+    con = open_journal(db_path)
+    # Security: ensure new file has restrictive permissions
+    if db_path.exists():
+        os.chmod(str(db_path), 0o600)
+    con.close()
     return db_path
 
 
 def read_journal_entries(db_path: Path, limit: int = 100) -> list | None:
-    """Read the most recent journal entries for audit. Returns None if unreadable."""
+    """Read the most recent journal entries for audit. Returns None if unreadable.
+    Symlinks are rejected.
+    """
     try:
+        if db_path.is_symlink():
+            return None
         if not db_path.is_file():
             return None
         con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)

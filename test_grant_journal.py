@@ -644,5 +644,231 @@ class TestJournalPath(unittest.TestCase):
         self.assertFalse(GJ.journal_exists(Path("/tmp/nonexistent-journal-999.db")))
 
 
+class TestSecuritySchemaVersionTamper(unittest.TestCase):
+    """Security: schema version tamper must fail closed — never silently reset."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix="synthetic-schema-tamper-"))
+        self.db_path = self.root / "journal.db"
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_open_journal_rejects_tampered_schema_version(self):
+        """Initialize fixture DB, tamper metadata.schema_version from 1 to 99,
+        then open_journal must raise JournalError — never silently reset it."""
+        GJ.init_journal(self.db_path)
+        # Tamper: set schema_version to 99
+        con = sqlite3.connect(str(self.db_path), timeout=5)
+        try:
+            con.execute(
+                "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
+                ("schema_version", "99"),
+            )
+            con.commit()
+        finally:
+            con.close()
+        # open_journal must fail closed
+        with self.assertRaises(GJ.JournalError) as cm:
+            GJ.open_journal(self.db_path)
+        self.assertIn("99", str(cm.exception))
+        self.assertIn(str(GJ.SCHEMA_VERSION), str(cm.exception))
+        # Verify the tampered value was NOT silently reset
+        con = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
+        try:
+            row = con.execute(
+                "SELECT value FROM metadata WHERE key = 'schema_version'"
+            ).fetchone()
+            self.assertEqual(row[0], "99")
+        finally:
+            con.close()
+
+    def test_open_journal_accepts_matching_schema_version(self):
+        """Re-opening a journal with the correct schema version succeeds."""
+        GJ.init_journal(self.db_path)
+        con = GJ.open_journal(self.db_path)
+        con.close()
+
+
+class TestSecurityFilePermissions(unittest.TestCase):
+    """Security: new DB must be 0600; insecure preexisting modes must be rejected."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix="synthetic-perms-"))
+        self.db_path = self.root / "journal.db"
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_init_journal_creates_0600_file(self):
+        """New journal DB must have mode 0600 under default umask."""
+        GJ.init_journal(self.db_path)
+        mode = self.db_path.stat().st_mode & 0o777
+        self.assertEqual(mode, 0o600, f"Expected 0o600, got {oct(mode)}")
+
+    def test_open_journal_rejects_world_readable_file(self):
+        """If a preexisting journal file has mode 0644, open_journal must reject."""
+        GJ.init_journal(self.db_path)
+        # Broaden to world-readable
+        os.chmod(str(self.db_path), 0o644)
+        with self.assertRaises(GJ.JournalError) as cm:
+            GJ.open_journal(self.db_path)
+        self.assertIn("0o644", str(cm.exception))
+        self.assertIn("0o600", str(cm.exception))
+
+    def test_open_journal_rejects_world_writable_file(self):
+        """If a preexisting journal file has mode 0666, open_journal must reject."""
+        GJ.init_journal(self.db_path)
+        os.chmod(str(self.db_path), 0o666)
+        with self.assertRaises(GJ.JournalError) as cm:
+            GJ.open_journal(self.db_path)
+        self.assertIn("insecure permissions", str(cm.exception))
+
+    def test_open_journal_accepts_0600_file(self):
+        """A file with correct 0600 permissions opens normally."""
+        GJ.init_journal(self.db_path)
+        con = GJ.open_journal(self.db_path)
+        con.close()
+
+
+class TestSecuritySymlinkRejection(unittest.TestCase):
+    """Security: all journal operations must reject symlinks and non-regular files."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix="synthetic-symlink-"))
+        self.db_path = self.root / "journal.db"
+        self.real_db = self.root / "real_journal.db"
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_journal_exists_rejects_symlink(self):
+        """journal_exists() must return False for a symlink."""
+        GJ.init_journal(self.real_db)
+        self.db_path.symlink_to(self.real_db)
+        self.assertFalse(GJ.journal_exists(self.db_path))
+
+    def test_open_journal_rejects_symlink(self):
+        """open_journal must raise JournalError for a symlink path."""
+        GJ.init_journal(self.real_db)
+        self.db_path.symlink_to(self.real_db)
+        with self.assertRaises(GJ.JournalError) as cm:
+            GJ.open_journal(self.db_path)
+        self.assertIn("symlink", str(cm.exception))
+
+    def test_claim_grant_rejects_symlink(self):
+        """claim_grant must reject when db_path is a symlink."""
+        GJ.init_journal(self.real_db)
+        self.db_path.symlink_to(self.real_db)
+        params = _grant_params()
+        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+        result = GJ.claim_grant(self.db_path, **params, now=now)
+        self.assertEqual(result["state"], "REJECTED")
+        self.assertIn("symlink", result["cause"])
+
+    def test_revoke_grant_rejects_symlink(self):
+        """revoke_grant must reject when db_path is a symlink."""
+        GJ.init_journal(self.real_db)
+        self.db_path.symlink_to(self.real_db)
+        params = _grant_params()
+        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+        result = GJ.revoke_grant(self.db_path, **params, now=now)
+        self.assertEqual(result["state"], "REJECTED")
+        self.assertIn("symlink", result["cause"])
+
+    def test_get_consumed_grant_ids_rejects_symlink(self):
+        """get_consumed_grant_ids must return None for a symlink."""
+        GJ.init_journal(self.real_db)
+        self.db_path.symlink_to(self.real_db)
+        self.assertIsNone(GJ.get_consumed_grant_ids(self.db_path))
+
+    def test_get_revoked_grant_ids_rejects_symlink(self):
+        """get_revoked_grant_ids must return None for a symlink."""
+        GJ.init_journal(self.real_db)
+        self.db_path.symlink_to(self.real_db)
+        self.assertIsNone(GJ.get_revoked_grant_ids(self.db_path))
+
+    def test_read_journal_entries_rejects_symlink(self):
+        """read_journal_entries must return None for a symlink."""
+        GJ.init_journal(self.real_db)
+        self.db_path.symlink_to(self.real_db)
+        self.assertIsNone(GJ.read_journal_entries(self.db_path))
+
+    def test_open_journal_rejects_directory(self):
+        """open_journal must reject a directory path (non-regular file)."""
+        dir_path = self.root / "not_a_file"
+        dir_path.mkdir()
+        with self.assertRaises(GJ.JournalError) as cm:
+            GJ.open_journal(dir_path)
+        self.assertIn("not a regular file", str(cm.exception))
+
+
+class TestSecurityConnectionLeak(unittest.TestCase):
+    """Security: init_journal must not leak the returned sqlite connection."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix="synthetic-leak-"))
+        self.db_path = self.root / "journal.db"
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_init_journal_closes_connection(self):
+        """init_journal must close the connection it opens; subsequent opens must work."""
+        GJ.init_journal(self.db_path)
+        # If the connection were leaked, this might fail with "database is locked"
+        # on some platforms. It should always succeed.
+        con = GJ.open_journal(self.db_path)
+        con.close()
+
+
+class TestSecurityNaiveDatetime(unittest.TestCase):
+    """Security: naive datetime must be rejected instead of implicit timezone conversion."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix="synthetic-naive-dt-"))
+        self.db_path = self.root / "journal.db"
+        GJ.init_journal(self.db_path)
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_claim_grant_rejects_naive_datetime(self):
+        """claim_grant with a naive datetime must return REJECTED."""
+        params = _grant_params()
+        naive_now = dt.datetime.now()  # no tzinfo
+        result = GJ.claim_grant(self.db_path, **params, now=naive_now)
+        self.assertEqual(result["state"], "REJECTED")
+        self.assertIn("naive", result["cause"])
+
+    def test_revoke_grant_rejects_naive_datetime(self):
+        """revoke_grant with a naive datetime must return REJECTED."""
+        params = _grant_params()
+        naive_now = dt.datetime.now()  # no tzinfo
+        result = GJ.revoke_grant(self.db_path, **params, now=naive_now)
+        self.assertEqual(result["state"], "REJECTED")
+        self.assertIn("naive", result["cause"])
+
+    def test_claim_grant_accepts_aware_datetime(self):
+        """claim_grant with a timezone-aware datetime must proceed normally."""
+        params = _grant_params()
+        aware_now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+        result = GJ.claim_grant(self.db_path, **params, now=aware_now)
+        self.assertEqual(result["state"], "OK")
+
+    def test_revoke_grant_accepts_aware_datetime(self):
+        """revoke_grant with a timezone-aware datetime must proceed normally."""
+        params = _grant_params()
+        aware_now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+        result = GJ.revoke_grant(self.db_path, **params, now=aware_now)
+        self.assertEqual(result["state"], "OK")
+
+    def test_claim_grant_default_now_is_aware(self):
+        """claim_grant without explicit now must use aware UTC datetime."""
+        params = _grant_params()
+        result = GJ.claim_grant(self.db_path, **params)
+        self.assertEqual(result["state"], "OK")
+
+
 if __name__ == "__main__":
     unittest.main()
