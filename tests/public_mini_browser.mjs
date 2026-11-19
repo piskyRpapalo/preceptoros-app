@@ -29,20 +29,37 @@ const server=createServer(async(req,res)=>{
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const url='http://127.0.0.1:'+server.address().port+'/app/';
-const profile=await mkdtemp(join(tmpdir(),'preceptor-mini-cdp-'));
-const chrome=spawn('/usr/bin/google-chrome',['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
- '--disable-extensions','--disable-background-networking','--no-first-run',
- '--remote-debugging-port=0','--user-data-dir='+profile,url],
- {stdio:['ignore','ignore','pipe']});
-let errors='', ws;
-chrome.stderr.on('data',b=>errors+=String(b).slice(0,1000));
+// Hosted CI runners sometimes fail to create DevToolsActivePort on the first
+// Chrome start. Retry ONLY the disposable browser startup, never assertions.
+const profiles=[];
+let chrome=null, errors='', ws;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 try {
  let port=0;
- for(let i=0;i<70;i++){
-  try{port=Number((await readFile(join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);break;}catch{await sleep(100);}
+ for(let attempt=1;attempt<=2;attempt++){
+  const profile=await mkdtemp(join(tmpdir(),'preceptor-mini-cdp-'));
+  profiles.push(profile);
+  port=0;errors='';
+  chrome=spawn('/usr/bin/google-chrome',['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
+   '--disable-extensions','--disable-background-networking','--no-first-run',
+   '--remote-debugging-port=0','--user-data-dir='+profile,url],
+   {stdio:['ignore','ignore','pipe']});
+  chrome.on('error',err=>{errors+=' spawn_error:'+String(err).slice(0,200);});
+  chrome.stderr?.on('data',b=>errors+=String(b).slice(0,1000));
+  for(let i=0;i<145;i++){
+   try{
+    port=Number((await readFile(join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);
+    if(port)break;
+   }catch{}
+   if(chrome.exitCode!==null)break;
+   await sleep(100);
+  }
+  if(port)break;
+  chrome.kill('SIGTERM');
+  await sleep(180);
+  try{chrome.kill('SIGKILL');}catch{}
  }
- assert.ok(port,'Chrome CDP unavailable: '+errors.slice(0,240));
+ assert.ok(port,'Chrome CDP unavailable after two startup attempts: '+errors.slice(-600));
  let page=null;
  for(let i=0;i<50;i++){
   try{page=(await (await fetch('http://127.0.0.1:'+port+'/json/list')).json())
@@ -93,6 +110,10 @@ try {
  assert.equal(initial.tabs,6);assert.equal(initial.model,'DETERMINISTIC_ONLY');
  const six=await evaluate("Array.from(document.querySelectorAll('[role=tab]'),x=>x.id)");
  assert.deepEqual(six,['tab-conversacion','tab-cuaderno','tab-lab','tab-ajustes','tab-modelos','tab-settings']);
+ // Accessible roving-tabindex navigation must be tested, not just tab count.
+ const keyboard=await evaluate("(()=>{const active=()=>document.activeElement.id;const press=(key)=>document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true}));document.getElementById('tab-conversacion').focus();press('ArrowRight');const right=active();press('End');const end=active();press('Home');return {right,end,home:active(),selected:document.querySelector('[role=tab][aria-selected=true]')?.id};})()");
+ assert.deepEqual(keyboard,{right:'tab-cuaderno',end:'tab-settings',home:'tab-conversacion',selected:'tab-conversacion'});
+ assert.equal(await evaluate("document.querySelectorAll('[role=tab][tabindex=\"0\"]').length"),1);
  const first=await evaluate("({open:!document.getElementById('mvp-first-run').hidden,steps:document.querySelectorAll('#mvp-first-run ol > li').length,draft:localStorage.getItem('preceptoros.node-public-template/1')})");
  assert.deepEqual(first,{open:true,steps:3,draft:null});
  assert.ok(initial.scroll<=initial.client+4,'horizontal overflow '+JSON.stringify(initial));
@@ -163,7 +184,7 @@ try {
  process.exitCode=1;
 }finally{
  try{ws?.close();}catch{}
- chrome.kill('SIGTERM');await sleep(120);try{chrome.kill('SIGKILL');}catch{}
+ if(chrome){chrome.kill('SIGTERM');await sleep(120);try{chrome.kill('SIGKILL');}catch{}}
  await new Promise(r=>server.close(r));
- await rm(profile,{recursive:true,force:true});
+ for(const profile of profiles)await rm(profile,{recursive:true,force:true});
 }

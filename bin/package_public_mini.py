@@ -273,7 +273,7 @@ BOOT = r"""/* Thin six-panel adapter for the EXISTING APP's owner-safe local mod
    id('mini-offline-badge').textContent='DETERMINISTIC_ONLY · '+tabs.find(([x])=>x===name)[1]+' · local only';
    return true;
  };
- tabs.forEach(([name,index])=>{
+ tabs.forEach(([name],index)=>{
    const b=id('tab-'+name);
    b.addEventListener('click',()=>select(name));
    b.addEventListener('keydown',e=>{
