@@ -57,7 +57,7 @@ const base=process.env.PREVIEW_URL||'http://127.0.0.1:18896/app.html';
       });
       assert.equal(green,proof.green,'green presentation requires explicit verified activity state');
     }else{
-      assert.equal(proof.names,'');
+      assert.equal(proof.names,'Not connected');
       assert.ok(proof.label.includes('not connected'));
     }
     assert.deepEqual(errors,[]);

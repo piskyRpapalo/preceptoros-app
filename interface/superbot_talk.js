@@ -43,7 +43,7 @@
     if(!p||p.state!=="shown"||!Array.isArray(p.tasks)){
       heading.textContent="Mini Orchestrator · local mode";
       label.textContent="Agents · not connected";
-      names.textContent="";
+      names.textContent="Not connected";
       hint.textContent="Connect your orchestrator or create a plan to see referenced agents here.";
       list.replaceChildren();detail.replaceChildren();detail.hidden=true;agents=[];selected=null;lastSignature="";
       state("NO_DATA",clean(p?.cause,80)||"agent_roster_not_connected");

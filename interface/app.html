@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=53">
+<link rel="stylesheet" href="/app.css?v=54">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
@@ -39,6 +39,25 @@
 
   <!-- hablar -->
   <section class="panel" id="panel-conversacion" role="tabpanel" aria-labelledby="tab-conversacion" tabindex="0" aria-label="Talk">
+    <!-- First-use guide belongs to this APP, not the separate Mini Orchestrator. -->
+    <section id="mvp-first-run" class="mvp-first-run" role="region"
+             aria-labelledby="mvp-first-run-title" aria-describedby="mvp-first-run-hint"
+             data-state="GUIDE_ONLY" data-acho="GUIDE_ONLY" data-cause="first_visit">
+      <h2 id="mvp-first-run-title">Welcome to PreceptorOS</h2>
+      <p id="mvp-first-run-hint" class="pie">Three steps to begin. Opening this guide does not connect an account, install a model or publish a node.</p>
+      <ol>
+        <li><strong>Discover PreceptorOS.</strong> Manage your own AI resources, prepare a node and explore Open World. Your private data stays yours.</li>
+        <li><strong>Meet your Mini Orchestrator.</strong> You can use deterministic local commands without an account. Model-generated responses are experimental and require a verified local runtime.
+          <button id="mvp-first-run-mini" class="probar" type="button">Find local Mini Orchestrator</button>
+        </li>
+        <li><strong>Configure your node.</strong> Choose a display name and a neutral public-chatbot prompt, then review your node identity. Saving a local draft is not admission to Open World.
+          <button id="mvp-first-run-node" class="probar" type="button">Open Node identity</button>
+        </li>
+      </ol>
+      <button id="mvp-first-run-finish" class="probar" type="button">Finish introduction</button>
+      <p id="mvp-first-run-state" class="sr" role="status" aria-live="polite"
+         data-state="GUIDE_ONLY" data-acho="GUIDE_ONLY" data-cause="not_completed">Introduction is available. No node request has been sent.</p>
+    </section>
         <header class="panel-cabecera superbot-panel-header">
       <h2 id="h-conversacion" class="sr">Talk</h2>
       <div class="superbot-heading" role="group" aria-label="Agents and selected orchestrator">
@@ -49,7 +68,7 @@
         data-cause="agent_roster_not_connected" data-acho="silent">
         <summary aria-labelledby="superbot-agent-count">
           <span id="superbot-agent-status-dot" class="superbot-agent-status-dot" aria-hidden="true"></span>
-          <span id="superbot-agent-names" class="superbot-agent-names" aria-hidden="true"></span>
+          <span id="superbot-agent-names" class="superbot-agent-names" aria-hidden="true">Not connected</span>
           <span id="superbot-agent-count" class="sr" role="status" aria-live="polite">Agents · not connected</span>
         </summary>
         <p class="pie" id="superbot-agent-hint">Connect your orchestrator or create a plan to see referenced agents here.</p>
@@ -327,6 +346,12 @@
       <button type="button" id="lab-bench-toggle" aria-expanded="false" aria-controls="lab-bench-group">Benchmarks</button>
       <button type="button" class="refrescar" data-refrescar="lab" aria-label="Refresh the Lab" title="Refresh the Lab">Refresh</button>
     </div>
+    <p class="pie" id="lab-first-experiment-help">
+      This is your Lab workspace: it shows sources you have configured and verified. Opening the Lab does not run experiments.
+      For your first test, write a plan in Operations Data. You choose when to save or run anything.
+    </p>
+    <button id="lab-first-experiment" type="button" class="probar"
+            aria-describedby="lab-first-experiment-help">Write my first experiment plan</button>
     <details class="grupo">
       <summary><h3 id="lab-runs-title" data-i18n="plan_lab_title">Runs from plans</h3><span class="fold-teaser">Results of work started from plans</span></summary>
       <p class="pie" id="lab-runs-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
@@ -455,6 +480,7 @@
         <li><strong>Connect your own resources when ready.</strong> Choose a model you control, prepare a node identity and send a separate review request for Open World participation. Only a signed approval and verified heartbeat can make a node LIVE.</li>
       </ol>
       <p class="pie">A public visitor can explore Open World without joining your node. No request is sent merely by opening this guide.</p>
+      <button id="mvp-first-run-reopen" type="button" class="probar">Show three-step introduction again</button>
     <!-- Extended journey; never claim progress from the appearance of a step. -->
     <section class="tarjeta mvp-start" id="mvp-start" aria-labelledby="mvp-start-title">
       <h3 id="mvp-start-title">My node journey · getting started</h3>
@@ -478,6 +504,27 @@
     <details class="grupo ajustes-grupo" id="ajustes-nodo">
       <summary><h3 id="ajustes-nodo-titulo">Node identity</h3><span class="fold-teaser">Local node ID and identity controls</span></summary>
       <p class="pie">Read and configure your local node identity. This does not register, deploy or approve a remote node.</p>
+      <section id="node-public-template" class="tarjeta"
+               aria-labelledby="node-public-template-title" data-state="DRAFT_ONLY"
+               data-acho="DRAFT_ONLY" data-cause="not_authorized_for_publication">
+        <h3 id="node-public-template-title">Your chatbot · local draft</h3>
+        <p class="pie">These editable defaults are a template for a future public chatbot, not a running model or an Open World identity. Nothing here is published or sent to another server.</p>
+        <p class="pie">Local drafts use unencrypted browser storage. Do not enter passwords, keys, secret data or other people's private information.</p>
+        <label for="node-default-name">Companion display name</label>
+        <input id="node-default-name" maxlength="64" autocomplete="off" value="My companion">
+        <label for="node-default-description">What should your Companion help with?</label>
+        <textarea id="node-default-description" rows="2" maxlength="240" autocomplete="off">A personal experimental assistant for research, writing and learning. Its owner controls its data and permissions.</textarea>
+        <label for="node-default-prompt">Example public chatbot instructions</label>
+        <textarea id="node-default-prompt" rows="5" maxlength="1024" autocomplete="off">You are an experimental PreceptorOS companion. Answer clearly and briefly using only the capabilities available to you. Do not invent facts, tools, connections or actions. Explain uncertainty. Never disclose private information. Your owner must authorize any external action.</textarea>
+        <div class="node-template-actions">
+          <button id="node-default-save" type="button" class="probar">Keep these defaults on this device</button>
+          <button id="node-default-reset" type="button" class="probar">Restore example</button>
+          <button id="node-default-id" type="button" class="probar"
+                  aria-controls="node-identity-id" aria-describedby="node-default-status">Suggest my node ID</button>
+        </div>
+        <p id="node-default-status" role="status" aria-live="polite"
+           data-state="DRAFT_ONLY" data-acho="DRAFT_ONLY" data-cause="not_saved">Editable example only. Nothing saved or sent.</p>
+      </section>
       <section id="node-admission-path" class="tarjeta" aria-labelledby="node-admission-path-title"
                data-state="DRAFT_ONLY" data-acho="DRAFT_ONLY" data-cause="admission_requires_owner_review">
         <h3 id="node-admission-path-title">Bring your node to Open World</h3>
@@ -800,7 +847,7 @@
 <script src="/fleet_map.js?v=1"></script>
 <script src="/plan_flow.js?v=1"></script>
 <script src="/plan_fixture.js?v=1"></script>
-<script src="/superbot_talk.js?v=2"></script>
+<script src="/superbot_talk.js?v=3"></script>
 <script src="/plan_panels.js?v=3"></script>
 <script src="/plan_composer.js?v=2"></script>
 <script src="/hitl.js?v=7"></script>
@@ -809,6 +856,7 @@
 <script src="/audio_accessibility.js?v=1"></script>
 <script src="/memory_onboarding.js?v=1"></script>
 <script src="/app.js?v=56"></script>
+<script src="/mvp_first_run.js?v=1"></script>
 <script src="/creation_voice.js?v=1"></script>
 <script src="/keep_device.js?v=1"></script>
 <script src="/install.js?v=2"></script>

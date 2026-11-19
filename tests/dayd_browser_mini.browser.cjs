@@ -47,9 +47,17 @@ test('opt-in mini provides local closed intents at desktop and mobile sizes', { 
       await page.waitForFunction(() => window.PreceptorOfflineMini &&
         window.PreceptorProfile === 'personal_mvp');
       const toggle = page.locator('#mini-local-toggle');
+      const showMiniControl = async () => {
+        if (await page.locator('#modelos-menu').isHidden()) {
+          await page.locator('#modelos-toggle').click();
+        }
+        assert.equal(await page.locator('#mini-local-toggle').isVisible(),true);
+      };
       assert.equal(await toggle.getAttribute('aria-pressed'), 'false');
       assert.equal(await page.locator('#mini-local-mode-status').getAttribute('data-state'), 'NO_DATA');
+      await showMiniControl();
       assert.ok(await toggle.evaluate(e=>e.getBoundingClientRect().height)>=44);
+      await page.keyboard.press('Escape'); // close existing picker before the ordinary Talk request
       let apiRequests = 0, privatePosts = 0, foreignPosts = 0;
       page.on('request', r => {
         const u = new URL(r.url());
@@ -76,9 +84,11 @@ test('opt-in mini provides local closed intents at desktop and mobile sizes', { 
       assert.equal(privatePosts,0,'fresh personal profile must not post to rack model');
       assert.equal(foreignPosts,0,'no phone-home from personal browser');
       const baselineRequests = apiRequests;
+      await showMiniControl();
       await toggle.click();
       assert.equal(await toggle.getAttribute('aria-pressed'), 'true');
       assert.equal(await page.locator('#mini-local-mode-status').getAttribute('data-acho'), 'DRAFT_ONLY');
+      await page.keyboard.press('Escape');
       await page.locator('#dicho').fill('hola');
       await page.locator('#enviar').click();
       await page.waitForFunction(() =>
@@ -100,9 +110,11 @@ test('opt-in mini provides local closed intents at desktop and mobile sizes', { 
       assert.equal(await page.locator('#tab-lab').getAttribute('aria-selected'),'false',
         'oversize input must not be truncated into navigation');
       assert.equal(apiRequests,baselineRequests,'oversize must not contact a backend');
+      await showMiniControl();
       await toggle.click();
       assert.equal(await toggle.getAttribute('aria-pressed'), 'false');
       assert.equal(await page.locator('#mini-local-mode-status').getAttribute('data-acho'), 'NO_DATA');
+      await page.keyboard.press('Escape');
       // When the owner turns mini off, the existing Chat backend must be
       // reachable again (its response can still be NO_DATA without a GGUF).
       await page.locator('#dicho').fill('hello');
@@ -115,6 +127,7 @@ test('opt-in mini provides local closed intents at desktop and mobile sizes', { 
       assert.ok(apiRequests > baselineRequests, 'turning mini off must restore the regular Chat path');
       const requestsAfterModel = apiRequests;
       await page.evaluate(() => { window.PreceptorProfile='private_rack'; });
+      await showMiniControl();
       await toggle.click();
       assert.equal(await toggle.getAttribute('aria-pressed'), 'false');
       assert.equal(await page.locator('#mini-local-mode-status').getAttribute('data-cause'), 'rack_profile_read_only');
@@ -128,7 +141,7 @@ test('opt-in mini provides local closed intents at desktop and mobile sizes', { 
       }));
       assert.equal(state.state,'DRAFT_ONLY');
       assert.equal(state.acho,'DRAFT_ONLY');
-      assert.ok(state.text.includes('NOT Hexelion. No bundled large model, tools or network.'));
+      assert.ok(state.text.includes('deterministic routing only. No external model, network or tools.'));
       assert.equal(privatePosts,0,'no private chat POST on this fresh personal client');
       assert.equal(foreignPosts,0,'no non-local POST from this fresh personal client');
       console.log(JSON.stringify({viewport, mini: 'PASS', local_backend_requests:apiRequests,
