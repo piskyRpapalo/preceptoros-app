@@ -73,8 +73,8 @@ class Mvp(unittest.TestCase):
         self.assertIn('button.click(); // Existing read-only identity operation', JS)
         self.assertNotIn('id="node-deploy"', HTML)
     def test_worker_is_not_stale(self):
-        self.assertIn('preceptoros-armazon-v232', SW)
-        for path in ('/app.js?v=56', '/app.css?v=52', '/zonas.js?v=7'):
+        self.assertIn('preceptoros-armazon-v233', SW)
+        for path in ('/app.js?v=56', '/app.css?v=53', '/zonas.js?v=7'):
             self.assertIn(path, HTML)
             self.assertIn(path, SW)
 

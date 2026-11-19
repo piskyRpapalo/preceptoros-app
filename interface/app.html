@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=52">
+<link rel="stylesheet" href="/app.css?v=53">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
@@ -43,12 +43,14 @@
       <h2 id="h-conversacion" class="sr">Talk</h2>
       <div class="superbot-heading" role="group" aria-label="Agents and selected orchestrator">
         <h3 id="superbot-title">Agents</h3>
-        <span class="superbot-orchestrator" id="superbot-orchestrator">Mini Orchestrator · local mode</span>
+        <span class="superbot-orchestrator sr" id="superbot-orchestrator">Mini Orchestrator · local mode</span>
       </div>
       <details class="superbot-agents" id="superbot-agent-disclosure" data-state="NO_DATA"
         data-cause="agent_roster_not_connected" data-acho="silent">
-        <summary aria-label="Show agents referenced in the selected plan">
-          <span id="superbot-agent-count">Agents · not connected</span>
+        <summary aria-labelledby="superbot-agent-count">
+          <span id="superbot-agent-status-dot" class="superbot-agent-status-dot" aria-hidden="true"></span>
+          <span id="superbot-agent-names" class="superbot-agent-names" aria-hidden="true"></span>
+          <span id="superbot-agent-count" class="sr" role="status" aria-live="polite">Agents · not connected</span>
         </summary>
         <p class="pie" id="superbot-agent-hint">Connect your orchestrator or create a plan to see referenced agents here.</p>
         <nav class="superbot-agent-tabs" id="superbot-agent-tabs" role="tablist" aria-label="Agents in this plan"></nav>
@@ -798,7 +800,7 @@
 <script src="/fleet_map.js?v=1"></script>
 <script src="/plan_flow.js?v=1"></script>
 <script src="/plan_fixture.js?v=1"></script>
-<script src="/superbot_talk.js?v=1"></script>
+<script src="/superbot_talk.js?v=2"></script>
 <script src="/plan_panels.js?v=3"></script>
 <script src="/plan_composer.js?v=2"></script>
 <script src="/hitl.js?v=7"></script>

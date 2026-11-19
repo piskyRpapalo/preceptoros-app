@@ -52,7 +52,7 @@ class DayDRoomBuilding(unittest.TestCase):
         self.assertIn('src="/companion_onboarding.js?v=5"',html)
         self.assertIn('PreceptorCompanionOnboarding.mountBuilding(document);',html)
         self.assertIn('renderDraft({ slug: slug, title: title, summary: purpose, agent:',js)
-        self.assertIn('const Cache = "preceptoros-armazon-v232"',sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v233"',sw)
         self.assertIn('"/companion_onboarding.js?v=5"',sw)
         self.assertNotIn('localStorage.',js)
         self.assertNotIn('fetch(',js)

@@ -1365,17 +1365,28 @@ html[data-reduce-motion="true"] #talk-processing .talk-processing-crab {
 
 /* Superbot takes the repeated visual Talk title's place. Main tabs remain untouched. */
 #panel-conversacion > .superbot-panel-header {
-  display: flex; align-items: flex-start; flex-wrap: wrap; gap: .5rem .7rem;
-  padding-bottom: .45rem; margin-bottom: .1rem; flex-shrink: 0;
+  display: flex; align-items: center; flex-wrap: nowrap; gap: .6rem;
+  min-height: 44px; padding-bottom: .25rem; margin-bottom: .1rem; flex-shrink: 0;
 }
-.superbot-heading { display: grid; gap: .15rem; min-width: min(100%, 150px); flex: 1 1 190px; }
+.superbot-heading { display: flex; align-items: center; flex: 0 0 auto; min-width: 0; }
 .superbot-heading h3 { margin: 0; font-size: 1.03rem; }
-.superbot-orchestrator { color: var(--ink-soft); font-size: .83rem; overflow-wrap: anywhere; }
-.superbot-agents { margin: 0; flex: 1 1 172px; min-width: 0; border: 1px solid var(--line);
-  border-radius: 10px; background: var(--paper); overflow: visible; }
-.superbot-agents summary { cursor: pointer; padding: .5rem .65rem; min-height: 44px;
-  display: flex; align-items: center; font-weight: 650; }
-.superbot-agents summary:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+.superbot-orchestrator { color: var(--ink-soft); font-size: .83rem; }
+.superbot-agents { margin: 0; flex: 1 1 auto; min-width: 0;
+  border: 0; border-radius: 0; background: transparent; overflow: visible; }
+.superbot-agents > summary { cursor: pointer; padding: 0 .1rem; min-height: 44px;
+  display: flex; align-items: center; gap: .55rem; list-style: none; }
+.superbot-agents > summary::-webkit-details-marker { display: none; }
+.superbot-agents > summary::marker { content: ""; }
+.superbot-agent-status-dot { display: inline-block; flex: 0 0 12px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--stop); border: 1px solid var(--stop); }
+.superbot-agents[data-state="VERIFIED_ACTIVE"] .superbot-agent-status-dot {
+  background: var(--ok); border-color: var(--ok);
+}
+/* Plan references are NOT a green signal. No current input supplies verified
+ * running-agent evidence, so the default dot remains red (fail closed). */
+.superbot-agent-names { min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; color: var(--ink-soft); font-size: .84rem; }
+.superbot-agents > summary:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 .superbot-agents > :not(summary) { margin: .45rem .65rem; }
 .superbot-agent-tabs { display: flex; flex-wrap: wrap; gap: .35rem; }
 .superbot-agent-tab { min-height: 44px; padding: .45rem .7rem; border: 1px solid var(--line);
@@ -1398,7 +1409,9 @@ html[data-reduce-motion="true"] #talk-processing .talk-processing-crab {
 .settings-audio-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .settings-audio-actions button:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 @media (forced-colors: active) {
-  .superbot-agents, .superbot-agent-tab, .settings-audio-actions button { border: 1px solid ButtonText; }
+  .superbot-agent-status-dot { background: CanvasText; border: 1px solid CanvasText; }
+  .superbot-agents[data-state="VERIFIED_ACTIVE"] .superbot-agent-status-dot { background: Highlight; border-color: Highlight; }
+  .superbot-agent-tab, .settings-audio-actions button { border: 1px solid ButtonText; }
 }
 
 
