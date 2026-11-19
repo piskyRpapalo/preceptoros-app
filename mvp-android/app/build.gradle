@@ -35,6 +35,7 @@ tasks.register('copyPanels', Copy) {
     from(rootProject.file('android_review_bridge.js'))
     from(rootProject.file('offline_mini.js'))
     from(rootProject.file('android_join_bridge.js'))
+    from(rootProject.file('legal')) { into 'licenses' }
     if (project.hasProperty('offlineMiniModel')) {
         from(project.file(project.property('offlineMiniModel'))) {
             rename { 'offline-mini.gguf' }
