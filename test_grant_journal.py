@@ -72,6 +72,18 @@ class TestJournalInit(unittest.TestCase):
         con.close()
         self.assertTrue(nested.is_file())
 
+    def test_direct_open_initial_permissions_are_private(self):
+        # Direct callers must not expose the DB between connect() and chmod.
+        import stat
+        previous_umask = os.umask(0o022)
+        try:
+            con = GJ.open_journal(self.db_path)
+            con.close()
+        finally:
+            os.umask(previous_umask)
+        mode = stat.S_IMODE(self.db_path.stat().st_mode)
+        self.assertEqual(mode, 0o600)
+
     def test_journal_schema_version(self):
         GJ.init_journal(self.db_path)
         con = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)

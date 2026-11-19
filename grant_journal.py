@@ -136,9 +136,23 @@ def open_journal(db_path: Path) -> sqlite3.Connection:
     # Security: reject symlinks and non-regular files
     _check_path_security(db_path)
 
-    # Security: check existing file permissions
-    if db_path.exists():
-        _check_file_permissions(db_path)
+    # Create with owner-only permissions from the first filesystem operation.
+    # sqlite3.connect(path) would otherwise create a new DB under the umask
+    # (e.g. 0644), exposing the grant journal before init_journal() chmod.
+    if not db_path.exists():
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            fd = os.open(str(db_path), flags, 0o600)
+        except FileExistsError:
+            # Another process may have created it; never silently trust it.
+            _check_path_security(db_path)
+        except OSError as exc:
+            raise JournalError(f"journal secure creation failed: {type(exc).__name__}") from exc
+        else:
+            os.close(fd)
+
+    # Security: check modes for both pre-existing and freshly created files.
+    _check_file_permissions(db_path)
 
     con = sqlite3.connect(str(db_path), timeout=30, isolation_level=None)
     try:
