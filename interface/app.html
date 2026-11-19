@@ -39,25 +39,6 @@
 
   <!-- hablar -->
   <section class="panel" id="panel-conversacion" role="tabpanel" aria-labelledby="tab-conversacion" tabindex="0" aria-label="Talk">
-    <!-- First-use guide belongs to this APP, not the separate Mini Orchestrator. -->
-    <section id="mvp-first-run" class="mvp-first-run" role="region"
-             aria-labelledby="mvp-first-run-title" aria-describedby="mvp-first-run-hint"
-             data-state="GUIDE_ONLY" data-acho="GUIDE_ONLY" data-cause="first_visit">
-      <h2 id="mvp-first-run-title">Welcome to PreceptorOS</h2>
-      <p id="mvp-first-run-hint" class="pie">Three steps to begin. Opening this guide does not connect an account, install a model or publish a node.</p>
-      <ol>
-        <li><strong>Discover PreceptorOS.</strong> Manage your own AI resources, prepare a node and explore Open World. Your private data stays yours.</li>
-        <li><strong>Meet your Mini Orchestrator.</strong> You can use deterministic local commands without an account. Model-generated responses are experimental and require a verified local runtime.
-          <button id="mvp-first-run-mini" class="probar" type="button">Find local Mini Orchestrator</button>
-        </li>
-        <li><strong>Configure your node.</strong> Choose a display name and a neutral public-chatbot prompt, then review your node identity. Saving a local draft is not admission to Open World.
-          <button id="mvp-first-run-node" class="probar" type="button">Open Node identity</button>
-        </li>
-      </ol>
-      <button id="mvp-first-run-finish" class="probar" type="button">Finish introduction</button>
-      <p id="mvp-first-run-state" class="sr" role="status" aria-live="polite"
-         data-state="GUIDE_ONLY" data-acho="GUIDE_ONLY" data-cause="not_completed">Introduction is available. No node request has been sent.</p>
-    </section>
         <header class="panel-cabecera superbot-panel-header">
       <h2 id="h-conversacion" class="sr">Talk</h2>
       <div class="superbot-heading" role="group" aria-label="Agents and selected orchestrator">
@@ -77,6 +58,25 @@
           aria-label="Selected agent functions" hidden></div>
       </details>
     </header>
+    <!-- First-use guide belongs to this APP, not the separate Mini Orchestrator. -->
+    <section id="mvp-first-run" class="mvp-first-run" role="region"
+             aria-labelledby="mvp-first-run-title" aria-describedby="mvp-first-run-hint"
+             data-state="GUIDE_ONLY" data-acho="GUIDE_ONLY" data-cause="first_visit">
+      <h2 id="mvp-first-run-title">Welcome to PreceptorOS</h2>
+      <p id="mvp-first-run-hint" class="pie">Three steps to begin. Opening this guide does not connect an account, install a model or publish a node.</p>
+      <ol>
+        <li><strong>Discover PreceptorOS.</strong> Manage your own AI resources, prepare a node and explore Open World. Your private data stays yours.</li>
+        <li><strong>Meet your Mini Orchestrator.</strong> You can use deterministic local commands without an account. Model-generated responses are experimental and require a verified local runtime.
+          <button id="mvp-first-run-mini" class="probar" type="button">Find local Mini Orchestrator</button>
+        </li>
+        <li><strong>Configure your node.</strong> Choose a display name and a neutral public-chatbot prompt, then review your node identity. Saving a local draft is not admission to Open World.
+          <button id="mvp-first-run-node" class="probar" type="button">Open Node identity</button>
+        </li>
+      </ol>
+      <button id="mvp-first-run-finish" class="probar" type="button">Finish introduction</button>
+      <p id="mvp-first-run-state" class="sr" role="status" aria-live="polite"
+         data-state="GUIDE_ONLY" data-acho="GUIDE_ONLY" data-cause="not_completed">Introduction is available. No node request has been sent.</p>
+    </section>
     <div class="panel-actions" id="talk-actions" role="group" aria-label="Talk actions">
       <div class="talk-model-picker" role="group" aria-label="Model selection">
       <button id="modelos-toggle" class="modelos-toggle" type="button"
