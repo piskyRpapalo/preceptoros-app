@@ -1302,16 +1302,19 @@ html[data-reduce-motion="true"] *::after {
 #talk-processing {
   box-sizing: border-box;
   flex: 0 0 auto;
-  display: flex; align-items: center; gap: .6rem;
-  width: 100%; max-width: 780px; min-width: 0;
+  /* Full-width walking lane, not the former 72px button-width track. */
+  position: relative;
+  display: block;
+  width: 100%; max-width: none; min-width: 0;
   min-height: 48px; margin: .1rem auto 0;
-  padding: .1rem 1rem 0;
+  padding: 0;
   color: var(--ink); background: var(--ground);
 }
 #talk-processing[hidden] { display: none !important; }
 #talk-processing .talk-crab-check {
-  flex: 0 0 72px; box-sizing: border-box;
-  height: 46px; padding: 0;
+  /* Stable full-width keyboard/click target; only the drawing moves. */
+  display: block; width: 100%; height: 46px;
+  box-sizing: border-box; padding: 0;
   border: 0; border-radius: 0;
   background: transparent; color: var(--ink); cursor: pointer;
 }
@@ -1326,13 +1329,18 @@ html[data-reduce-motion="true"] *::after {
   display: block; position: absolute; left: 5px; top: 2px;
   width: 62px; height: 41px;
 }
+/* One uninterrupted linear crossing; alternate returns without teleporting. */
 #talk-processing[data-state="PROCESSING"] .talk-processing-crab,
 #talk-processing[data-state="SIMULATED"] .talk-processing-crab {
-  animation: talk-crab-sidestep 3.6s ease-in-out infinite alternate;
+  animation: talk-crab-sidestep 8s linear infinite alternate;
 }
 #talk-processing .talk-crab-canvas { display: block; width: 62px; height: 41px; }
 #talk-processing .talk-processing-copy {
-  display: flex; flex-direction: column; gap: .2rem; min-width: 0;
+  /* Keep diagnostic text out of the lane so the crab never walks over words.
+     The aria-live processing status still announces the real request state. */
+  position: absolute; inset-inline-end: 12px; bottom: 100%;
+  display: flex; flex-direction: column; gap: .2rem;
+  max-width: min(85vw, 420px); min-width: 0; pointer-events: none;
 }
 #talk-processing .talk-processing-label[hidden] { display: none !important; }
 #talk-processing .talk-processing-label {
@@ -1346,8 +1354,8 @@ html[data-reduce-motion="true"] *::after {
 #talk-processing[data-state="PROCESSING"] .talk-processing-label { color: var(--acento); }
 #panel-conversacion[data-thinking="true"] #talk-tasks { display: none !important; }
 @keyframes talk-crab-sidestep {
-  from { left: 0; }
-  to { left: calc(100% - 62px); }
+  from { left: 5px; }
+  to { left: calc(100% - 67px); }
 }
 @media (prefers-reduced-motion: reduce) {
   #talk-processing .talk-processing-crab { animation: none !important; left: 5px !important; }

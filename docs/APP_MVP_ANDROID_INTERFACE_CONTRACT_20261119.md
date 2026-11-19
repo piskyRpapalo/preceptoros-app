@@ -8,7 +8,9 @@ Six existing tabs: Talk `#panel-conversacion`, Operations Data `#panel-cuaderno`
 
 Canonical owner-facing sources: `interface/app.html`, `interface/app.css`, `interface/app.js`, `interface/superbot_talk.js`, `interface/mvp_first_run.js`, `interface/sw.js`. Keep `interface/browser_mini_gate.js` and the existing `mvp-android/offline_mini.js` (deterministic browser router). The Android JNI/runtime is owned by the Android lane and must not be silently replaced with a static four-panel projection.
 
-**Pinned PWA revisions:** `preceptoros-armazon-v234`; `/app.css?v=54`; `/app.js?v=56`; `/superbot_talk.js?v=3`; `/mvp_first_run.js?v=1`; canonical Open World crab body `/face/bubble/openworld_crab_body.js?v=1` (original SHA-256 `e332c81bdee87a90a3aa76e7e34dea32c5f493879b64c1f97104510a6e3404b0`). Route the new script through the existing `bin/preceptoros-pwa` static allowlist.
+**Integrated crab provenance:** APP CRAB-WALK-01 PR #349 head `4d3f0648bcde3f9603301917999c373ef889b705` (linear full-width walking, CSS-only; existing canonical Atlas body/idle greeting unchanged).
+
+**Pinned PWA revisions:** `preceptoros-armazon-v235`; `/app.css?v=55`; `/app.js?v=56`; `/superbot_talk.js?v=3`; `/mvp_first_run.js?v=1`; canonical Open World crab body `/face/bubble/openworld_crab_body.js?v=1` (original SHA-256 `e332c81bdee87a90a3aa76e7e34dea32c5f493879b64c1f97104510a6e3404b0`). Route the new script through the existing `bin/preceptoros-pwa` static allowlist.
 
 ## First-run/storage contract
 
