@@ -113,9 +113,14 @@ class PublicMiniPackage(unittest.TestCase):
         # server. It never touches the installed S110 application.
         module.build(ROOT / "dist/public-mini-app")
         for width in (360, 420):
-            with self.subTest(width=width):
-                run = subprocess.run(["node", "tests/public_mini_browser.mjs", str(width)],
-                                     cwd=ROOT, capture_output=True, text=True, timeout=75)
+            run = subprocess.run(["node", "tests/public_mini_browser.mjs", str(width)],
+                                 cwd=ROOT, capture_output=True, text=True, timeout=75)
+            # bin/pruebas prints only FAIL/ERROR header lines in CI. Attach
+            # bounded synthetic-browser evidence to that header on failure:
+            # this never includes live owner data, URLs or credentials.
+            browser_failure = ((run.stderr + run.stdout).strip()[-380:]
+                               if run.returncode else "none")
+            with self.subTest(width=width, browser_failure=browser_failure):
                 self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
                 self.assertIn('"status":"PASS"', run.stdout)
                 self.assertIn('"apiRequests":0', run.stdout)
