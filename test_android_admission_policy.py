@@ -108,7 +108,7 @@ class AndroidAdmissionPolicy(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("pass 6", result.stdout)
 
-    def test_android_only_bundle_and_no_network_permission(self):
+    def test_android_only_bundle_and_explicitly_consented_network(self):
         main = (ROOT / "mvp-android/app/src/main/java/org/preceptoros/mvp/MainActivity.java").read_text()
         build = (ROOT / "mvp-android/app/build.gradle").read_text()
         manifest = (ROOT / "mvp-android/app/src/main/AndroidManifest.xml").read_text()
@@ -120,7 +120,18 @@ class AndroidAdmissionPolicy(unittest.TestCase):
         self.assertIn('CompanionReviewPolicy.accepts(url)', main)
         self.assertIn('new Intent(Intent.ACTION_VIEW', main)
         self.assertIn("PreceptorAndroidReview", js)
-        self.assertNotIn("android.permission.INTERNET", manifest)
+        # R1 intentionally adds INTERNET for a user-confirmed HTTPS request to
+        # one fixed Aduana origin; earlier v4 without an intake client had none.
+        self.assertIn("android.permission.INTERNET", manifest)
+        self.assertIn('android:usesCleartextTraffic="false"', manifest)
+        join = (ROOT / "mvp-android/app/src/main/java/org/preceptoros/mvp/DeploymentJoinBridge.java").read_text()
+        self.assertIn("WebViewCompat.addWebMessageListener", join)
+        self.assertIn("isMainFrame", join)
+        self.assertIn("EXPECTED_ORIGIN", join)
+        self.assertIn("new AlertDialog.Builder", join)
+        self.assertIn("setInstanceFollowRedirects(false)", join)
+        self.assertNotIn("addJavascriptInterface(", join)
+
 
 
 if __name__ == "__main__":

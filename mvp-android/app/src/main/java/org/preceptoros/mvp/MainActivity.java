@@ -36,6 +36,7 @@ public class MainActivity extends Activity {
 
     private WebViewAssetLoader loader;
     private volatile boolean ownPageReady = false;
+    boolean ownPageVerified() { return ownPageReady; }
     private final AtomicLong lastReviewRequest = new AtomicLong(0L);
     private final Object miniModelLock = new Object();
     private long lastMiniAsk = 0L;
@@ -174,6 +175,8 @@ public class MainActivity extends Activity {
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.addJavascriptInterface(new ReviewHandoff(), "PreceptorAndroidReview");
         web.addJavascriptInterface(new OfflineModelBridge(), "PreceptorAndroidMiniModel");
+        // No addJavascriptInterface for network/identity: only origin/main-frame checked listener.
+        final boolean joinAvailable = DeploymentJoinBridge.install(this, web);
         web.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
@@ -184,6 +187,7 @@ public class MainActivity extends Activity {
                     try {
                         evaluateBundledScript(view, "android_review_bridge.js");
                         evaluateBundledScript(view, "offline_mini.js");
+                        if (joinAvailable) evaluateBundledScript(view, "android_join_bridge.js");
                     } catch (IOException unavailable) {
                         ownPageReady = false;
                         Toast.makeText(MainActivity.this,

@@ -56,9 +56,44 @@ class Tank3Mini(unittest.TestCase):
         self.assertIn("NO_DATA(llama_source_revision_mismatch)", script)
         self.assertIn("ANDROID_ABI=arm64-v8a", script)
 
-    def test_android_internet_permission_absent(self):
+    def test_join_network_permission_is_explicit_and_origin_checked(self):
         manifest = (ANDROID / "app/src/main/AndroidManifest.xml").read_text()
-        self.assertNotIn("uses-permission android:name=\"android.permission.INTERNET\"", manifest)
+        self.assertIn("uses-permission android:name=\"android.permission.INTERNET\"", manifest)
+        self.assertIn('android:usesCleartextTraffic="false"', manifest)
+        native = (ANDROID / "app/src/main/java/org/preceptoros/mvp/DeploymentJoinBridge.java").read_text()
+        self.assertIn("WebViewCompat.addWebMessageListener", native)
+        self.assertIn("isMainFrame", native)
+        self.assertIn("EXPECTED_ORIGIN", native)
+        self.assertIn("new AlertDialog.Builder", native)
+        self.assertIn("setInstanceFollowRedirects(false)", native)
+        self.assertNotIn("addJavascriptInterface(", native)
+        shim = (ANDROID / "android_join_bridge.js").read_text()
+        self.assertIn("PreceptorAndroidJoin", shim)
+        self.assertNotIn("fetch(", shim)
+        self.assertNotIn("XMLHttpRequest", shim)
+
+    def test_debug_join_package_if_provided(self):
+        location = os.environ.get("JOIN_DEBUG_APK")
+        if not location:
+            self.skipTest("NO_DATA(JOIN_DEBUG_APK_unset): debug bridge package not measured")
+        apk = Path(location)
+        self.assertTrue(apk.is_file())
+        aapt2 = str(BUILD_TOOLS / "aapt2")
+        badging = subprocess.run([aapt2, "dump", "badging", str(apk)],
+            capture_output=True, text=True, check=True, timeout=20).stdout
+        self.assertRegex(badging, r"package: name='org.preceptoros.app' versionCode='5' ")
+        perms = subprocess.run([aapt2, "dump", "permissions", str(apk)],
+            capture_output=True, text=True, check=True, timeout=20).stdout
+        self.assertIn("android.permission.INTERNET", perms)
+        with zipfile.ZipFile(apk) as bundle:
+            for name in ("assets/android_join_bridge.js", "assets/offline-mini.gguf",
+                         "lib/arm64-v8a/libmini_llama.so", "assets/app.html",
+                         "assets/node_registration.js"):
+                self.assertIn(name, bundle.namelist())
+            self.assertEqual(hashlib.sha256(bundle.read("assets/offline-mini.gguf")).hexdigest(), EXPECTED_MODEL)
+            # This debug build is intentionally based on the older phone UI.
+            # It is not yet the final owner UI with requestDeploymentReview.
+            self.assertNotIn(b"requestDeploymentReview",bundle.read("assets/node_registration.js"))
 
     def test_binary_assets_are_ignored(self):
         ignore = (ANDROID / ".gitignore").read_text()
