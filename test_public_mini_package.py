@@ -1,4 +1,4 @@
-"""Public MINI is a reproducible projection of the existing four-zone APP.
+"""Public-safe deterministic MINI is derived from the approved six-panel APP.
 Tests use only local files and synthetic browser data. No network.
 """
 import hashlib
@@ -24,19 +24,31 @@ class PublicMiniPackage(unittest.TestCase):
         self.assertIn("pass 12", p.stdout)
         self.assertIn("fail 0", p.stdout)
 
-    def test_four_main_zones_are_projection_of_existing_app(self):
+    def test_six_main_panels_and_owner_safe_components_derive_from_existing_app(self):
         original = (ROOT / "interface/app.html").read_text(encoding="utf-8")
-        shell = module.shell(original)
-        self.assertEqual(shell.count('role="tab"'), 4)
-        for name in ("conversacion", "documentos", "lab", "ajustes"):
-            self.assertEqual(shell.count('id="tab-' + name + '"'), 1)
-            self.assertEqual(shell.count('id="panel-' + name + '"'), 1)
-        # Real APP Documents markup and form-chat from source, not a second clone.
-        self.assertIn(module.extract(original, "section", "panel-documentos"), shell)
-        self.assertIn('src="./offline_mini.js"', shell)
-        self.assertNotIn('src="./app.js"', shell)
-        self.assertNotIn("preceptoros-private-mesa", shell)
-        self.assertNotIn('href="/api/', shell)
+        projected = module.shell(original)
+        keys = ("conversacion", "cuaderno", "lab", "ajustes", "modelos", "settings")
+        self.assertEqual(projected.count('role="tab"'), len(keys))
+        for name in keys:
+            self.assertEqual(projected.count('id="tab-' + name + '"'), 1)
+            self.assertEqual(projected.count('id="panel-' + name + '"'), 1)
+        self.assertNotIn('role="tab" aria-controls="panel-documentos"', projected)
+        # Source-derived, not maintained in a second document/owner template.
+        for tag, element_id in (("section","mvp-first-run"),
+                                ("section","node-public-template"),
+                                ("details","superbot-agent-disclosure"),
+                                ("form","node-identity-form"),
+                                ("div","talk-processing")):
+            self.assertIn(module.extract(original,tag,element_id),projected)
+        docs = module.extract(original,"section","notebook-document-editor")
+        self.assertIn('id="documentos-guardar"',docs)
+        self.assertIn('id="documentos-guardar"',projected)
+        for js in ("offline_mini.js","mvp_first_run.js","talk_crab_canvas.js"):
+            self.assertIn('src="./'+js+'"',projected)
+        self.assertNotIn('src="./app.js"', projected)
+        self.assertNotIn('src="./hitl.js"', projected)
+        self.assertNotIn("preceptoros-private-mesa", projected)
+        self.assertNotIn('href="/api/', projected)
 
     def test_bundle_is_offline_reproducible_and_source_hashed(self):
         with tempfile.TemporaryDirectory(prefix="preceptoros-public-mini-") as d:
@@ -51,6 +63,12 @@ class PublicMiniPackage(unittest.TestCase):
                 self.assertEqual(len(names), len(set(names)))
                 self.assertIn("app/index.html", names)
                 manifest = json.loads(z.read("app/package-manifest.json"))
+                self.assertEqual(manifest["schema"],"preceptoros.public-mini-package/2")
+                self.assertEqual(manifest["mode"],"SIX_ZONE_PUBLIC_SAFE_DETERMINISTIC_ONLY")
+                self.assertEqual(manifest["source_panels"],
+                                 ["conversacion","cuaderno","lab","ajustes","modelos","settings"])
+                self.assertTrue(manifest["projection_not_android_apk"])
+                self.assertEqual(manifest["approved_app_sw"],"preceptoros-armazon-v235")
                 self.assertTrue(manifest["no_model_download"])
                 self.assertTrue(manifest["no_rack_connection"])
                 self.assertEqual(manifest["public_entry"], "/app/")
@@ -58,7 +76,11 @@ class PublicMiniPackage(unittest.TestCase):
                     self.assertEqual(hashlib.sha256(z.read("app/" + filename)).hexdigest(), expected)
                 self.assertEqual(z.read("app/offline_mini.js"),
                                  (ROOT / "mvp-android/offline_mini.js").read_bytes())
+                for asset in ("mvp_first_run.js","talk_crab_canvas.js",
+                              "face/bubble/openworld_crab_body.js"):
+                    self.assertEqual(z.read("app/"+asset),(ROOT/"interface"/asset).read_bytes())
                 self.assertNotIn("app/app.js", names)
+                self.assertNotIn("app/hitl.js", names)
             second = module.build(out)
             self.assertEqual(second["sha256"], first["sha256"])
             self.assertEqual(archive.read_bytes(), binary)
@@ -101,6 +123,10 @@ class PublicMiniPackage(unittest.TestCase):
     def test_bad_or_duplicate_source_identity_fails_closed(self):
         original = (ROOT / "interface/app.html").read_text()
         self.assertRaises(ValueError, module.shell, original.replace('id="tab-lab"', 'id="tab-extra"'))
+        self.assertRaises(ValueError, module.shell, original.replace('id="tab-settings"', 'id="tab-extra"'))
+        self.assertRaises(ValueError, module.shell, original.replace('id="tab-modelos"', 'id="tab-ajustes"'))
+        self.assertRaises(ValueError, module.shell, original.replace('id="node-public-template"', 'id="other-template"'))
+        self.assertRaises(ValueError, module.shell, original.replace('id="mvp-first-run"', 'id="legacy-intro"'))
         self.assertRaises(ValueError, module.extract, original, "form", "missing-form")
         self.assertRaises(ValueError, module.shell, original.replace('Sign deployment', 'Unsigned cédula POST'))
 
