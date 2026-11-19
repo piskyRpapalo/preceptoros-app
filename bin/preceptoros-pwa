@@ -385,6 +385,7 @@ ESTATICOS = {
     "/acho_sonido.js": ("acho_sonido.js", "application/javascript; charset=utf-8"),
     "/audio_accessibility.js": ("audio_accessibility.js", "application/javascript; charset=utf-8"),
     "/superbot_talk.js": ("superbot_talk.js", "application/javascript; charset=utf-8"),
+    "/mvp_first_run.js": ("mvp_first_run.js", "application/javascript; charset=utf-8"),
     "/firmas.js": ("firmas.js", "application/javascript; charset=utf-8"),
     "/hitl.js": ("hitl.js", "application/javascript; charset=utf-8"),
     "/hitl.css": ("hitl.css", "text/css; charset=utf-8"),

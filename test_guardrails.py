@@ -559,6 +559,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
                          "HEIGHT", "NEUTRAL", "PROPUESTA"}
         # Visual-only Agents activity status, never a privacy policy.
         INTRINSECOS |= {"VERIFIED_ACTIVE"}
+        # Owner-only first-run UI states, not secret-scrub policies.
+        INTRINSECOS |= {"GUIDE_ONLY", "SAVED_LOCAL", "DISMISSED", "NOT_AUTHORIZED", "NOT_VERIFIED", "NFKD"}
         # Model choice is a draft, not a redaction policy or proof of inference.
         # JSON is the native JS serialization API, not a security policy.
         INTRINSECOS |= {"DRAFT_ONLY", "JSON", "MINI", "LOCAL"}  # MINI-LOCAL is a router label, not a scrub policy.

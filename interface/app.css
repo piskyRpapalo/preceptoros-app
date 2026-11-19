@@ -1372,6 +1372,29 @@ html[data-reduce-motion="true"] #talk-processing .talk-processing-crab {
 }
 
 /* Superbot takes the repeated visual Talk title's place. Main tabs remain untouched. */
+/* The first-run guide is the only introductory view, hidden after explicit choice.
+ * It does not start inference or create/publicly register a node. */
+.mvp-first-run { box-sizing: border-box; margin: 0 0 .7rem; padding: .8rem;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--paper);
+  max-width: 100%; }
+.mvp-first-run[hidden] { display: none !important; }
+.mvp-first-run h2 { margin: 0 0 .3rem; font-size: 1.05rem; }
+.mvp-first-run ol { margin: .55rem 0; padding-inline-start: 1.35rem; }
+.mvp-first-run li { margin-bottom: .55rem; line-height: 1.4; }
+.mvp-first-run li > button { display: block; margin-top: .3rem; }
+.mvp-first-run .probar { min-height: 44px; }
+#node-public-template { display: grid; gap: .45rem; min-width: 0; }
+#node-public-template label { font-weight: 650; }
+#node-public-template :is(input,textarea) { min-width: 0; width: 100%; max-width: 100%;
+  box-sizing: border-box; font: inherit; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line); border-radius: 8px; padding: .55rem; }
+#node-public-template .node-template-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+#node-public-template :is(button,input,textarea):focus-visible,
+.mvp-first-run button:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+@media (forced-colors: active) {
+  .mvp-first-run, #node-public-template :is(input,textarea) { background: Canvas; color: CanvasText; border-color: CanvasText; }
+}
+
 #panel-conversacion > .superbot-panel-header {
   display: flex; align-items: center; flex-wrap: nowrap; gap: .6rem;
   min-height: 44px; padding-bottom: .25rem; margin-bottom: .1rem; flex-shrink: 0;
@@ -1384,6 +1407,8 @@ html[data-reduce-motion="true"] #talk-processing .talk-processing-crab {
 .superbot-agents > summary { cursor: pointer; padding: 0 .1rem; min-height: 44px;
   display: flex; align-items: center; gap: .55rem; list-style: none; }
 .superbot-agents > summary::-webkit-details-marker { display: none; }
+.superbot-agents > summary::after { content: "▾"; flex: 0 0 auto; margin-inline-start: auto; color: var(--ink-soft); }
+.superbot-agents[open] > summary::after { content: "▴"; }
 .superbot-agents > summary::marker { content: ""; }
 .superbot-agent-status-dot { display: inline-block; flex: 0 0 12px; width: 12px; height: 12px;
   border-radius: 50%; background: var(--stop); border: 1px solid var(--stop); }

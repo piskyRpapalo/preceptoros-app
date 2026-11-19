@@ -527,6 +527,21 @@ APP_MVP_FROZEN_VISUAL_COPY_20261119 = {
     "What's local, what needs a service",
 }
 
+# Owner-reviewed APP MVP first-run and template copy (19 November 2026).
+APP_COMMISSION_FIRST_RUN_ENGLISH_20261119 = {
+    'Configure your node.',
+    'Discover PreceptorOS.',
+    'Example public chatbot instructions',
+    'Meet your Mini Orchestrator.',
+    'Public display name',
+    'These editable defaults are a template for a future public c',
+}
+# Additional reviewed onboarding, Companion description and Lab helper copy.
+APP_COMMISSION_OWNER_COPY_20261119 = {
+    'Companion display name',
+    'Local drafts use unencrypted browser storage. Do not enter p',
+    'What should your Companion help with?',
+}
 APP_DORMANT_DOCUMENT_KEYS = {"documentos_contenido", "documentos_titulo"}
 
 
@@ -561,7 +576,7 @@ def t_cara_sin_texto_suelto():
         "APP dejó de forzar inglés: reactivar gate bilingüe"
     sueltos = _textos_sueltos("interface/dashboard.html")
     sueltos += [(ruta, texto) for ruta, texto in _textos_sueltos("interface/app.html")
-                if texto not in (APP_ENGLISH_FROZEN_COPY | APP_MVP_FROZEN_VISUAL_COPY_20261119)]
+                if texto not in (APP_ENGLISH_FROZEN_COPY | APP_MVP_FROZEN_VISUAL_COPY_20261119 | APP_COMMISSION_FIRST_RUN_ENGLISH_20261119 | APP_COMMISSION_OWNER_COPY_20261119)]
     assert not sueltos, (
         "texto nuevo sin enganche; en APP solo se admite inglés congelado "
         "y un catálogo cerrado de excepciones:\n  " +
