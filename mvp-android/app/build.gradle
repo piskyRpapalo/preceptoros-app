@@ -4,11 +4,20 @@ plugins { id 'com.android.application' }
 def secretDir = new File(System.getProperty("user.home"), ".config/preceptoros/android")
 def passFile = new File(secretDir, "pass")
 def mvpVersionCode = (project.hasProperty('mvpVersionCode') ? project.property('mvpVersionCode') : '1') as Integer
-// The Sovereign's installed TWA uses org.preceptoros.app. An authorized local
-// upgrade can reuse its app id and signing key, without uninstalling user data.
-def mvpAppId = project.hasProperty('mvpAppId') ? project.property('mvpAppId') : 'org.preceptoros.mvp'
+// All normal Android builds target the ONE canonical signed APP identity.
+// The legacy org.preceptoros.mvp ID is allowed only for an explicit, owner-led
+// migration/export build. Changing the package ID is NOT an in-place update,
+// even when both APKs share the same signing certificate.
+def mvpAppId = project.hasProperty('mvpAppId') ? project.property('mvpAppId') : 'org.preceptoros.app'
+def legacyMigrationOnly = project.findProperty('legacyMigrationOnly')?.toString() == 'true'
 if (!(mvpAppId in ['org.preceptoros.mvp', 'org.preceptoros.app'])) {
     throw new GradleException('Unexpected Android package id')
+}
+if (mvpAppId == 'org.preceptoros.mvp' && !legacyMigrationOnly) {
+    throw new GradleException('Legacy Android package needs explicit -PlegacyMigrationOnly=true for data export; never a second normal APP')
+}
+if (legacyMigrationOnly && mvpAppId != 'org.preceptoros.mvp') {
+    throw new GradleException('Legacy migration flag may only be used with the legacy package ID')
 }
 
 tasks.register('copyPanels', Copy) {
