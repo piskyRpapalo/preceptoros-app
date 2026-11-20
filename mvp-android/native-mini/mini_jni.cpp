@@ -1,10 +1,16 @@
 // PreceptorOS MINI-LOCAL: local text inference only; no tools, network or rack access.
 #include <jni.h>
 #include <algorithm>
+#include <cmath>
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
 #include <mutex>
+#include <numeric>
 #include <string>
 #include <vector>
 #include "llama.h"
+#include "mini_quality.h"
 
 namespace {
 std::mutex mx;
@@ -12,6 +18,10 @@ llama_model * loaded_model = nullptr;
 std::string loaded_path;
 bool backend_ready = false;
 std::string no_data(const char *cause) { return std::string("NO_DATA(") + cause + ")"; }
+
+using mini_quality::has_loop;
+using mini_quality::sample_token;
+using mini_quality::unsupported_self_claim;
 
 std::string infer(const std::string &path, const std::string &user) {
     std::lock_guard<std::mutex> lk(mx);
@@ -57,13 +67,26 @@ std::string infer(const std::string &path, const std::string &user) {
     }
     std::string out;
     const int32_t count = llama_vocab_n_tokens(vocab);
+    std::vector<llama_token> gen_tokens;
+    gen_tokens.reserve(72);
+    const float temperature = 0.8f;
+    const int top_k = 40;
+    const int loop_window = 12;
+    const int loop_min_len = 3;
+    const int loop_min_count = 2;
     for (int step = 0; step < 72 && n+step < 510; ++step) {
         float *logits = llama_get_logits_ith(ctx, -1);
         if (!logits) { out = no_data("mini_missing_logits"); break; }
-        llama_token pick = 0;
-        for (llama_token t=1; t<count; ++t)
-            if (logits[t] > logits[pick]) pick=t;
+        llama_token pick = sample_token(logits, count, temperature, top_k);
+        if (pick < 0 || pick >= count) {
+            out = no_data("mini_nonfinite_logits"); break;
+        }
         if (llama_vocab_is_eog(vocab,pick)) break;
+        gen_tokens.push_back(pick);
+        if (has_loop(gen_tokens, loop_window, loop_min_len, loop_min_count)) {
+            out = no_data("mini_loop_detected");
+            break;
+        }
         char bytes[512] = {};
         int used = llama_token_to_piece(vocab,pick,bytes,sizeof(bytes),0,false);
         if (used > 0 && used < (int)sizeof(bytes) && out.size()+used < 4000)
@@ -78,6 +101,7 @@ std::string infer(const std::string &path, const std::string &user) {
         }
     }
     llama_batch_ext_free(batch); llama_free(ctx);
+    if (unsupported_self_claim(out)) return no_data("mini_unsupported_self_claim");
     return out.empty() ? no_data("mini_empty_generation") : out;
 }
 }
