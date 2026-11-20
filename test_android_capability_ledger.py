@@ -1,0 +1,189 @@
+"""Capability Ledger fail-closed tests; no writes to Android devices."""
+import importlib.util
+import pathlib
+import tempfile
+import unittest
+import warnings
+from zipfile import ZipFile
+
+ROOT = pathlib.Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location("ledger", ROOT / "mvp-android/capability_ledger.py")
+ledger = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ledger)
+
+class CapabilityLedgerTests(unittest.TestCase):
+    def test_real_source_seven_categories_present(self):
+        report = ledger.source_ledger(ROOT)
+        self.assertTrue(report["all_present"], report)
+        self.assertEqual(set(report["categories"]), set(ledger.APK))
+        self.assertEqual(len(report["categories"]), 7)
+
+    def test_missing_source_math_is_no_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = ledger.source_ledger(pathlib.Path(tmp))
+            self.assertFalse(report["all_present"])
+            self.assertEqual(report["categories"]["mathematics"]["state"], "NO_DATA")
+
+    def test_symbol_removed_fails_even_with_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "mvp-android/native-mini/mini_quality.h"
+            path.parent.mkdir(parents=True)
+            path.write_text("not actual math")
+            missing = ledger.source_ledger(pathlib.Path(tmp))["categories"]["mathematics"]["missing"]
+            self.assertIn("mvp-android/native-mini/mini_quality.h#symbol_missing", missing)
+
+    def test_badging_and_owner_cert_are_separate(self):
+        b = ledger.parse_badging("package: name='org.preceptoros.app' versionCode='8' versionName='0.3.1-mini-recovery'")
+        c = ledger.parse_certificate("Signer #1 certificate SHA-256 digest: " + ledger.OWNER_CERT.upper())
+        self.assertEqual((b["package"], b["versionCode"]), (ledger.CANONICAL, 8))
+        self.assertEqual(c["sha256"], ledger.OWNER_CERT)
+        self.assertEqual(ledger.parse_badging("x")["state"], "NO_DATA")
+        self.assertEqual(ledger.parse_certificate("x")["state"], "NO_DATA")
+
+    def test_missing_zip_is_not_package_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(ledger.inspect_apk(pathlib.Path(tmp) / "missing.apk")["state"], "NO_DATA")
+
+    def test_corrupt_zip_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "bad.apk"
+            path.write_bytes(b"not a zip")
+            self.assertEqual(ledger.inspect_apk(path)["cause"], "apk_unreadable")
+
+    def test_zip_missing_jni_and_model_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "some.apk"
+            with ZipFile(path, "w") as z:
+                z.writestr("assets/app.html", "synthetic")
+            result = ledger.inspect_apk(path)
+            self.assertEqual(result["state"], "NO_DATA")
+            self.assertEqual(result["capabilities"]["jni"]["state"], "NO_DATA")
+            self.assertEqual(result["capabilities"]["local_model"]["state"], "NO_DATA")
+
+    def test_zip_duplicate_entry_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "duplicate.apk"
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                with ZipFile(path, "w") as z:
+                    z.writestr("assets/app.html", "a")
+                    z.writestr("assets/app.html", "b")
+            self.assertEqual(ledger.inspect_apk(path)["cause"], "apk_duplicate_entries")
+
+    def test_all_packaged_is_still_not_signed_or_runtime_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "unsealed.apk"
+            names = set(p for files in ledger.APK.values() for p in files)
+            with ZipFile(path, "w") as z:
+                for name in names:
+                    z.writestr(name, "test")
+            result = ledger.inspect_apk(path)
+            self.assertEqual(result["state"], "NO_DATA")
+            self.assertTrue(all(x["state"] == "PACKAGED" for x in result["capabilities"].values()))
+            self.assertEqual(result["identity"]["state"], "NO_DATA")
+
+    def test_installed_metadata_is_not_model_turn(self):
+        p = ledger.parse_dumpsys("Package [org.preceptoros.mvp]\n versionCode=6 minSdk=26\n versionName=0.3.1\n",
+                                 ledger.LEGACY)
+        self.assertEqual(p["versionCode"], 6)
+        self.assertEqual(p["state"], "INSTALLED_METADATA")
+        self.assertEqual(ledger.parse_dumpsys("", ledger.CANONICAL)["state"], "NO_DATA")
+
+    def test_default_report_has_four_disjoint_layers(self):
+        result = ledger.make_report(ROOT)
+        self.assertEqual(result["schema"], ledger.SCHEMA)
+        self.assertEqual(result["source"]["all_present"], True)
+        self.assertEqual(result["apk"]["state"], "NO_DATA")
+        self.assertEqual(result["installed"]["state"], "NO_DATA")
+        self.assertEqual(result["runtime"]["state"], "NO_DATA")
+        self.assertNotIn("serial", str(result))
+
+    def test_no_source_witness_can_be_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            link = root / "mvp-android/native-mini/mini_quality.h"
+            link.parent.mkdir(parents=True)
+            target = root / "real.h"
+            target.write_text("has_loop( sample_token(")
+            link.symlink_to(target)
+            self.assertIn(str(link.relative_to(root)), ledger.source_ledger(root)["categories"]["mathematics"]["missing"])
+
+
+class ReleaseCandidateSyntheticTests(unittest.TestCase):
+    """Mock tool output proves policy logic only; NEVER claims a genuine signature."""
+
+    def make_fixture(self, tmp, version=8, cert=None):
+        root = pathlib.Path(tmp)
+        asset_names = set(p for v in ledger.APK.values() for p in v)
+        apk = root / "candidate.apk"
+        with ZipFile(apk, "w") as z:
+            for asset in sorted(asset_names):
+                if asset.startswith("assets/") and not asset.endswith(".gguf"):
+                    rel = asset.removeprefix("assets/")
+                    base = "mvp-android/" if rel in (
+                        "offline_mini.js", "android_join_bridge.js",
+                        "android_heartbeat_bridge.js") else "interface/"
+                    src = root / (base + rel)
+                    src.parent.mkdir(parents=True, exist_ok=True)
+                    src.write_bytes(b"synthetic-owned-asset")
+                    z.writestr(asset, b"synthetic-owned-asset")
+                else:
+                    z.writestr(asset, b"synthetic-binary")
+        tools = root / "fake-tools"
+        tools.mkdir()
+        aapt = tools / "aapt2"
+        aapt.write_text("#!/bin/sh\n" + "echo \"package: name='org.preceptoros.app' versionCode='" + str(version) + "' versionName='synthetic'\"\n")
+        signer = tools / "apksigner"
+        signer.write_text("#!/bin/sh\n" + "echo 'Signer #1 certificate SHA-256 digest: " + (cert or ledger.OWNER_CERT) + "'\n")
+        aapt.chmod(0o700)
+        signer.chmod(0o700)
+        return root, apk, tools
+
+    def test_synthetic_signed_v8_parity_has_only_apk_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, apk, tools = self.make_fixture(tmp)
+            x = ledger.inspect_apk(apk, tools, source_root=root)
+            self.assertEqual(x["state"], "VERIFIED_PACKAGE", x)
+            self.assertEqual(x["identity"]["versionCode"], 8)
+            self.assertEqual(x["source_parity"]["state"], "BYTE_EQUAL")
+            self.assertEqual(len(x["embedded_artifacts"]), 2)
+            self.assertEqual(ledger.make_report(root)["runtime"]["state"], "NO_DATA")
+
+    def test_synthetic_v7_cannot_be_app11_upgrade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, apk, tools = self.make_fixture(tmp, version=7)
+            x = ledger.inspect_apk(apk, tools, source_root=root)
+            self.assertEqual(x["state"], "NO_DATA")
+            self.assertEqual(x["identity"]["state"], "BLOCKED")
+
+    def test_synthetic_wrong_cert_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, apk, tools = self.make_fixture(tmp, cert="0" * 64)
+            x = ledger.inspect_apk(apk, tools, source_root=root)
+            self.assertEqual(x["state"], "NO_DATA")
+            self.assertEqual(x["identity"]["state"], "BLOCKED")
+
+    def test_synthetic_source_mismatch_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, apk, tools = self.make_fixture(tmp)
+            (root / "interface/app.html").write_bytes(b"changed-after-build")
+            x = ledger.inspect_apk(apk, tools, source_root=root)
+            self.assertEqual(x["state"], "NO_DATA")
+            self.assertEqual(x["source_parity"]["cause"], "apk_source_bytes_mismatch")
+
+    def test_symlinked_asset_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            path = root / "symlink.apk"
+            with ZipFile(path, "w") as z:
+                from zipfile import ZipInfo
+                x = ZipInfo("assets/app.html")
+                x.create_system = 3
+                x.external_attr = 0o120777 << 16
+                z.writestr(x, "real-page.html")
+                z.writestr("assets/app.css", "css")
+            result = ledger.inspect_apk(path)
+            self.assertIn("assets/app.html", result["capabilities"]["six_panels"]["missing"])
+
+if __name__ == "__main__":
+    unittest.main()
