@@ -3,7 +3,11 @@
 Static guard complements physical ADB witness in the LAB. It does not install APKs.
 """
 import re
+import os
+import hashlib
+import subprocess
 import unittest
+import zipfile
 from pathlib import Path
 
 BUILD = Path(__file__).resolve().parent / "mvp-android/app/build.gradle"
@@ -98,6 +102,37 @@ class OneAndroidAppPolicyTests(unittest.TestCase):
         )
         self.assertNotEqual(changed, self.source)
         self.assertIn("canonical_minimum_version_guard_missing", policy_defects(changed))
+
+    @unittest.skipUnless(os.environ.get("PRECEPTOROS_V8_APK"),
+                         "NO_DATA(owner_signed_v8_apk_not_built)")
+    def test_signed_v8_can_import_existing_legacy_mini_export(self):
+        """Only a real owner-signed candidate may close this release gate."""
+        apk = Path(os.environ["PRECEPTOROS_V8_APK"])
+        self.assertTrue(apk.is_file())
+        root = Path(__file__).resolve().parent
+        with zipfile.ZipFile(apk) as bundle:
+            names = set(bundle.namelist())
+            for rel in ("app.html", "mini_recovery.js", "mini_project_guide.js"):
+                item = "assets/" + rel
+                self.assertIn(item, names)
+                expected = (root / "interface" / rel).read_bytes()
+                self.assertEqual(hashlib.sha256(bundle.read(item)).digest(),
+                                 hashlib.sha256(expected).digest(), rel)
+            self.assertIn("assets/offline-mini.gguf", names)
+            self.assertIn("lib/arm64-v8a/libmini_llama.so", names)
+        tools = Path(os.getenv("ANDROID_BUILD_TOOLS",
+                            "/home/pisky/android-sdk/build-tools/36.0.0"))
+        badging = subprocess.run([str(tools / "aapt2"), "dump", "badging", str(apk)],
+                                 check=True, capture_output=True, text=True, timeout=30).stdout
+        self.assertIn("name='org.preceptoros.app'", badging)
+        version = re.search(r"versionCode='(\d+)'", badging)
+        self.assertIsNotNone(version)
+        self.assertGreaterEqual(int(version.group(1)), 8)
+        cert = subprocess.run([str(tools / "apksigner"), "verify",
+                               "--print-certs", str(apk)], check=True,
+                              capture_output=True, text=True, timeout=30).stdout
+        self.assertIn("16761a1e61376506acf4abdadfdddeb96ff18b4cc80a3d98205c91648e4c010f",
+                      cert.lower())
 
     def test_safeguard_does_not_change_java_class_namespace(self):
         self.assertIn('namespace "org.preceptoros.mvp"', self.source)
