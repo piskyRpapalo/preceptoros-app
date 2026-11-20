@@ -33,7 +33,7 @@ class MiniRecoveryGate(unittest.TestCase):
                            capture_output=True,text=True,timeout=30)
         self.assertEqual(run.returncode,0,(run.stderr+run.stdout)[-2500:])
         self.assertIn('fail 0',run.stdout)
-        self.assertIn('pass 32',run.stdout)
+        self.assertIn('pass 36',run.stdout)
 
 if __name__=='__main__':
     unittest.main()

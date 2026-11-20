@@ -12,6 +12,7 @@
   const recoveryKey=recordSchema;
   const maxBytes=262144;
   const maxDocs=12;
+  const maxRecordBytes=24576;
   const keys=Object.freeze(['schema','project','documents','source_links','declared_by','sent','model_weights_included']);
   const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x)&&Object.getPrototypeOf(x)===Object.prototype;
   const fail=cause=>Object.freeze({ok:false,state:'NO_DATA',cause,changed:false});
@@ -85,7 +86,7 @@
     try {
       const text=storage.getItem(recoveryKey);
       if (!text) return fail('no_previous_recovery');
-      if (encode(text).length>2048) return fail('recovery_record_oversized');
+      if (encode(text).length>maxRecordBytes) return fail('recovery_record_oversized');
       const record=JSON.parse(text);
       if (!plain(record)||record.schema!==recordSchema||record.state!=='UNVERIFIED_LOCAL'||
         !/^[0-9a-f]{64}$/.test(record.fingerprint||'')||
@@ -93,6 +94,14 @@
         !Number.isInteger(record.documents)||record.documents<0||record.documents>maxDocs ||
         record.authority!=='NONE'||record.ownerProof!=='NO_DATA(no_signed_owner_proof)')
         return fail('recovery_record_invalid');
+      if(record.projectSnapshot===undefined)return fail('recovery_snapshot_missing');
+      if(typeof record.projectSnapshot!=='string'||
+         encode(record.projectSnapshot).length>16384)return fail('recovery_snapshot_invalid');
+      const stored=storage.getItem(projectKey);
+      if(!stored)return fail('recovered_project_missing');
+      const current=JSON.parse(stored);
+      if(!plain(current)||canonical(current)!==record.projectSnapshot||
+         current.title!==record.title)return fail('recovered_project_changed');
       return Object.freeze({ok:true,...record,changed:false});
     }catch (_){return fail('recovery_storage_unavailable');}
   }
@@ -107,9 +116,35 @@
       for(const key of [projectKey,documentsKey,recoveryKey]) old[key]=storage.getItem(key);
       if(old[recoveryKey]!==null){
         const previous=read(storage);
-        if(!previous.ok)return fail('existing_recovery_unreadable');
+        if(!previous.ok&&previous.cause==='recovery_snapshot_missing'){
+          if(!old[projectKey]||!old[documentsKey])return fail('recovered_content_missing');
+          const legacy=JSON.parse(old[recoveryKey]);
+          if(legacy.fingerprint!==pending.fingerprint)return fail('different_existing_recovery_refused');
+          if(canonical(JSON.parse(old[projectKey]))!==canonical(pending.project))
+            return fail('recovered_project_changed');
+          const docs=JSON.parse(old[documentsKey]);
+          if(!Array.isArray(docs)||pending.docs.some(d=>
+            !docs.some(saved=>saved&&saved.title===d.title&&saved.content===d.content)))
+            return fail('recovered_documents_changed');
+          const upgraded={...legacy,projectSnapshot:canonical(pending.project)};
+          try{
+            storage.setItem(recoveryKey,JSON.stringify(upgraded));
+            if(storage.getItem(recoveryKey)!==JSON.stringify(upgraded))throw Error('writeback');
+          }catch(_){
+            try{storage.setItem(recoveryKey,old[recoveryKey]);}
+            catch(__){return fail('rollback_not_verified');}
+            return fail('owner_storage_write_failed');
+          }
+          return Object.freeze({...read(storage),alreadyRecovered:true,migrated:true,changed:true});
+        }
+        if(!previous.ok)return fail(previous.cause==='recovered_project_changed' ?
+          previous.cause : 'existing_recovery_unreadable');
         if(previous.fingerprint===pending.fingerprint) {
           if(!old[projectKey]||!old[documentsKey])return fail('recovered_content_missing');
+          const docs=JSON.parse(old[documentsKey]);
+          if(!Array.isArray(docs)||pending.docs.some(d=>
+            !docs.some(saved=>saved&&saved.title===d.title&&saved.content===d.content)))
+            return fail('recovered_documents_changed');
           return Object.freeze({...previous,state:'UNVERIFIED_LOCAL',alreadyRecovered:true});
         }
         return fail('different_existing_recovery_refused');
@@ -132,7 +167,8 @@
       const record={schema:recordSchema,state:'UNVERIFIED_LOCAL',
         fingerprint:pending.fingerprint,title:pending.project.title,
         documents:pending.documentCount,ownerProof:'NO_DATA(no_signed_owner_proof)',
-        authority:'NONE',sourceSchema:schema};
+        authority:'NONE',sourceSchema:schema,
+        projectSnapshot:canonical(pending.project)};
       // Preserve pre-existing user data. Roll back every touched key on failure.
       let wrote=false;
       try{
