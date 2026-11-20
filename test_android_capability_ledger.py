@@ -142,8 +142,12 @@ class ReleaseCandidateSyntheticTests(unittest.TestCase):
     def test_synthetic_signed_v8_parity_has_only_apk_state(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, apk, tools = self.make_fixture(tmp)
-            x = ledger.inspect_apk(apk, tools, source_root=root)
+            import hashlib
+            pin = hashlib.sha256(b"synthetic-binary").hexdigest()
+            x = ledger.inspect_apk(apk, tools, source_root=root,
+                                   expected_model_sha=pin, expected_jni_sha=pin)
             self.assertEqual(x["state"], "VERIFIED_PACKAGE", x)
+            self.assertEqual(x["embedded_identity"]["state"], "PINNED")
             self.assertEqual(x["identity"]["versionCode"], 8)
             self.assertEqual(x["source_parity"]["state"], "BYTE_EQUAL")
             self.assertEqual(len(x["embedded_artifacts"]), 2)
@@ -185,6 +189,24 @@ class ReleaseCandidateSyntheticTests(unittest.TestCase):
             result = ledger.inspect_apk(path)
             self.assertIn("assets/app.html", result["capabilities"]["six_panels"]["missing"])
 
+
+    def test_signed_synthetic_without_digest_pins_must_fail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, apk, tools = self.make_fixture(tmp)
+            x = ledger.inspect_apk(apk, tools, source_root=root)
+            self.assertEqual(x["identity"]["state"], "VERIFIED")
+            self.assertEqual(x["embedded_identity"]["state"], "NO_DATA")
+            self.assertEqual(x["state"], "NO_DATA")
+
+    def test_signed_synthetic_with_wrong_model_digest_must_fail(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as tmp:
+            root, apk, tools = self.make_fixture(tmp)
+            pin = hashlib.sha256(b"synthetic-binary").hexdigest()
+            x = ledger.inspect_apk(apk, tools, source_root=root,
+                                   expected_model_sha="0" * 64, expected_jni_sha=pin)
+            self.assertEqual(x["embedded_identity"]["cause"], "model_or_jni_digest_changed")
+            self.assertEqual(x["state"], "NO_DATA")
 
     def test_user0_disabled_is_not_enabled(self):
         body = ("Package [org.preceptoros.mvp]\n"
