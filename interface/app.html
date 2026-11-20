@@ -46,13 +46,13 @@
         <span class="superbot-orchestrator sr" id="superbot-orchestrator">Mini Orchestrator · local mode</span>
       </div>
       <details class="superbot-agents" id="superbot-agent-disclosure" data-state="NO_DATA"
-        data-cause="agent_roster_not_connected" data-acho="silent">
+        data-cause="plan_references_unavailable" data-acho="silent">
         <summary aria-labelledby="superbot-agent-count">
           <span id="superbot-agent-status-dot" class="superbot-agent-status-dot" aria-hidden="true"></span>
-          <span id="superbot-agent-names" class="superbot-agent-names" aria-hidden="true">Not connected</span>
-          <span id="superbot-agent-count" class="sr" role="status" aria-live="polite">Agents · not connected</span>
+          <span id="superbot-agent-names" class="superbot-agent-names" aria-hidden="true">No plan references</span>
+          <span id="superbot-agent-count" class="sr" role="status" aria-live="polite">Agents · plan unavailable</span>
         </summary>
-        <p class="pie" id="superbot-agent-hint">Connect your orchestrator or create a plan to see referenced agents here.</p>
+        <p class="pie" id="superbot-agent-hint">This view shows plan references, not connected agents. Load a plan to inspect references; connectivity and authorization are not checked here.</p>
         <nav class="superbot-agent-tabs" id="superbot-agent-tabs" role="tablist" aria-label="Agents in this plan"></nav>
         <div id="superbot-agent-detail" class="superbot-agent-detail" role="region"
           aria-label="Selected agent functions" hidden></div>

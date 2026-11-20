@@ -31,6 +31,7 @@ const base=process.env.PREVIEW_URL||'http://127.0.0.1:18896/app.html';
      const red=getComputedStyle(guide).backgroundColor;
      guide.style.background='var(--ok)';const green=getComputedStyle(guide).backgroundColor;guide.remove();
      const status={dot:ds.backgroundColor,red,green,names:names.textContent,
+       sourceState:d.dataset.state,sourceCause:d.dataset.cause,sourceAcho:d.dataset.acho,
        summaryBackground:ss.backgroundColor,borderWidth,
        hiddenText:ts.position==='absolute'&&ts.width==='1px',
        label:text.textContent,accessible:summary.getAttribute('aria-labelledby')==='superbot-agent-count',
@@ -57,8 +58,31 @@ const base=process.env.PREVIEW_URL||'http://127.0.0.1:18896/app.html';
       });
       assert.equal(green,proof.green,'green presentation requires explicit verified activity state');
     }else{
-      assert.equal(proof.names,'Not connected');
-      assert.ok(proof.label.includes('not connected'));
+      assert.equal(proof.names,'No plan references');
+      assert.equal(proof.label,'Agents · plan unavailable');
+      assert.equal(proof.sourceState,'NO_DATA');
+      assert.ok(proof.sourceCause,'missing plan must expose its reason');
+      assert.equal(proof.sourceAcho,'silent');
+      const unavailable=await page.evaluate(()=>{
+        const missing=window.PreceptorSuperbotTalk.fromPlan(null);
+        const missingCause=document.getElementById('superbot-agent-disclosure').dataset.cause;
+        const rejected=window.PreceptorSuperbotTalk.fromPlan({
+          state:'NO_DATA',cause:'agent_grant_unverified',tasks:[]
+        });
+        const box=document.getElementById('superbot-agent-disclosure');
+        return {missing,missingCause,rejected,cause:box.dataset.cause,
+          state:box.dataset.state,acho:box.dataset.acho,
+          label:document.getElementById('superbot-agent-count').textContent};
+      });
+      assert.deepEqual(unavailable.missing,{state:'NO_DATA',
+        cause:'plan_references_unavailable',count:null});
+      assert.equal(unavailable.missingCause,'plan_references_unavailable');
+      assert.deepEqual(unavailable.rejected,{state:'NO_DATA',
+        cause:'agent_grant_unverified',count:null});
+      assert.equal(unavailable.cause,'agent_grant_unverified');
+      assert.equal(unavailable.state,'NO_DATA');
+      assert.equal(unavailable.acho,'silent');
+      assert.equal(unavailable.label,'Agents · plan unavailable');
     }
     assert.deepEqual(errors,[]);
     console.log(JSON.stringify({width,fixture:synthetic?'synthetic_refs':'no_verified_activity',

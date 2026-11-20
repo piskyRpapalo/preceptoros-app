@@ -42,12 +42,13 @@
     if(!heading||!label||!list||!detail||!names)return {state:"NO_DATA",cause:"missing_mount"};
     if(!p||p.state!=="shown"||!Array.isArray(p.tasks)){
       heading.textContent="Mini Orchestrator · local mode";
-      label.textContent="Agents · not connected";
-      names.textContent="Not connected";
-      hint.textContent="Connect your orchestrator or create a plan to see referenced agents here.";
+      label.textContent="Agents · plan unavailable";
+      names.textContent="No plan references";
+      hint.textContent="This view shows plan references, not connected agents. Load a plan to inspect references; connectivity and authorization are not checked here.";
       list.replaceChildren();detail.replaceChildren();detail.hidden=true;agents=[];selected=null;lastSignature="";
-      state("NO_DATA",clean(p?.cause,80)||"agent_roster_not_connected");
-      return {state:"NO_DATA",cause:"agent_roster_not_connected",count:null};
+      const cause=clean(p?.cause,80)||"plan_references_unavailable";
+      state("NO_DATA",cause);
+      return {state:"NO_DATA",cause,count:null};
     }
     const map=new Map();
     for(const t of p.tasks.slice(0,24)){

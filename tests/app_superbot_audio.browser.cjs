@@ -34,7 +34,7 @@ const base=process.env.PREVIEW_URL||"http://127.0.0.1:18894/app.html";
       bodyOverflow:document.documentElement.scrollWidth>innerWidth
    }));
    assert.equal(initial.title,"Agents");assert.equal(initial.talkTitleHidden,true);
-   assert.match(initial.superbotCount,/not connected/);
+   assert.match(initial.superbotCount,/plan unavailable/);
    assert.equal(initial.duplicateAudioIds,1);
    assert.equal(initial.tabCount,6);assert.equal(initial.bodyOverflow,false);
    assert.equal(initial.audioWitness.tones,0);assert.equal(initial.audioWitness.speeches.length,0);
