@@ -542,6 +542,13 @@ APP_COMMISSION_OWNER_COPY_20261119 = {
     'Local drafts use unencrypted browser storage. Do not enter p',
     'What should your Companion help with?',
 }
+# Owner-reviewed English-only rack LAB labels (RETOMA DEL CEREBRO, 2026-11-20).
+# The full copy and its source/policy are recorded in odd/tasks/retoma-shared-rack-lab-20261120.md.
+APP_RACK_LAB_OWNER_COPY_20261120 = {
+    'Read-only benchmark receipts and harness status',
+    'These results come from the same rack LAB sources as the Lab',
+    'Benchmark results',
+}
 APP_DORMANT_DOCUMENT_KEYS = {"documentos_contenido", "documentos_titulo"}
 
 
@@ -576,7 +583,7 @@ def t_cara_sin_texto_suelto():
         "APP dejó de forzar inglés: reactivar gate bilingüe"
     sueltos = _textos_sueltos("interface/dashboard.html")
     sueltos += [(ruta, texto) for ruta, texto in _textos_sueltos("interface/app.html")
-                if texto not in (APP_ENGLISH_FROZEN_COPY | APP_MVP_FROZEN_VISUAL_COPY_20261119 | APP_COMMISSION_FIRST_RUN_ENGLISH_20261119 | APP_COMMISSION_OWNER_COPY_20261119)]
+                if texto not in (APP_ENGLISH_FROZEN_COPY | APP_MVP_FROZEN_VISUAL_COPY_20261119 | APP_COMMISSION_FIRST_RUN_ENGLISH_20261119 | APP_COMMISSION_OWNER_COPY_20261119 | APP_RACK_LAB_OWNER_COPY_20261120)]
     assert not sueltos, (
         "texto nuevo sin enganche; en APP solo se admite inglés congelado "
         "y un catálogo cerrado de excepciones:\n  " +
