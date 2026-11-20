@@ -198,6 +198,8 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           test_public_mini_package
           # MINI-RECOVER-01 · owner-consented source export importer; no node identity grant.
           test_mini_recovery_bridge
+          # NODE-BIRTH-PREFLIGHT · explicit native Android one-shot heartbeat, no LIVE grant.
+          test_android_heartbeat_once
           test_faro
           test_colony_web_fixture
           test_colony_services
