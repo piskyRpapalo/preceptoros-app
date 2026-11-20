@@ -94,6 +94,65 @@
     };
   }
 
+  /* Rack LAB cast: characterization is visual, evidence is literal. A timer
+   * is not a process, a configured agent is not a worker, and installed weights
+   * are not a model that has answered. No new storage, grants or services. */
+  function projectLabCast(harness, notebook, tasks, lab, federated, now) {
+    const sensor = projectHarness(harness, now);
+    const agents = notebook && notebook.schema === "preceptoros.notebook-readonly/0" &&
+      Array.isArray(notebook.agents) ? notebook.agents.slice(0, 12) : [];
+    const projected = projectTasks(tasks);
+    const m = lab && lab.modelos && typeof lab.modelos === "object" ? lab.modelos : {};
+    const roles = [["mini", "Rack Mini"], ["grande", "Rack Large"], ["soberano_coder", "Rack Coder"]];
+    const brains = roles.map(([key, title]) => {
+      const raw = m[key] && typeof m[key] === "object" ? m[key] : null;
+      const installed = raw && raw.disponible === true;
+      const ref = raw && clean(raw.tag, 64);
+      return { title, state: installed ? "DECLARED" : "NO_DATA",
+        cause: installed ? "installed_is_not_inference" : clean(raw && raw.causa, 72) || "brain_not_verified",
+        detail: (ref || "NO_DATA(model_tag)") + " · " +
+          (installed ? "model file reported, no active inference witness" : "model file not verified") };
+    });
+    const fed = federated && federated.schema === "preceptoros.federated-view/1" &&
+      Array.isArray(federated.backends) ? federated.backends : [];
+    const stale = fed.filter(x => x && x.state === "STALE").length;
+    const observed = fed.filter(x => x && x.state === "OBSERVED").length;
+    brains.push({ title: "Distributed rack backends",
+      state: observed ? "OBSERVED" : stale ? "STALE" : "NO_DATA",
+      cause: observed ? "metadata_only_no_inference" : stale ? "node_receipts_expired" : "no_current_backend_evidence",
+      detail: fed.length + " backends · " + observed + " observed metadata · " + stale +
+        " stale · no model calls verified here" });
+    brains.push({ title: "On-device Mini",
+      state: "NO_DATA", cause: "android_model_runtime_not_benchmarked",
+      detail: "The owner device must prove its own model and tokens; the rack cannot attest them." });
+    return {
+      loops: sensor.rows.slice(0, 12).map(x => ({
+        title: x.name, state: "DECLARED", cause: "timer_not_live_process",
+        detail: (x.active === true ? "Enabled in timer declaration" :
+          x.active === false ? "Disabled in timer declaration" : "Timer enablement unknown") +
+          " · Last: " + (x.last || "NO_DATA") + " · Outcome: " + (x.result || "NO_DATA") +
+          " · " + (x.description || "NO_DATA(loop_intent)")
+      })),
+      loopsCount: sensor.rows.length, loopsCause: sensor.cause,
+      researchers: agents.map(a => ({
+        title: clean(a.name, 48) || "Unnamed researcher",
+        state: a.status === "OBSERVADO" ? "DECLARED" : a.status === "STALE" ? "STALE" : "NO_DATA",
+        cause: "agent_heartbeat_not_pid_attestation",
+        detail: (clean(a.role, 64) || "NO_DATA(role)") +
+          " · " + (clean(a.last_seen, 40) || "NO_DATA(last_seen)") + " · No live task witness"
+      })),
+      researchersCause: agents.length ? null : "agent_census_missing",
+      goals: projected && projected.state === "MEASURED" ? projected.tasks.slice(0, 8).map(x => ({
+        title: "Task " + x.run, state: x.state, cause: x.cause || "task_receipt",
+        detail: x.sentence + (x.next ? " " + x.next : "")
+      })) : [],
+      goalsCause: projected && projected.state === "MEASURED" && projected.tasks.length
+        ? null : projected && projected.cause || "p2_execution_mirror_missing",
+      brains, observedAt: notebook && clean(notebook.observed_at, 40) || "",
+      sourceRef: notebook && hex64(notebook.shared_source_ref) ? notebook.shared_source_ref : null
+    };
+  }
+
   function projectHarness(raw, now) {
     if (!raw || !Array.isArray(raw.bucles)) return { rows: [], cause: "sensor_invalid" };
     const measured = typeof raw.medido === "string" ? Date.parse(raw.medido) : NaN;
@@ -102,7 +161,7 @@
     return { rows: raw.bucles.slice(0, 24).filter(b => b && typeof b === "object").map(b => ({
       name: clean(b.unidad, 88) || "NO_DATA", last: clean(b.ultima, 80),
       next: clean(b.proxima, 80), cause: clean(b.causa, 72),
-      result: clean(b.resultado, 60), active: b.activo === true ? true : b.activo === false ? false : null
+      result: clean(b.resultado, 60), active: b.activo === true ? true : b.activo === false ? false : null, description: clean(b.descripcion, 120)
     })), cause: null };
   }
 
@@ -445,14 +504,85 @@
     if (status && spoken[statusId] !== summary) { status.textContent = summary; spoken[statusId] = summary; }
     return runs;
   }
+  function avatarLab(kind) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "48"); svg.setAttribute("height", "48");
+    svg.setAttribute("viewBox", "0 0 48 48"); svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const shape = (name, attrs) => {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", name);
+      Object.keys(attrs).forEach(k => el.setAttribute(k, attrs[k]));
+      svg.append(el);
+    };
+    shape("polygon", { points: "24,3 42,13 42,35 24,45 6,35 6,13",
+      fill: "none", stroke: "currentColor", "stroke-width": "2" });
+    if (kind === "loop") {
+      shape("path", { d: "M14 26 A11 11 0 1 0 19 14 M19 14 L20 21 L13 19",
+        fill: "none", stroke: "currentColor", "stroke-width": "2" });
+    } else if (kind === "researcher") {
+      shape("circle", { cx: "24", cy: "18", r: "6", fill: "none", stroke: "currentColor", "stroke-width": "2" });
+      shape("path", { d: "M14 34 Q24 22 34 34", fill: "none", stroke: "currentColor", "stroke-width": "2" });
+    } else if (kind === "brain") {
+      shape("path", { d: "M19 15 C13 10 9 22 14 25 C10 32 20 38 24 32 C29 38 38 32 34 25 C38 17 30 9 24 15 M24 15 L24 32",
+        fill: "none", stroke: "currentColor", "stroke-width": "2" });
+    } else {
+      shape("path", { d: "M24 9 L28 20 L39 24 L28 28 L24 39 L20 28 L9 24 L20 20 Z",
+        fill: "none", stroke: "currentColor", "stroke-width": "2" });
+    }
+    return svg;
+  }
+  function castCard(actor, kind) {
+    const row = card(actor.title, actor.state, actor.detail);
+    row.dataset.state = actor.state;
+    row.dataset.cause = actor.cause || "source_unverified";
+    row.dataset.acho = actor.state === "NO_DATA" || actor.state === "STALE" ? "silent" : "proposed";
+    const top = row.querySelector(".notebook-top");
+    if (top) top.prepend(avatarLab(kind));
+    field(row, "Evidence", actor.cause || "NO_DATA");
+    return row;
+  }
+  async function loadLabCast(harness) {
+    const status = document.getElementById("lab-cast-status");
+    if (!status) return null;
+    const read = async path => { try { return await request(path); } catch { return null; } };
+    const [notebook, tasks, lab, fleet] = await Promise.all([
+      read("/api/notebook"), read("/api/hexelion/tareas"),
+      read("/api/lab"), read("/api/federado")
+    ]);
+    const p = projectLabCast(harness, notebook, tasks, lab, fleet, Date.now());
+    for (const [id, rows, type, cause] of [
+      ["lab-cast-loops", p.loops, "loop", p.loopsCause || "no_timer_measurement"],
+      ["lab-cast-researchers", p.researchers, "researcher", p.researchersCause || "no_agent_witness"],
+      ["lab-cast-goals", p.goals, "goal", p.goalsCause || "task_mirror_missing"],
+      ["lab-cast-brains", p.brains, "brain", "brain_metadata_unavailable"]
+    ]) {
+      const box = document.getElementById(id);
+      if (!box) continue;
+      box.replaceChildren();
+      if (rows.length) rows.forEach(row => box.append(castCard(row, type)));
+      else box.append(castCard({ title: "NO_DATA", state: "NO_DATA", cause,
+        detail: "No independently verified source for this category." }, type));
+    }
+    status.dataset.state = "DECLARED";
+    status.dataset.cause = "rack_lab_metadata_only";
+    status.dataset.acho = "proposed";
+    status.textContent = "Rack LAB cast: " + p.loopsCount + " timer records, " +
+      p.researchers.length + " observed-agent declarations, " + p.goals.length +
+      " task records, " + p.brains.length + " model categories. " +
+      "No timer, roster or model file is proof of a running process. Revision: " +
+      (p.sourceRef ? p.sourceRef.slice(0, 16) + "…" : "NO_DATA(source_revision_missing)") + ".";
+    return p;
+  }
+
   async function loadLabLoops() {
     const target = document.getElementById("lab-loops");
     const status = document.getElementById("lab-loops-status");
     if (!target || !status) return;
     const t = lang();
-    let reading;
+    let reading, rawHarness = null;
     try {
-      reading = projectHarness(await request("/api/harness"), Date.now());
+      rawHarness = await request("/api/harness");
+      reading = projectHarness(rawHarness, Date.now());
     } catch {
       reading = { rows: [], cause: "harness_sensor_unreachable" };
     }
@@ -475,6 +605,7 @@
       status.textContent = "Loop readings unavailable. See cause in technical evidence.";
       target.append(card(t.emptyLoops, "NO_DATA", reading.cause));
     }
+    await loadLabCast(rawHarness);
   }
 
   async function loadTurns(listId, statusId, limit, thread) {
@@ -535,7 +666,7 @@
     // Through the panel flow when the app shell is present, so a refresh speaks once like an opening.
     if (refresh) refresh.addEventListener("click", () => root.PreceptorPanelFlow ? root.PreceptorPanelFlow.load("cuaderno") : load().catch(() => {}));
   }
-  const api = Object.freeze({ load, loadLabLoops, projectNotebook, projectHarness, projectTurns, turnLine, achoClasses, projectTasks, taskSummary, loadTasks, talkTasks, loadTurns, loadBench, projectSharedRack, loadSharedRack, evidenceFor, talkStates });
+  const api = Object.freeze({ load, loadLabLoops, projectNotebook, projectHarness, projectTurns, turnLine, achoClasses, projectTasks, taskSummary, loadTasks, talkTasks, loadTurns, loadBench, projectSharedRack, loadSharedRack, projectLabCast, loadLabCast, evidenceFor, talkStates });
   root.PreceptorNotebook = api;
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document !== "undefined") mount();
