@@ -26,8 +26,8 @@ class PlanEnLosPaneles(unittest.TestCase):
         r = subprocess.run([node, "--test", str(ROOT / "tests" / "plan_cases.cjs")], cwd=ROOT,
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertRegex(r.stdout, r"(?m)^ℹ pass ([1-9]\d*)$")
-        self.assertRegex(r.stdout, r"(?m)^ℹ fail 0$")
+        self.assertRegex(r.stdout, r"(?m)^# pass ([1-9]\d*)$")
+        self.assertRegex(r.stdout, r"(?m)^# fail 0$")
 
     def test_cada_modulo_cabe_en_un_mini(self):
         for m in MODULOS:
