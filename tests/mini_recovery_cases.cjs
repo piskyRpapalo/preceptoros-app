@@ -187,3 +187,77 @@ test('sabotage: editing one byte changes the fingerprint; name alone is not iden
  assert.notEqual(a.fingerprint,b.fingerprint);
  assert.equal(a.project.title,b.project.title);
 });
+
+// Faro/C regression: a stale receipt must not certify changed local project bytes.
+test('Faro sabotage: a mutated recovered project is not already recovered',async()=>{
+ const state=store(), packet=raw();
+ const initial=await recovery.apply(packet,true,state,deps);
+ assert.equal(initial.ok,true);
+ for(const field of ['title','purpose','description','slug']){
+  const original=JSON.parse(state.getItem('preceptoros.public-mini.project.v1'));
+  const tampered={...original,[field]:original[field]+'-locally-edited'};
+  state.setItem('preceptoros.public-mini.project.v1',JSON.stringify(tampered));
+  const recordBefore=state.getItem(recovery.recordSchema);
+  const documentsBefore=state.getItem('preceptoros.documents.v1');
+  const result=recovery.read(state);
+  assert.equal(result.ok,false,field);
+  assert.equal(result.cause,'recovered_project_changed',field);
+  const repeated=await recovery.apply(packet,true,state,deps);
+  assert.equal(repeated.ok,false,field);
+  assert.equal(repeated.cause,'recovered_project_changed',field);
+  assert.equal(state.getItem('preceptoros.public-mini.project.v1'),JSON.stringify(tampered));
+  assert.equal(state.getItem('preceptoros.documents.v1'),documentsBefore);
+  assert.equal(state.getItem(recovery.recordSchema),recordBefore);
+  state.setItem('preceptoros.public-mini.project.v1',JSON.stringify(original));
+ }
+ assert.equal(recovery.read(state).ok,true);
+ assert.equal((await recovery.apply(packet,true,state,deps)).alreadyRecovered,true);
+});
+test('old receipt is migrated only after consent and an identical current project',async()=>{
+ const state=store(), packet=raw();
+ const created=await recovery.apply(packet,true,state,deps);
+ assert.equal(created.ok,true);
+ const stored=JSON.parse(state.getItem(recovery.recordSchema));
+ delete stored.projectSnapshot;
+ state.setItem(recovery.recordSchema,JSON.stringify(stored));
+ assert.equal(recovery.read(state).cause,'recovery_snapshot_missing');
+ const noConsent=await recovery.apply(packet,false,state,deps);
+ assert.equal(noConsent.cause,'explicit_owner_consent_required');
+ assert.equal(state.getItem(recovery.recordSchema),JSON.stringify(stored));
+ const result=await recovery.apply(packet,true,state,deps);
+ assert.equal(result.ok,true);
+ assert.equal(result.migrated,true);
+ assert.equal(result.alreadyRecovered,true);
+ assert.equal(result.authority,'NONE');
+ assert.equal(JSON.parse(state.getItem('preceptoros.documents.v1')).length,1);
+ assert.equal(recovery.read(state).ok,true);
+});
+test('old receipt cannot be migrated after legitimate local project edits',async()=>{
+ const state=store(), packet=raw();
+ await recovery.apply(packet,true,state,deps);
+ const old=JSON.parse(state.getItem(recovery.recordSchema));
+ delete old.projectSnapshot;
+ state.setItem(recovery.recordSchema,JSON.stringify(old));
+ const changed=JSON.parse(state.getItem('preceptoros.public-mini.project.v1'));
+ changed.description+=' owner edit';
+ state.setItem('preceptoros.public-mini.project.v1',JSON.stringify(changed));
+ const before=Array.from(state.map.entries());
+ const res=await recovery.apply(packet,true,state,deps);
+ assert.equal(res.ok,false);
+ assert.equal(res.cause,'recovered_project_changed');
+ assert.deepEqual(Array.from(state.map.entries()),before);
+});
+
+test('legitimate edited documents remain intact and are not certified by re-import',async()=>{
+ const state=store(),packet=raw();
+ await recovery.apply(packet,true,state,deps);
+ const docs=JSON.parse(state.getItem('preceptoros.documents.v1'));
+ docs[0].content+=' edited by owner';
+ state.setItem('preceptoros.documents.v1',JSON.stringify(docs));
+ const before=Array.from(state.map.entries());
+ const repeated=await recovery.apply(packet,true,state,deps);
+ assert.equal(repeated.ok,false);
+ assert.equal(repeated.cause,'recovered_documents_changed');
+ assert.deepEqual(Array.from(state.map.entries()),before);
+ assert.equal(recovery.read(state).authority,'NONE');
+});
