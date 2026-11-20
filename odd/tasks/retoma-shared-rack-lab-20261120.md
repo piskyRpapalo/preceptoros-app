@@ -16,7 +16,7 @@ Local GET readings on 2026-11-20: twenty command receipts, two bench runs, 14 ti
 
 The Documents editor stores personal drafts in browser localStorage **per device**. It does not share them, and this proposal does not silently synchronize them.
 
-The native owner-device WebView loads https://preceptoros.mvp.local with assets bundled inside the APK: it does NOT inherit the Beelink API automatically.
+The native owner-device WebView loads https://preceptoros.mvp.local with assets bundled inside the APK: it does NOT inherit the rack-origin API automatically.
 
 ### Tailnet security warning
 
