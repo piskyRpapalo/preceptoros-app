@@ -65,6 +65,33 @@
       }))
     };
   }
+  /* One rack source, many screens: same-origin APP reads its existing LAB
+   * Notebook and Harness projections. Nothing is saved in browser Documents,
+   * and timers/agent references are NEVER upgraded to running processes.
+   * The native offline APK needs an authenticated owner bridge for remote reads. */
+  function projectSharedRack(notebook, harness, now) {
+    const valid = notebook && notebook.schema === "preceptoros.notebook-readonly/0" &&
+      Array.isArray(notebook.bench) && Array.isArray(notebook.receipts) &&
+      Array.isArray(notebook.agents);
+    const loops = projectHarness(harness, now);
+    if (!valid) return { state: "NO_DATA", cause: "notebook_source_unavailable",
+      benchmarks: 0, receipts: 0, timers: 0, enabledTimers: 0,
+      harnessCause: loops.cause, agentsState: "NO_DATA",
+      processState: "NO_DATA", processCause: "live_process_binding_missing",
+      observedAt: "" };
+    const available = notebook.bench.filter(r => r && typeof r === "object");
+    const rows = loops.rows;
+    return {
+      state: "DECLARED", cause: "receipts_not_process_liveness",
+      benchmarks: available.length, receipts: notebook.receipts.length,
+      timers: rows.length, enabledTimers: rows.filter(x => x.active === true).length,
+      harnessCause: loops.cause, agentsState: notebook.agents_status === "DECLARADO"
+        ? "DECLARED" : "NO_DATA",
+      processState: "NO_DATA", processCause: "live_process_binding_missing",
+      observedAt: clean(notebook.observed_at, 40)
+    };
+  }
+
   function projectHarness(raw, now) {
     if (!raw || !Array.isArray(raw.bucles)) return { rows: [], cause: "sensor_invalid" };
     const measured = typeof raw.medido === "string" ? Date.parse(raw.medido) : NaN;
@@ -73,7 +100,7 @@
     return { rows: raw.bucles.slice(0, 24).filter(b => b && typeof b === "object").map(b => ({
       name: clean(b.unidad, 88) || "NO_DATA", last: clean(b.ultima, 80),
       next: clean(b.proxima, 80), cause: clean(b.causa, 72),
-      result: clean(b.resultado, 60)
+      result: clean(b.resultado, 60), active: b.activo === true ? true : b.activo === false ? false : null
     })), cause: null };
   }
 
@@ -126,8 +153,8 @@
     button.setAttribute("aria-disabled", "true");
     status.textContent = t.loading;
     // Operations Data does not read or render Lab loops.
-    let notes = null;
-    try { notes = projectNotebook(await request("/api/notebook")); } catch { notes = null; }
+    let notes = null, rawNotes = null;
+    try { rawNotes = await request("/api/notebook"); notes = projectNotebook(rawNotes); } catch { notes = null; }
     const aList = document.getElementById("notebook-agents");
     const rList = document.getElementById("notebook-reports");
     aList.replaceChildren(); rList.replaceChildren();
@@ -170,11 +197,38 @@
         xList.append(c);
       } else xList.append(card(t.receipts, "NO_DATA", notes ? notes.receiptsCause || "no_valid_receipt" : "notebook_endpoint_unavailable"));
     }
+    await loadSharedRack(rawNotes);
     await loadTurns("notebook-turns", "notebook-turns-status", 12);
     await loadTasks("notebook-tasks", "notebook-tasks-status");
     status.textContent = notes ? t.updated : t.error;
     button.removeAttribute("aria-disabled");
   }
+  async function loadSharedRack(rawNotes) {
+    const status = document.getElementById("notebook-rack-status");
+    const processes = document.getElementById("notebook-rack-processes");
+    const benchList = document.getElementById("notebook-rack-results");
+    if (!status || !processes || !benchList) return null;
+    let harness = null;
+    try { harness = await request("/api/harness"); } catch { harness = null; }
+    const p = projectSharedRack(rawNotes, harness, Date.now());
+    status.dataset.state = p.state;
+    status.dataset.cause = p.cause;
+    status.dataset.acho = p.state === "NO_DATA" ? "silent" : "proposed";
+    status.textContent = p.state === "NO_DATA"
+      ? "NO_DATA: canonical rack LAB receipts unavailable (" + p.cause + ")."
+      : "Rack LAB (read-only, same source): " + p.benchmarks + " recorded benchmark runs; " +
+        p.receipts + " command receipts; " + p.timers + " timer entries (" + p.enabledTimers +
+        " declared enabled). Timers are not running processes. " +
+        "Harness: " + (p.harnessCause || "recent sensor") + ".";
+    processes.dataset.state = "NO_DATA";
+    processes.dataset.cause = p.processCause;
+    processes.dataset.acho = "silent";
+    processes.textContent = "NO_DATA: process activity and current goals have no independent PID-to-task witness. " +
+      "Observed agents: " + p.agentsState + ". Refresh reads rack evidence; no documents are copied to this device.";
+    await loadBench("notebook-rack-results", "notebook-rack-results-status", rawNotes);
+    return p;
+  }
+
   /* What happened to each request (meta-harness 01). One projection from /api/hexelion/turnos feeds the screen, the
    * screen reader and the machine: the card's words are the turn's `sentence` and `next`, its data-state is the
    * machine state, and the status line speaks only when the summary changed (no announcement on every refresh). */
@@ -477,7 +531,7 @@
     // Through the panel flow when the app shell is present, so a refresh speaks once like an opening.
     if (refresh) refresh.addEventListener("click", () => root.PreceptorPanelFlow ? root.PreceptorPanelFlow.load("cuaderno") : load().catch(() => {}));
   }
-  const api = Object.freeze({ load, loadLabLoops, projectNotebook, projectHarness, projectTurns, turnLine, achoClasses, projectTasks, taskSummary, loadTasks, talkTasks, loadTurns, loadBench, evidenceFor, talkStates });
+  const api = Object.freeze({ load, loadLabLoops, projectNotebook, projectHarness, projectTurns, turnLine, achoClasses, projectTasks, taskSummary, loadTasks, talkTasks, loadTurns, loadBench, projectSharedRack, loadSharedRack, evidenceFor, talkStates });
   root.PreceptorNotebook = api;
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document !== "undefined") mount();
