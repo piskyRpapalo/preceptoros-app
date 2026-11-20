@@ -42,7 +42,7 @@ layers and a cause for every unverified step:
 | --- | --- | --- |
 | source | Seven checked capability categories with required files, symbols and SHA-256 | Static code is not an executed behaviour |
 | apk | ZIP CRC, required GGUF/JNI/voice/panels/bridge assets, aapt2 package and apksigner owner certificate | Signed ZIP is not an installed version |
-| installed | Read-only ADB dumpsys of canonical and legacy package IDs, without logging serial | Installed metadata is not certificate or turn proof |
+| installed | Read-only ADB dumpsys of canonical and legacy package IDs plus permitted on-device SHA256 of installed base APK, without logging serial or path | Installed metadata is not certificate or turn proof |
 | runtime | Defaults to NO_DATA until independently witnessed local/remote turn, TalkBack and consent tests | Never infer from model existence or connection |
 
 The candidate APK gate enforces canonical package ID, versionCode at least
@@ -65,7 +65,7 @@ From the isolated APP worktree:
     ANDROID_ADB=/path/to/adb python3 mvp-android/capability_ledger.py --serial YOUR_CONNECTED_SERIAL
 
 Never paste a serial or full local path into a public PR. The output omits
-the ADB serial, does not pull APK contents or synchronize data, and leaves
+the ADB serial and base APK location, hashes APK bytes on-device, does not pull APK contents or synchronize data, and leaves
 unmeasured certificate/byte identity explicitly NO_DATA. Check owner signing
 configuration out-of-band; never commit APK/GGUF/JNI binaries or private
 environment secrets.
@@ -104,3 +104,12 @@ environment secrets.
 **Work discipline:** no second APP, no new LAB store, no silent capability
 removal. A negative test is evidence to preserve, never a reason to erase
 previous model/APP data.
+
+## Measured receipt · Codex GPT-6 · 2026-11-20 UTC
+
+- Origin main 1c58b39df9cc36093268c6ff1c57c349d9c0e3e8 at isolated worktree creation; PR #369 merged. Existing worktrees untouched.
+- Seven source witness categories CODE_PRESENT ×2; directed unittest: 21/21 PASS ×2 (synthetic policy, negative gates), not E2E.
+- Native maths C++ witness g++ -std=c++17 -O2 -Wall -Wextra: 19/19 PASS ×2 on Beelink. Not Android JNI execution.
+- Two Android owner devices read by ADB dumpsys package, pm path and sha256sum; no install, no disable, no data writes. Canonical v7 on one device byte-equal to independently verified signed rack APK SHA 9c4d227db2ba395cdb232bdd3eb6a52f83d344f3386a99bb5274d42837eebe6b; historical v6 on second byte-equal to owner-signed APK SHA 0c10659d3111b4ebb234f812bcc48b04b27422f3769c7f9a29dc9684f1d53a22. Legacy v2 on first device remains user-disabled and preserved. Installed package SHA proves bytes, not model inference. Device identifiers and serials excluded from public file.
+- The runner bin/pruebas explicitly registers test_android_capability_ledger as a unittest suite; full gate and exact-head CI require independent result.
+- Historical signed v7 and legacy v6 are correctly BLOCKED as new APP 1.1 v8 upgrade candidates; historical APK assets are not silently promoted to present-day capabilities.

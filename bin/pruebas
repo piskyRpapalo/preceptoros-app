@@ -200,6 +200,8 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           test_mini_recovery_bridge
           # NODE-BIRTH-PREFLIGHT · explicit native Android one-shot heartbeat, no LIVE grant.
           test_android_heartbeat_once
+          # APP Capability Ledger · preserve source/APK identity without claiming runtime.
+          test_android_capability_ledger
           # APP-1.1 Mini JNI quality · sampled decoding and fail-closed authority claims.
           test_android_mini_quality
           # APP-1.1 source-observed version, canonical Node 0 and Talk crab.

@@ -185,5 +185,43 @@ class ReleaseCandidateSyntheticTests(unittest.TestCase):
             result = ledger.inspect_apk(path)
             self.assertIn("assets/app.html", result["capabilities"]["six_panels"]["missing"])
 
+
+    def test_user0_disabled_is_not_enabled(self):
+        body = ("Package [org.preceptoros.mvp]\n"
+                "  versionCode=2 minSdk=26\n"
+                "  versionName=0.1.0-mvp\n"
+                "    User 0: installed=true hidden=false enabled=3\n")
+        got = ledger.parse_dumpsys(body, ledger.LEGACY)
+        self.assertEqual(got["user0_enabled"], "USER_DISABLED")
+        self.assertNotIn("serial", str(got))
+
+    def test_user0_default_is_not_runtime(self):
+        body = ("Package [org.preceptoros.app]\n versionCode=7\n"
+                " versionName=0.3.0-mvp\n User 0: installed=true enabled=0\n")
+        got = ledger.parse_dumpsys(body, ledger.CANONICAL)
+        self.assertEqual(got["user0_enabled"], "DEFAULT")
+        self.assertEqual(ledger.make_report(ROOT)["runtime"]["state"], "NO_DATA")
+
+    def test_untrusted_apk_path_refused_before_hash(self):
+        from unittest.mock import patch
+        from subprocess import CompletedProcess
+        with patch.object(ledger.subprocess, "run",
+                          return_value=CompletedProcess([], 0, stdout="package:/sdcard/sneaky.apk\n")) as run:
+            got = ledger.installed_apk_sha256("opaque-device", ledger.CANONICAL)
+        self.assertEqual(got["cause"], "adb_apk_path_untrusted")
+        self.assertEqual(run.call_count, 1)
+
+    def test_read_only_hash_result_has_no_serial(self):
+        from unittest.mock import patch
+        from subprocess import CompletedProcess
+        sha = "a" * 64
+        values = [CompletedProcess([], 0, stdout="package:/data/app/~~opaque/pkg/base.apk\n"),
+                  CompletedProcess([], 0, stdout=sha + "  /data/app/~~opaque/pkg/base.apk\n")]
+        with patch.object(ledger.subprocess, "run", side_effect=values) as run:
+            got = ledger.installed_apk_sha256("device-private", ledger.CANONICAL)
+        self.assertEqual(got, {"state": "MEASURED", "sha256": sha})
+        self.assertNotIn("device-private", str(got))
+        self.assertEqual(run.call_count, 2)
+
 if __name__ == "__main__":
     unittest.main()

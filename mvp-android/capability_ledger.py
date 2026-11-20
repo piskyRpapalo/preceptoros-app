@@ -188,11 +188,38 @@ def parse_dumpsys(text, package):
     if not m:
         return {"package": package, **no_data("not_installed_or_unreadable")}
     v = re.search(r"\bversionName=([^\r\n]+)", text)
+    user = re.search(r"User 0:[^\r\n]*", text)
+    raw_enabled = re.search(r"\benabled=(\d+)\b", user.group(0)) if user else None
+    enabled = {"0": "DEFAULT", "1": "ENABLED", "2": "DISABLED",
+               "3": "USER_DISABLED", "4": "DISABLED_UNTIL_USED"}
     return {"state": "INSTALLED_METADATA", "package": package,
-            "versionCode": int(m.group(1)), "versionName": v.group(1).strip() if v else None}
+            "versionCode": int(m.group(1)), "versionName": v.group(1).strip() if v else None,
+            "user0_enabled": enabled.get(raw_enabled.group(1), "NO_DATA") if raw_enabled else "NO_DATA"}
+
+def installed_apk_sha256(serial, package, adb="adb"):
+    """Read SHA on device; no APK export, no serial/path in output."""
+    try:
+        p = subprocess.run([adb, "-s", serial, "shell", "pm", "path", package],
+                           capture_output=True, text=True, timeout=18)
+        paths = [line.removeprefix("package:").strip()
+                 for line in p.stdout.splitlines() if line.startswith("package:")]
+        if p.returncode != 0 or not paths:
+            return no_data("adb_package_path_unavailable")
+        base = next((x for x in paths if x.endswith("/base.apk")), paths[0])
+        if not base.startswith("/data/app/") or not re.fullmatch(r"[/a-zA-Z0-9._+=~-]+", base):
+            return no_data("adb_apk_path_untrusted")
+        digest = subprocess.run([adb, "-s", serial, "shell", "sha256sum", base],
+                                capture_output=True, text=True, timeout=45)
+        match = re.match(r"^([0-9a-f]{64})\s", digest.stdout)
+        if digest.returncode != 0 or not match:
+            return no_data("device_apk_digest_unavailable")
+        return {"state": "MEASURED", "sha256": match.group(1)}
+    except (OSError, subprocess.TimeoutExpired):
+        return no_data("device_apk_digest_tool_failed")
+
 
 def installed_ledger(serial, adb="adb"):
-    """Only dumpsys: never install, stop, clear, pull data or print serial."""
+    """Read-only metadata and optional on-device SHA; never writes or prints serial."""
     entries = []
     for pkg in (CANONICAL, LEGACY):
         try:
@@ -202,11 +229,14 @@ def installed_ledger(serial, adb="adb"):
         except (OSError, subprocess.TimeoutExpired):
             entries.append({"package": pkg, **no_data("adb_unavailable")})
     canonical, legacy = entries
+    for entry in entries:
+        entry["installed_apk"] = (installed_apk_sha256(serial, entry["package"], adb)
+                                  if entry["state"] == "INSTALLED_METADATA"
+                                  else no_data("package_not_installed_or_unreadable"))
     return {"layer": "installed", "packages": entries,
             "state": "INSTALLED_METADATA" if canonical["state"] == "INSTALLED_METADATA" else "NO_DATA",
             "legacy_migration": "NEEDS_OWNER_REVIEW" if legacy["state"] == "INSTALLED_METADATA" else "NO_DATA",
-            "certificate": no_data("installed_cert_not_verified"),
-            "apk_byte_identity": no_data("installed_apk_hash_not_verified")}
+            "certificate": no_data("installed_cert_requires_matching_signed_candidate")}
 
 def make_report(root, apk=None, tools_dir=None, serial=None, adb="adb"):
     return {"schema": SCHEMA,
