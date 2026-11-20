@@ -172,6 +172,26 @@ def _bench(obj):
     return runs, None if runs else "no_valid_bench_receipt", obj.get("observed_at")
 
 
+def _shared_source_ref(agents, reports, receipts, bench, agent_cause, receipts_cause, bench_cause):
+    """Stable identity of the projected source RECEIPTS, not an auth signature.
+
+    Ignore read-time clocks and transient STALE labels. Two owner clients can
+    compare this digest to see whether they read the same receipt revision;
+    it never proves that both read from the same authorized host or LIVE work.
+    """
+    import hashlib
+    body = {
+        "agents": [a.get("receipt_sha256") for a in agents],
+        "reports": [(r.get("kind"), r.get("receipt_sha256"), r.get("cause")
+                     if r.get("receipt_sha256") is None else None) for r in reports],
+        "commands": [r.get("receipt_sha256") for r in receipts],
+        "benchmarks": [(r.get("fingerprint"), r.get("receipt")) for r in bench],
+        "absence": [agent_cause, receipts_cause, bench_cause],
+    }
+    raw = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
 def read(root, now=None):
     """Sanitized projection for the APP. No process-live or signing claims."""
     now = now or dt.datetime.now(dt.timezone.utc)
@@ -194,4 +214,6 @@ def read(root, now=None):
             "agents": agents, "agents_status": "DECLARADO" if agents_obj is not None and agent_cause is None else "NO_DATA",
             "agents_cause": agent_cause, "reports": reports,
             "receipts": receipts, "receipts_cause": receipts_cause,
-            "bench": bench, "bench_cause": bench_cause, "bench_observed_at": bench_at}
+            "bench": bench, "bench_cause": bench_cause, "bench_observed_at": bench_at,
+            "shared_source_ref": _shared_source_ref(agents, reports, receipts, bench,
+                                                    agent_cause, receipts_cause, bench_cause)}
