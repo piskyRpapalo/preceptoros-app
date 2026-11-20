@@ -35,11 +35,17 @@ SOURCE = {
         "interface/app.html": ('id="tab-conversacion"', 'id="tab-cuaderno"',
                                'id="tab-lab"', 'id="tab-ajustes"',
                                'id="tab-modelos"', 'id="tab-settings"'),
+        "interface/app.js": (),
+        "interface/mvp_first_run.js": (),
+        "interface/superbot_talk.js": (),
+        "interface/talk_crab_canvas.js": (),
     },
     "node_consent": {
         "mvp-android/android_join_bridge.js": (),
+        "mvp-android/android_review_bridge.js": (),
         "mvp-android/android_heartbeat_bridge.js": (),
         "mvp-android/app/src/main/java/org/preceptoros/mvp/DeploymentJoinBridge.java": ("addWebMessageListener",),
+        "mvp-android/app/src/main/java/org/preceptoros/mvp/HeartbeatOnceBridge.java": (),
         "interface/node_registration.js": (),
     },
     "documents_harness": {
@@ -53,9 +59,11 @@ APK = {
     "jni": ("lib/arm64-v8a/libmini_llama.so",),
     "local_model": ("assets/offline-mini.gguf", "assets/offline_mini.js"),
     "accessibility": ("assets/audio_accessibility.js", "assets/acho_sonido.js"),
-    "six_panels": ("assets/app.html", "assets/app.css"),
-    "node_consent": ("assets/android_join_bridge.js", "assets/android_heartbeat_bridge.js",
-                     "assets/node_registration.js"),
+    "six_panels": ("assets/app.html", "assets/app.css", "assets/app.js",
+                    "assets/mvp_first_run.js", "assets/superbot_talk.js",
+                    "assets/talk_crab_canvas.js"),
+    "node_consent": ("assets/android_join_bridge.js", "assets/android_review_bridge.js",
+                     "assets/android_heartbeat_bridge.js", "assets/node_registration.js"),
     "documents_harness": ("assets/documents.js", "assets/notebook.js",
                           "assets/owner_model_slots.js"),
 }
@@ -106,20 +114,23 @@ def source_parity(archive, source_root):
         return no_data("source_root_not_provided")
     mismatch = []
     # Gradle's copyPanels copies interface and Android-only bridge scripts.
+    compared = 0
     for name in sorted({asset for paths in APK.values() for asset in paths}):
         if not name.startswith("assets/") or name.endswith(".gguf"):
             continue
+        compared += 1
         rel = name.removeprefix("assets/")
         source_path = Path(source_root) / (
             ("mvp-android/" if rel in
-             ("offline_mini.js", "android_join_bridge.js", "android_heartbeat_bridge.js")
+             ("offline_mini.js", "android_join_bridge.js", "android_review_bridge.js",
+              "android_heartbeat_bridge.js")
              else "interface/") + rel)
         if not source_path.is_file() or source_path.is_symlink() or name not in archive.namelist():
             mismatch.append(name)
             continue
         if hashlib.sha256(source_path.read_bytes()).hexdigest() != sha_archive_member(archive, name):
             mismatch.append(name)
-    return ({"state": "BYTE_EQUAL", "compared_assets": 11}
+    return ({"state": "BYTE_EQUAL", "compared_assets": compared}
             if not mismatch else {"state": "NO_DATA", "cause": "apk_source_bytes_mismatch",
                                   "mismatched_assets": mismatch})
 

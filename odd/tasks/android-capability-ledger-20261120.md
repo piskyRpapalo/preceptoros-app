@@ -117,3 +117,11 @@ previous model/APP data.
 ## Additional digest-pin regression gate
 
 The third directed suite revision explicitly requires model/JNI digest pins for a signed candidate. Static model presence is not sufficient: a developer-supplied signed synthetic APK without pins remains NO_DATA, and a wrong pin is rejected. The genuine next-release digests are deliberately unassigned until an owner-reviewed model choice and reproducible build exist. 23/23 directed tests ×2 PASS on Beelink (2026-11-20). This is not an APP 1.1 release.
+
+## Full repository gate · RED receipt, not PASS
+
+Observed on the Beelink 2026-11-20 21:56–22:05 UTC: ./bin/pruebas ×2 **FAILED**, rc=2 on round 1 and rc=1 on round 2. The runner was updated after round 1 had begun, creating a transient test_superficie registration failure in the first round. The second round no longer contained that fault; explicit test_superficie 5/5 ×2 PASS afterward. Both full rounds still have real, independent test failures. Seven sabotage suites in both rounds returned their expected detection results. **Never claim full APP gate green.**
+
+Named failing suites include test_app_mvp_trim, test_energia_estado, test_energia_intencion, test_app_english_freeze, test_evidence_chip, test_cabin_brain, test_fleet_map, test_companion_onboarding, test_room_building, test_dayd_browser_mini, test_android_final_main_package, test_plan_flow, test_lisbon_table_operator, test_public_names, test_talk_turn_parity, test_tareas_hexelion and test_acho_sonido. Directed reproduction: stale SW v236 expectations while current main serves v237, notebook.js?v=23 expected while v24 is served; evidence_chip Node fixture expects custom pass lines while the observed output uses TAP. A public-name inventory mismatch also remains. **Do not assign all failures to one root cause without each receipt.** No core UI/SW file was edited by this Ledger PR.
+
+The in-progress gate used a changing worktree while independent source witnesses were being incorporated. This is a failing diagnostic, not a certified exact final-head gate. NO_DATA(exact_head_full_suite_pass); no merge, deployment or APP 1.1 publication. Current independent ledger 23/23 ×2 PASS and seven source groups ×2 CODE_PRESENT at final test revision.

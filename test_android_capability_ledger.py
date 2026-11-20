@@ -122,7 +122,7 @@ class ReleaseCandidateSyntheticTests(unittest.TestCase):
                     rel = asset.removeprefix("assets/")
                     base = "mvp-android/" if rel in (
                         "offline_mini.js", "android_join_bridge.js",
-                        "android_heartbeat_bridge.js") else "interface/"
+                        "android_review_bridge.js", "android_heartbeat_bridge.js") else "interface/"
                     src = root / (base + rel)
                     src.parent.mkdir(parents=True, exist_ok=True)
                     src.write_bytes(b"synthetic-owned-asset")
@@ -150,6 +150,7 @@ class ReleaseCandidateSyntheticTests(unittest.TestCase):
             self.assertEqual(x["embedded_identity"]["state"], "PINNED")
             self.assertEqual(x["identity"]["versionCode"], 8)
             self.assertEqual(x["source_parity"]["state"], "BYTE_EQUAL")
+            self.assertGreaterEqual(x["source_parity"]["compared_assets"], 15)
             self.assertEqual(len(x["embedded_artifacts"]), 2)
             self.assertEqual(ledger.make_report(root)["runtime"]["state"], "NO_DATA")
 
