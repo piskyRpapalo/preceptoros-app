@@ -34,4 +34,38 @@ const stale = N.projectHarness({
 assert.equal(stale.rows.length, 0);
 assert.equal(stale.cause, "sensor_stale_or_missing");
 assert.equal(N.projectHarness(null, now).cause, "sensor_invalid");
+
+const shared = N.projectSharedRack({
+  ...fixture,
+  observed_at: "2026-11-11T10:00:00Z",
+  agents_status: "DECLARADO",
+  bench: [{ state: "RECHECKED", sentence: "Fixture only" }],
+  receipts: [{ status: "DECLARED", tool: "read" }]
+}, {
+  estado: "ok", medido: "2026-11-11T09:59:50Z",
+  bucles: [
+    { unidad: "daily", activo: true, resultado: "DECLARED" },
+    { unidad: "weekly", activo: false, resultado: "NO_DATA" }
+  ]
+}, now);
+assert.equal(shared.state, "DECLARED");
+assert.equal(shared.benchmarks, 1);
+assert.equal(shared.receipts, 1);
+assert.equal(shared.timers, 2);
+assert.equal(shared.enabledTimers, 1);
+assert.equal(shared.processState, "NO_DATA");
+assert.equal(shared.processCause, "live_process_binding_missing");
+assert.equal(shared.agentsState, "DECLARED");
+assert.equal(N.projectSharedRack(null, null, now).state, "NO_DATA");
+assert.equal(N.projectSharedRack({ ...fixture, bench: [] }, null, now).state, "NO_DATA");
+const staleShared = N.projectSharedRack({
+  ...fixture, bench: [], receipts: [], observed_at: "2026-11-11T10:00:00Z"
+}, {
+  estado: "ok", medido: "2026-11-11T08:30:00Z",
+  bucles: [{ unidad: "expired", activo: true }]
+}, now);
+assert.equal(staleShared.timers, 0);
+assert.equal(staleShared.harnessCause, "sensor_stale_or_missing");
+assert.equal(staleShared.processState, "NO_DATA");
+
 console.log("notebook_cases: OK (schema, status, loop freshness, fail-closed)");
