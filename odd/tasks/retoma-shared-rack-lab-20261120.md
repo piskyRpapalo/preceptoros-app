@@ -5,18 +5,18 @@
 
 ## Problem / measured source
 
-APP Beelink server port 8742 already exposes existing Rack LAB sources:
+The existing owner's rack-local APP server already exposes existing Rack LAB sources:
 - GET /api/notebook: command receipts, WBR/MBR, benchmark receipts.
 - GET /api/harness: timers configured in Nexo.
 - GET /api/federado: LAB node registry metadata.
 - GET /api/hexelion/tareas: NO_DATA(p2_mirror_not_built).
 - GET /api/lab-rack: local LAB HTML health, NOT process liveness.
 
-Local GET readings on 2026-11-20: 20 command receipts, two bench runs, 14 timer records, 10 device entries, six backend entries, **zero observed agent heartbeats**. Absence of an agent census is NO_DATA, not proof no workers exist.
+Local GET readings on 2026-11-20: twenty command receipts, two bench runs, 14 timer records, ten registry entries, six backend entries, **zero observed agent heartbeats**. Absence of an agent census is NO_DATA, not proof no workers exist.
 
 The Documents editor stores personal drafts in browser localStorage **per device**. It does not share them, and this proposal does not silently synchronize them.
 
-The native Android v7 WebView loads https://preceptoros.mvp.local with assets bundled inside the APK: it does NOT inherit the Beelink API automatically.
+The native owner-device WebView loads https://preceptoros.mvp.local with assets bundled inside the APK: it does NOT inherit the Beelink API automatically.
 
 ### Tailnet security warning
 
@@ -38,7 +38,7 @@ Tailscale Serve /→8742 returns HTTP200 for /api/notebook, /api/federado and /a
 2. Use existing native WebViewAssetLoader patterns to build an owner-approved read-only bridge with a pinned HTTPS endpoint, scoped authenticated grant, no arbitrary URL from JS and secrets retained outside WebView. Mere Tailscale presence is not permission.
 3. Reuse LAB P2 ReadOnlyMirror and execution journal with independent host witness. Bind a measured live PID to a task ref and its exact receipt; do not infer process-live from a heartbeat, timer or model roster.
 4. Keep browser Documents personal drafts local. Deliver LAB receipt references through the same Operations Data view; any synchronization of edited documents needs separate owner consent and signed policy.
-5. Verify independently on Beelink, Tank3 and Doogee: same approved LAB source revision + digest, proper stale/revocation refusals, accessibility text/audio/machine parity. Until APK native release is measured, NO_DATA(Android_native_shared_LAB).
+5. Verify independently on the rack and two owner Android devices: same approved LAB source revision + digest, proper stale/revocation refusals, accessibility text/audio/machine parity. Until APK native release is measured, NO_DATA(Android_native_shared_LAB).
 6. Model launcher, harness configuration and node registration are separate future APP privileges; this slice grants none.
 
 ## Gates / rollback
