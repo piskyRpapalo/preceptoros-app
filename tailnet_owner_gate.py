@@ -19,7 +19,7 @@ _HOST = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.[a-z0-9][a-z0-9-]{1,
 _LOGIN = re.compile(r"^[^\s@]{1,64}@[A-Za-z0-9.-]{1,160}$")
 
 
-def authorize(headers, peer_ip, *, host, owner_login):
+def authorize(headers, peer_ip, *, host, owner_login, backend_bind):
     """(bool, cause) with no echo of login or host.
 
     Requires the pre-existing private Tailscale Serve reverse proxy and a
@@ -29,6 +29,8 @@ def authorize(headers, peer_ip, *, host, owner_login):
         return False, "remote_chat_owner_host_not_configured"
     if type(owner_login) is not str or not _LOGIN.fullmatch(owner_login):
         return False, "remote_chat_owner_identity_not_configured"
+    if backend_bind not in ("127.0.0.1", "::1"):
+        return False, "remote_chat_backend_not_loopback_bound"
     try:
         if not ipaddress.ip_address(peer_ip).is_loopback:
             return False, "remote_chat_proxy_not_loopback"
