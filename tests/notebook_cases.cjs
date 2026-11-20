@@ -6,6 +6,7 @@ const receipt = "a".repeat(64);
 const fixture = {
   schema: "preceptoros.notebook-readonly/0",
   agents_status: "DECLARADO",
+  shared_source_ref: receipt,
   agents_cause: null,
   agents: [{ id: "claude-1", name: "Claude", role: "Builder",
              status: "OBSERVADO", cause: "recent_declared_heartbeat",
@@ -49,6 +50,8 @@ const shared = N.projectSharedRack({
   ]
 }, now);
 assert.equal(shared.state, "DECLARED");
+assert.equal(shared.sourceRef, receipt);
+assert.equal(N.projectSharedRack({ ...fixture, shared_source_ref: "forged", bench: [], receipts: [] }, null, now).sourceRef, null);
 assert.equal(shared.benchmarks, 1);
 assert.equal(shared.receipts, 1);
 assert.equal(shared.timers, 2);
