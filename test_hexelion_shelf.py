@@ -4,6 +4,8 @@ sentences that hold the question's words."""
 import importlib.machinery
 import importlib.util
 import json
+import os
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -76,6 +78,34 @@ class Facts(unittest.TestCase):
         self.assertIn("The current app cache version on main is NO_DATA (app sw.js unreadable)", text)
         self.assertIn("The current web service worker version on main is NO_DATA (web sw.js unreadable)", text)
         self.assertIn("Each open PR that waits for signature (HITL) now: none.", text)
+
+
+class PrivateIndexPermissions(unittest.TestCase):
+    def test_new_index_remains_0600_under_permissive_umask(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rack.db"
+            original = os.umask(0o002)
+            try:
+                I.construir(path, [("rack: private-memory.md", "sensitive",
+                                   "private evidence stays private", "")])
+            finally:
+                os.umask(original)
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            self.assertEqual(I.buscar("private evidence", path)["estado"], "MEASURED")
+
+    def test_rebuild_keeps_index_0600_even_with_world_readable_old_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rack.db"
+            path.write_text("old cache (not sqlite)")
+            path.chmod(0o644)
+            original = os.umask(0o022)
+            try:
+                I.construir(path, [("rack: private-memory.md", "sensitive",
+                                   "do not leak on replacement", "")])
+            finally:
+                os.umask(original)
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            self.assertEqual(I.buscar("replacement leak", path)["estado"], "MEASURED")
 
 
 class Sources(unittest.TestCase):
