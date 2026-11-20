@@ -545,6 +545,14 @@ APP_COMMISSION_OWNER_COPY_20261119 = {
 # Owner-reviewed English-only rack LAB labels (RETOMA DEL CEREBRO, 2026-11-20).
 # The full copy and its source/policy are recorded in odd/tasks/retoma-shared-rack-lab-20261120.md.
 APP_RACK_LAB_OWNER_COPY_20261120 = {
+    'Loop characters · timer declarations',
+    'Researcher characters · observed heartbeats',
+    'Goals · recorded task outcomes',
+    'Brains · local and distributed rack',
+    'WBR and MBR reviews, benchmark receipts and saved documents ',
+    'Study documents',
+    'Laboratory evidence',
+
     'Read-only benchmark receipts and harness status',
     'These results come from the same rack LAB sources as the Lab',
     'Benchmark results',
