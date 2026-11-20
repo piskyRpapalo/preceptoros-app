@@ -25,6 +25,28 @@ class NotebookReadTests(unittest.TestCase):
         path = self.root / "notebook" / (name + ".json")
         path.write_text(json.dumps(data), encoding="utf-8")
 
+    def test_shared_revision_is_stable_until_receipts_change(self):
+        first = N.read(self.root, NOW)
+        self.assertRegex(first["shared_source_ref"], r"^[0-9a-f]{64}$")
+        self.assertEqual(first["shared_source_ref"],
+                         N.read(self.root, NOW)["shared_source_ref"])
+        later = NOW + dt.timedelta(seconds=2)
+        self.assertEqual(first["shared_source_ref"],
+                         N.read(self.root, later)["shared_source_ref"])
+        self.write("wbr", {
+            "schema": "preceptoros.wbr/1", "period": "2026-W46",
+            "summary": "Synthetic benchmark, without model inference",
+            "measured_at": "2026-11-11T09:01:00Z",
+            "receipt_sha256": SHA,
+        })
+        changed = N.read(self.root, NOW)
+        self.assertNotEqual(first["shared_source_ref"],
+                            changed["shared_source_ref"])
+        self.assertEqual(changed["shared_source_ref"],
+                         N.read(self.root, later)["shared_source_ref"])
+        # A digest is an identity check, not permission, heartbeat, or LIVE.
+        self.assertEqual(changed["agents_status"], "NO_DATA")
+
     def test_missing_never_becomes_running_or_measured(self):
         state = N.read(self.root, NOW)
         self.assertEqual(state["agents_status"], "NO_DATA")
@@ -120,6 +142,8 @@ class NotebookShellTests(unittest.TestCase):
         self.assertIn('id="lab-loops"', lab)
         self.assertNotIn('id="notebook-loops"', notebook)
         self.assertIn('id="notebook-reports"', notebook)
+        self.assertIn('id="notebook-rack-results"', notebook)
+        self.assertIn('id="notebook-rack-processes"', notebook)
         self.assertIn('id="notebook-memory-group"', notebook)
         self.assertIn('id="turnos"', notebook)  # one memory view, nested and closed
         self.assertIn('id="captura-consent"', command)
@@ -132,12 +156,12 @@ class NotebookShellTests(unittest.TestCase):
         sw = (self.ROOT / "interface/sw.js").read_text(encoding="utf-8")
         pwa = (self.ROOT / "bin/preceptoros-pwa").read_text(encoding="utf-8")
         app = (self.ROOT / "interface/app.js").read_text(encoding="utf-8")
-        self.assertIn('<script src="/notebook.js?v=23"></script>', html)
-        self.assertIn('"/notebook.js?v=23"', sw)
+        self.assertIn('<script src="/notebook.js?v=24"></script>', html)
+        self.assertIn('"/notebook.js?v=24"', sw)
         self.assertIn('"/notebook.js": ("notebook.js", "application/javascript; charset=utf-8")', pwa)
         self.assertIn('ruta == "/api/notebook"', pwa)
         self.assertIn('ruta in ("/api/bandeja", "/api/energia", "/api/notebook")', pwa)
-        self.assertIn("preceptoros-armazon-v236", sw)
+        self.assertIn("preceptoros-armazon-v237", sw)
         self.assertIn('<script src="/app.js?v=57"></script>', html)
         self.assertIn('"/app.js?v=57"', sw)
         self.assertIn('<link rel="stylesheet" href="/app.css?v=55">', html)

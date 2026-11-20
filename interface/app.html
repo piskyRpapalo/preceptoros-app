@@ -190,6 +190,15 @@
       <details id="plan-leido" hidden><summary data-i18n="plan_read_back_title">The stored text</summary><pre id="plan-leido-texto" class="plan-leido"></pre></details>
     </details>
     </div>
+    <details class="grupo" id="notebook-rack-lab-group">
+      <summary><h3 id="notebook-rack-lab-title">Shared Rack LAB · Results</h3><span class="fold-teaser">Read-only benchmark receipts and harness status</span></summary>
+      <p class="pie" role="note">These results come from the same rack LAB sources as the Lab panel. They are not copied into browser Documents or stored in localStorage. The offline Android APK cannot read this rack source until its owner-authorized bridge exists.</p>
+      <p class="pie" id="notebook-rack-status" role="status" aria-live="polite" data-state="NO_DATA" data-cause="not_read" data-acho="silent">NO_DATA: rack LAB has not been read.</p>
+      <p class="pie" id="notebook-rack-processes" role="status" aria-live="polite" data-state="NO_DATA" data-cause="live_process_binding_missing" data-acho="silent">NO_DATA: active process-to-task witness unavailable.</p>
+      <h4>Benchmark results</h4>
+      <p class="pie" id="notebook-rack-results-status" role="status" aria-live="polite">NO_DATA: rack benchmark receipts not read.</p>
+      <div id="notebook-rack-results" class="notebook-grid"></div>
+    </details>
     <details class="grupo" id="notebook-memory-group">
       <summary><h3 id="notebook-memory-title">Memory</h3><span class="fold-teaser">Compass, consent and private memories</span></summary>
       <p class="pie">Your private memory, consent, redaction and compass. Nothing is saved without consent.</p>
@@ -943,7 +952,7 @@
 <script src="/plan_panels.js?v=3"></script>
 <script src="/plan_composer.js?v=2"></script>
 <script src="/hitl.js?v=7"></script>
-<script src="/notebook.js?v=23"></script>
+<script src="/notebook.js?v=24"></script>
 <script src="/acho_sonido.js?v=3"></script>
 <script src="/audio_accessibility.js?v=1"></script>
 <script src="/memory_onboarding.js?v=1"></script>
