@@ -629,6 +629,89 @@ class TestPublicSecurityGateNegativeFixtures(unittest.TestCase):
             self._clean_assets()
 
     @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_synthetic_tailscale_magicdns_rejected(self):
+        """A Tailscale MagicDNS hostname (.ts.net) in a staged .js must be rejected."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_tailscale.js"
+        injected.write_text('// synthetic Tailscale host\nvar h = "soberano.tailb9e0f7.ts.net";\n')
+
+        try:
+            rc, stdout, stderr = _run_gradle(["verifyPublicAssets"])
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject Tailscale MagicDNS hostname",
+            )
+            self.assertIn(
+                "FORBIDDEN_PATTERN",
+                combined,
+                f"Expected FORBIDDEN_PATTERN cause class, got: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_synthetic_rfc1918_ip_rejected(self):
+        """An RFC1918 private IPv4 address with port in a staged .js must be rejected."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_rfc1918.js"
+        injected.write_text('// synthetic private endpoint\nvar e = "192.168.10.25:21434";\n')
+
+        try:
+            rc, stdout, stderr = _run_gradle(["verifyPublicAssets"])
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject RFC1918 private IPv4 address",
+            )
+            self.assertIn(
+                "FORBIDDEN_PATTERN",
+                combined,
+                f"Expected FORBIDDEN_PATTERN cause class, got: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_synthetic_pem_in_png_rejected(self):
+        """A PEM private key marker embedded in a PNG binary must be rejected (byte-stream scan)."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_pem_probe.png"
+        # Minimal valid-ish PNG header (8 bytes) + PEM marker embedded in binary data
+        png_header = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+        pem_marker = b'-----BEGIN PRIVATE KEY-----'
+        # Pad with random-looking bytes to simulate binary content
+        padding = bytes(range(256)) * 4
+        injected.write_bytes(png_header + padding + pem_marker + padding)
+
+        try:
+            rc, stdout, stderr = _run_gradle(["verifyPublicAssets"])
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject PEM marker embedded in PNG binary",
+            )
+            self.assertIn(
+                "FORBIDDEN_PATTERN",
+                combined,
+                f"Expected FORBIDDEN_PATTERN cause class, got: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
     def test_clean_public_staging_passes(self):
         """A clean PUBLIC staging (no injected secrets) must pass verifyPublicAssets."""
         self._clean_assets()
@@ -648,6 +731,147 @@ class TestPublicSecurityGateNegativeFixtures(unittest.TestCase):
                 f"verifyPublicAssets should pass on clean PUBLIC staging: {combined2[-500:]}",
             )
         finally:
+            self._clean_assets()
+
+
+class TestLargeBinaryStreamingScan(unittest.TestCase):
+    """Large synthetic binary probes to verify the forward-only streaming scanner.
+
+    These tests create 220000-byte PNG-like binaries with markers at specific
+    byte offsets that cross 64KiB block boundaries, proving the scanner:
+    - Terminates correctly on large files (no infinite loop)
+    - Detects markers at byte 65529 (crosses the 65536 boundary)
+    - Detects markers at byte 155000 (well past first blocks)
+    - Passes clean 220000-byte binaries without false positives
+    Each subprocess.run uses timeout=20 to catch hangs.
+    """
+
+    @staticmethod
+    def _clean_assets():
+        """Remove only generated contents of the assets directory."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        if assets_dir.exists():
+            import shutil
+            for item in assets_dir.iterdir():
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item, ignore_errors=True)
+
+    def _make_synthetic_png(self, size, marker, offset):
+        """Build a synthetic binary file of exactly `size` bytes with `marker` at `offset`.
+
+        Uses PNG header bytes and random-looking padding to simulate a real binary.
+        """
+        data = bytearray(size)
+        # Write PNG magic header
+        png_header = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+        data[:len(png_header)] = png_header
+        # Fill with repeating byte pattern (simulates binary content)
+        for i in range(len(png_header), size):
+            data[i] = (i * 7 + 13) % 256
+        # Embed the marker at the specified offset
+        marker_bytes = marker if isinstance(marker, bytes) else marker.encode('ascii')
+        data[offset:offset + len(marker_bytes)] = marker_bytes
+        return bytes(data)
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_binary_marker_at_65529_crosses_64k_boundary(self):
+        """A 220000-byte binary with '/api/hitl' at byte 65529 must be rejected.
+
+        Offset 65529 is 7 bytes before the 65536 boundary, so the marker string
+        '/api/hitl' (9 bytes) spans bytes 65529..65537 — crossing the block boundary.
+        This proves the tail overlap mechanism catches cross-boundary markers.
+        """
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_large_boundary.png"
+        # 220000 bytes, marker '/api/hitl' at offset 65529
+        data = self._make_synthetic_png(220000, b'/api/hitl', 65529)
+        injected.write_bytes(data)
+
+        try:
+            rc, stdout, stderr = _run_gradle(
+                ["verifyPublicAssets"], timeout=20
+            )
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject marker at byte 65529 (crosses 64KiB boundary)",
+            )
+            self.assertIn(
+                "FORBIDDEN_ROUTE",
+                combined,
+                f"Expected FORBIDDEN_ROUTE cause class, got: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_binary_marker_at_155000_past_first_blocks(self):
+        """A 220000-byte binary with '/api/hitl' at byte 155000 must be rejected.
+
+        Offset 155000 is well past the first 64KiB block (block 2, offset ~23928
+        within the second 64KiB chunk). This proves the scanner processes all
+        blocks and does not terminate early or skip binary regions.
+        """
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_large_deep.png"
+        # 220000 bytes, marker '/api/hitl' at offset 155000
+        data = self._make_synthetic_png(220000, b'/api/hitl', 155000)
+        injected.write_bytes(data)
+
+        try:
+            rc, stdout, stderr = _run_gradle(
+                ["verifyPublicAssets"], timeout=20
+            )
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject marker at byte 155000 (past first blocks)",
+            )
+            self.assertIn(
+                "FORBIDDEN_ROUTE",
+                combined,
+                f"Expected FORBIDDEN_ROUTE cause class, got: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_clean_220000_binary_passes(self):
+        """A clean 220000-byte binary with no markers must pass verifyPublicAssets.
+
+        This proves the streaming scanner terminates correctly at EOF on large
+        files and does not produce false positives on binary data.
+        """
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_clean_large.png"
+        # 220000 bytes of clean binary data (no forbidden markers)
+        data = self._make_synthetic_png(220000, b'', 0)
+        injected.write_bytes(data)
+
+        try:
+            rc, stdout, stderr = _run_gradle(
+                ["verifyPublicAssets"], timeout=20
+            )
+            combined = stdout + "\n" + stderr
+
+            self.assertEqual(
+                rc, 0,
+                f"verifyPublicAssets should pass on clean 220000-byte binary: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
             self._clean_assets()
 
 

@@ -75,6 +75,14 @@ def PUBLIC_FORBIDDEN_PATTERNS = [
     ~/-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/,
     // Private rack hostname (case-insensitive)
     ~/(?i)onexstation/,
+    // Tailscale MagicDNS private hostnames (.ts.net suffix)
+    ~/[A-Za-z0-9._-]+\.ts\.net/,
+    // RFC1918 private IPv4 addresses (10.x, 172.16-31.x, 192.168.x)
+    // Must match a full 4-octet IP (not partial numbers like "10.5px") optionally followed by :port
+    ~/(?:^|[^0-9.])(?:10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.(?:1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}|192\.168\.[0-9]{1,3}\.[0-9]{1,3})(?::[0-9]+)?(?:[^0-9.]|$)/,
+    // CGNAT 100.64/10 addresses (100.64.0.0 - 100.127.255.255)
+    // Must match a full 4-octet IP optionally followed by :port
+    ~/(?:^|[^0-9.])100\.(?:[6-9][0-9]|1[0-1][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}(?::[0-9]+)?(?:[^0-9.]|$)/,
 ]
 
 // Security validation at configuration time: reject traversal, duplicates, symlinks.
@@ -268,7 +276,8 @@ def generatePublicProjection = tasks.register('generatePublicProjection') {
 }
 
 // PUBLIC profile: byte-level verification that no staged asset contains forbidden content.
-// Scans for: private API routes, credential shapes, private hostnames, PEM markers.
+// Scans ALL staged files (including binaries like PNG, SVG, JSON, GGUF) using
+// a forward-only streaming FileInputStream with bounded tail overlap for cross-boundary matches.
 // This runs AFTER copyPanels and FAILS the build if any violation is found.
 // Matched byte values are NEVER printed to build logs — only the cause class.
 def verifyPublicAssets = tasks.register('verifyPublicAssets') {
@@ -278,31 +287,72 @@ def verifyPublicAssets = tasks.register('verifyPublicAssets') {
             return
         }
         def violations = []
+        // Buffer size for streaming scan (64 KiB per read)
+        final int BUF_SIZE = 65536
+        // Keep up to 512 bytes of tail from previous block for cross-boundary matches
+        final int TAIL_MAX = 512
         assetsDir.eachFileRecurse { f ->
             if (!f.isFile()) return
-            // Skip known binary formats that are not text-scannable
-            if (f.name.endsWith('.gguf') || f.name.endsWith('.png') || f.name.endsWith('.jar')) return
             // Reject symlinks in staged assets
             if (java.nio.file.Files.isSymbolicLink(f.toPath())) {
                 violations.add("[SYMLINK] staged asset is a symlink — rejected")
                 return
             }
+            // Forward-only streaming scan: read sequentially, carry tail overlap.
+            boolean fileViolation = false
+            byte[] buf = new byte[BUF_SIZE]
+            byte[] tail = new byte[0]
+            java.io.FileInputStream fis = null
             try {
-                def text = f.text
-                // 1. Forbidden private API routes (substring match)
-                for (def route in PUBLIC_FORBIDDEN_ROUTES) {
-                    if (text.contains(route)) {
-                        violations.add("[FORBIDDEN_ROUTE] asset contains private API route")
+                fis = new java.io.FileInputStream(f)
+                while (!fileViolation) {
+                    int n = fis.read(buf)
+                    if (n == -1) break
+                    if (n == 0) {
+                        violations.add("[SCAN_ERROR] unable to scan staged asset")
+                        fileViolation = true
+                        break
                     }
-                }
-                // 2. Forbidden credential/infrastructure patterns (regex, case-insensitive)
-                for (def pattern in PUBLIC_FORBIDDEN_PATTERNS) {
-                    if (pattern.matcher(text).find()) {
-                        violations.add("[FORBIDDEN_PATTERN] asset matches credential or private-infrastructure pattern")
+                    // Build combined block: previous tail + new bytes
+                    byte[] combined = new byte[tail.length + n]
+                    System.arraycopy(tail, 0, combined, 0, tail.length)
+                    System.arraycopy(buf, 0, combined, tail.length, n)
+                    // Decode as ISO-8859-1 to preserve all byte values as chars (ASCII-safe)
+                    String text = new String(combined, java.nio.charset.StandardCharsets.ISO_8859_1)
+                    // 1. Forbidden private API routes (substring match)
+                    for (def route in PUBLIC_FORBIDDEN_ROUTES) {
+                        if (text.contains(route)) {
+                            violations.add("[FORBIDDEN_ROUTE] asset contains private API route")
+                            fileViolation = true
+                            break
+                        }
+                    }
+                    // 2. Forbidden credential/infrastructure patterns (regex)
+                    if (!fileViolation) {
+                        for (def pattern in PUBLIC_FORBIDDEN_PATTERNS) {
+                            if (pattern.matcher(text).find()) {
+                                violations.add("[FORBIDDEN_PATTERN] asset matches credential or private-infrastructure pattern")
+                                fileViolation = true
+                                break
+                            }
+                        }
+                    }
+                    // Update tail: keep last up to TAIL_MAX bytes of combined block
+                    int totalLen = combined.length
+                    if (totalLen > TAIL_MAX) {
+                        int keep = totalLen - TAIL_MAX
+                        tail = new byte[TAIL_MAX]
+                        System.arraycopy(combined, keep, tail, 0, TAIL_MAX)
+                    } else {
+                        tail = combined
                     }
                 }
             } catch (Exception e) {
-                // Skip files that cannot be decoded as text (binary)
+                violations.add("[SCAN_ERROR] unable to scan staged asset")
+            } finally {
+                if (fis != null) {
+                    try { fis.close() } catch (Exception ignore) {}
+                }
             }
         }
         if (!violations.isEmpty()) {
