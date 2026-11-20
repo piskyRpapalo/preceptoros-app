@@ -290,11 +290,8 @@ class ChunkedSha256RegressionTests(unittest.TestCase):
             self.skipTest("/proc/self/fd not available (non-Linux environment)")
 
         def count_fds():
-            """Count open file descriptors, excluding directory handles from os.listdir itself."""
-            count = 0
-            for _ in os.listdir("/proc/self"):
-                count += 1
-            return count
+            """Count open file descriptors via /proc/self/fd."""
+            return len(os.listdir(proc_fd))
 
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
@@ -307,12 +304,32 @@ class ChunkedSha256RegressionTests(unittest.TestCase):
                 ledger.inspect_apk(apk)
             after = count_fds()
 
-            leaked = after - before
-            # Allow a small margin (≤2) for transient OS-level FD churn, but reject obvious leaks
-            self.assertLessEqual(
-                leaked, 2,
-                f"File descriptor leak detected: {before} → {after} (leaked {leaked} FDs after 21 inspect_apk calls)"
+            self.assertEqual(
+                before, after,
+                f"File descriptor leak detected: {before} → {after} (leaked {after - before} FDs after 21 inspect_apk calls)"
             )
+
+    def test_sabotage_single_leaked_fd_is_detected(self):
+        """Deterministic proof: a single leaked FD causes the no-leak assertion to fail."""
+        import os
+        proc_fd = pathlib.Path("/proc/self/fd")
+        if not proc_fd.is_dir():
+            self.skipTest("/proc/self/fd not available (non-Linux environment)")
+
+        fd, tmp_path = tempfile.mkstemp()
+        try:
+            before = len(os.listdir(proc_fd))
+            # Simulate a leak: open a file and deliberately do not close it
+            leaked_fd = os.open(tmp_path, os.O_RDONLY)
+            after_open = len(os.listdir(proc_fd))
+            self.assertEqual(after_open, before + 1, "Injected FD should increase count by exactly 1")
+            # Now close it to prove the test itself does not leak
+            os.close(leaked_fd)
+            after_close = len(os.listdir(proc_fd))
+            self.assertEqual(after_close, before, "After cleanup, FD count must return to baseline")
+        finally:
+            os.close(fd)
+            os.unlink(tmp_path)
 
 if __name__ == "__main__":
     unittest.main()
