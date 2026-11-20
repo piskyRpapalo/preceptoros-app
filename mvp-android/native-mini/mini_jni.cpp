@@ -2,6 +2,7 @@
 #include <jni.h>
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
@@ -9,6 +10,7 @@
 #include <string>
 #include <vector>
 #include "llama.h"
+#include "mini_quality.h"
 
 namespace {
 std::mutex mx;
@@ -17,67 +19,9 @@ std::string loaded_path;
 bool backend_ready = false;
 std::string no_data(const char *cause) { return std::string("NO_DATA(") + cause + ")"; }
 
-/* --- bounded n-gram loop detector ---
- * Returns true if the last `window` tokens contain a repeated subsequence
- * of length >= `min_len` appearing at least `min_count` times.
- * This catches the degenerate repetition produced by greedy argmax. */
-static bool has_loop(const std::vector<llama_token> &history,
-                     int window, int min_len, int min_count) {
-    if ((int)history.size() < window) return false;
-    int n = (int)history.size();
-    int tail = n - window;
-    for (int len = min_len; len <= window / 2; ++len) {
-        int count = 1;
-        for (int i = 0; i + len * 2 < window; ++i) {
-            bool match = true;
-            for (int j = 0; j < len; ++j) {
-                if (history[tail + i + j] != history[tail + i + len + j]) { match = false; break; }
-            }
-            if (match) { ++count; i += len - 1; }
-        }
-        if (count >= min_count) return true;
-    }
-    return false;
-}
-
-/* --- lightweight weighted sampling with temperature + top-k ---
- * Replaces the previous greedy argmax.  Uses only the raw logits API
- * already in use, so no extra llama.cpp sampler chain is needed. */
-static llama_token sample_token(const float *logits, int32_t count,
-                                float temperature, int top_k) {
-    // 1. Apply temperature to logits
-    std::vector<float> scaled(count);
-    for (int32_t i = 0; i < count; ++i)
-        scaled[i] = logits[i] / temperature;
-
-    // 2. Top-k: find indices of the top_k largest values
-    std::vector<int32_t> indices(count);
-    std::iota(indices.begin(), indices.end(), 0);
-    int k = std::min(top_k, (int)count);
-    std::partial_sort(indices.begin(), indices.begin() + k, indices.end(),
-        [&scaled](int32_t a, int32_t b) { return scaled[a] > scaled[b]; });
-
-    // 3. Softmax over top-k
-    float max_logit = scaled[indices[0]];
-    float sum = 0.0f;
-    std::vector<float> probs(k);
-    for (int i = 0; i < k; ++i) {
-        probs[i] = std::exp(scaled[indices[i]] - max_logit);
-        sum += probs[i];
-    }
-    for (int i = 0; i < k; ++i) probs[i] /= sum;
-
-    // 4. Weighted random pick (LCG — deterministic seed per session)
-    static uint32_t seed = 42;
-    seed ^= (seed << 13) ^ (seed >> 17) ^ (seed << 5);
-    float r = ((double)seed) / 4294967295.0;
-    float cdf = 0.0f;
-    for (int i = 0; i < k; ++i) {
-        cdf += probs[i];
-        if (r <= cdf) return indices[i];
-    }
-    return indices[k - 1]; // fallback
-}
+using mini_quality::has_loop;
+using mini_quality::sample_token;
+using mini_quality::unsupported_self_claim;
 
 std::string infer(const std::string &path, const std::string &user) {
     std::lock_guard<std::mutex> lk(mx);
@@ -134,10 +78,13 @@ std::string infer(const std::string &path, const std::string &user) {
         float *logits = llama_get_logits_ith(ctx, -1);
         if (!logits) { out = no_data("mini_missing_logits"); break; }
         llama_token pick = sample_token(logits, count, temperature, top_k);
+        if (pick < 0 || pick >= count) {
+            out = no_data("mini_nonfinite_logits"); break;
+        }
         if (llama_vocab_is_eog(vocab,pick)) break;
         gen_tokens.push_back(pick);
         if (has_loop(gen_tokens, loop_window, loop_min_len, loop_min_count)) {
-            out += " [NO_DATA(mini_loop_detected)]";
+            out = no_data("mini_loop_detected");
             break;
         }
         char bytes[512] = {};
@@ -154,6 +101,7 @@ std::string infer(const std::string &path, const std::string &user) {
         }
     }
     llama_batch_ext_free(batch); llama_free(ctx);
+    if (unsupported_self_claim(out)) return no_data("mini_unsupported_self_claim");
     return out.empty() ? no_data("mini_empty_generation") : out;
 }
 }

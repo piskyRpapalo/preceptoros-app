@@ -22,7 +22,7 @@ class MiniJNISourceQuality(unittest.TestCase):
     """Source-level checks on mini_jni.cpp."""
 
     def setUp(self):
-        self.src = JNI_SRC.read_text()
+        self.src = JNI_SRC.read_text() + "\n" + (NATIVE / "mini_quality.h").read_text()
 
     def test_no_greedy_argmax_loop(self):
         """The old pattern 'for (llama_token t=1; t<count; ++t) if (logits[t] > logits[pick])'
@@ -83,6 +83,20 @@ class MiniJNISourceQuality(unittest.TestCase):
                                     loop_idx) if loop_idx >= 0 else -1
         # There should be a break after has_loop, before the next decode
         self.assertGreater(loop_idx, 0, "has_loop call not found in generation loop")
+
+    def test_loop_failure_replaces_entire_output(self):
+        self.assertIn('out = no_data("mini_loop_detected");', self.src)
+        self.assertNotIn('out += " [NO_DATA(mini_loop_detected)]";', self.src)
+
+    def test_nonfinite_logits_fail_closed(self):
+        self.assertIn('std::isfinite(logits[i])', self.src)
+        self.assertIn('mini_nonfinite_logits', self.src)
+        self.assertIn('if (pick < 0 || pick >= count)', self.src)
+
+    def test_unsupported_remote_claim_gate(self):
+        self.assertIn('unsupported_self_claim(out)', self.src)
+        self.assertIn('mini_unsupported_self_claim', self.src)
+        self.assertIn('i\'m currently running a ', self.src)
 
 
 class MiniQualityCasesBinary(unittest.TestCase):

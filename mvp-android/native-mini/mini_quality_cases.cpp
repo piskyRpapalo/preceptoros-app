@@ -1,5 +1,5 @@
 // PreceptorOS MINI quality unit tests — deterministic, no model required.
-// Tests the has_loop() and sample_token() helpers extracted from mini_jni.cpp.
+// Tests the same mini_quality.h code used by Android MiniNative, no copies.
 // Compile standalone: g++ -std=c++17 -o mini_quality_cases mini_quality_cases.cpp
 
 #include <algorithm>
@@ -12,58 +12,10 @@
 
 using llama_token = int32_t;
 
-/* --- has_loop (copied from mini_jni.cpp for standalone testing) --- */
-static bool has_loop(const std::vector<llama_token> &history,
-                     int window, int min_len, int min_count) {
-    if ((int)history.size() < window) return false;
-    int n = (int)history.size();
-    int tail = n - window;
-    for (int len = min_len; len <= window / 2; ++len) {
-        int count = 1;
-        for (int i = 0; i + len * 2 < window; ++i) {
-            bool match = true;
-            for (int j = 0; j < len; ++j) {
-                if (history[tail + i + j] != history[tail + i + len + j]) { match = false; break; }
-            }
-            if (match) { ++count; i += len - 1; }
-        }
-        if (count >= min_count) return true;
-    }
-    return false;
-}
-
-/* --- sample_token (copied from mini_jni.cpp for standalone testing) --- */
-static llama_token sample_token(const float *logits, int32_t count,
-                                float temperature, int top_k) {
-    std::vector<float> scaled(count);
-    for (int32_t i = 0; i < count; ++i)
-        scaled[i] = logits[i] / temperature;
-
-    std::vector<int32_t> indices(count);
-    std::iota(indices.begin(), indices.end(), 0);
-    int k = std::min(top_k, (int)count);
-    std::partial_sort(indices.begin(), indices.begin() + k, indices.end(),
-        [&scaled](int32_t a, int32_t b) { return scaled[a] > scaled[b]; });
-
-    float max_logit = scaled[indices[0]];
-    float sum = 0.0f;
-    std::vector<float> probs(k);
-    for (int i = 0; i < k; ++i) {
-        probs[i] = std::exp(scaled[indices[i]] - max_logit);
-        sum += probs[i];
-    }
-    for (int i = 0; i < k; ++i) probs[i] /= sum;
-
-    static uint32_t seed = 42;
-    seed ^= (seed << 13) ^ (seed >> 17) ^ (seed << 5);
-    float r = ((double)seed) / 4294967295.0;
-    float cdf = 0.0f;
-    for (int i = 0; i < k; ++i) {
-        cdf += probs[i];
-        if (r <= cdf) return indices[i];
-    }
-    return indices[k - 1];
-}
+#include "mini_quality.h"
+using mini_quality::has_loop;
+using mini_quality::sample_token;
+using mini_quality::unsupported_self_claim;
 
 /* --- test harness --- */
 static int passed = 0, failed = 0;
@@ -148,6 +100,25 @@ void test_sample_token_not_pure_argmax() {
     ASSERT(argmax_count < 10, "sampling should not always return argmax");
 }
 
+
+void test_fail_closed_corrupt_logits() {
+    float all_bad[3]={NAN,INFINITY,-INFINITY};
+    ASSERT(sample_token(all_bad,3,0.8f,3)==-1,"all corrupt logits fail closed");
+    ASSERT(sample_token(nullptr,3,0.8f,3)==-1,"null logits fail closed");
+    float mixed[3]={1.0f,NAN,2.0f};
+    auto t=sample_token(mixed,3,0.8f,3);
+    ASSERT(t==0 || t==2,"NaN cannot win");
+    ASSERT(sample_token(mixed,3,0.0f,3)==-1,"zero temperature fail closed");
+    ASSERT(sample_token(mixed,3,0.8f,0)==-1,"zero topk fail closed");
+}
+void test_false_remote_authority_guard() {
+    ASSERT(unsupported_self_claim("I'm currently running a PreceptorOS server."),
+           "observed false server claim rejected");
+    ASSERT(unsupported_self_claim("I have access to your desktop."),
+           "desktop claim rejected");
+    ASSERT(!unsupported_self_claim("Ripe lemons are generally yellow."),
+           "ordinary model text still permitted");
+}
 int main() {
     std::cout << "=== MINI quality cases ===\n";
     test_has_loop_no_loop_short_history();
@@ -160,6 +131,8 @@ int main() {
     test_sample_token_temperature_diversity();
     test_sample_token_deterministic_seed();
     test_sample_token_not_pure_argmax();
+    test_fail_closed_corrupt_logits();
+    test_false_remote_authority_guard();
     std::cout << "passed: " << passed << "  failed: " << failed << "\n";
     return failed > 0 ? 1 : 0;
 }
