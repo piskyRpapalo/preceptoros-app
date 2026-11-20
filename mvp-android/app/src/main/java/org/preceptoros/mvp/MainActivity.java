@@ -105,6 +105,12 @@ public class MainActivity extends Activity {
 
     /** No model files, memory, tools or grants are accessible to JavaScript. */
     private final class OfflineModelBridge {
+        /** Android's installed package metadata, not a web release or model claim. */
+        @JavascriptInterface
+        public String version() {
+            if (!ownPageReady) return "NO_DATA(native_page_not_verified)";
+            return "v" + BuildConfig.VERSION_CODE + " · " + BuildConfig.VERSION_NAME;
+        }
         @JavascriptInterface
         public String generate(String prompt) {
             if (!ownPageReady) return "NO_DATA(mini_page_not_verified)";

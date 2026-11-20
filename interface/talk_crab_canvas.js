@@ -51,7 +51,7 @@
     g.clearRect(0,0,W,HEIGHT);
     const elapsed=Math.max(0,t-origin);
     let pose=B.pose(0,1,1);
-    if (!reduced() && scene==='processing') {
+    if (!reduced() && (scene==='processing' || scene==='walking')) {
       // Same tripod gait as Open World; the CSS moves its canvas side to side.
       const step=Math.floor(elapsed/B.GLIDE), progress=(elapsed%B.GLIDE)/B.GLIDE;
       pose=B.pose(step,progress,1);
@@ -77,16 +77,16 @@
     raf=0;
     if (!visible() || reduced()) return;
     paint(t);
-    if (scene==='processing' && active()) raf=root.requestAnimationFrame(frame);
+    if ((scene==='processing' && active()) || (scene==='walking' && !active())) raf=root.requestAnimationFrame(frame);
     else if (scene==='greeting' && !active() && t-origin<B.GREET+480) raf=root.requestAnimationFrame(frame);
     else if (!active()) {
-      scene='rest'; paint(t); planGreeting();
+      scene='walking'; origin=t; paint(t); raf=root.requestAnimationFrame(frame);
     }
   }
   function beginGreeting() {
     stop();
     if (!visible() || reduced() || active()) {
-      scene=active()?'processing':'rest';
+      scene=active()?'processing':'walking';
       paint(root.performance.now());
       return;
     }
@@ -96,7 +96,7 @@
   function sync() {
     stop();
     origin=root.performance.now();
-    scene=active()?'processing':'rest';
+    scene=active()?'processing':'walking';
     paint(origin);
     if (!visible() || reduced()) return;
     if (active()) raf=root.requestAnimationFrame(frame);
@@ -108,7 +108,7 @@
       ? 'Talk is processing a request. No reply has been verified yet.'
       : state==='SIMULATED'
         ? 'Animation preview only. No model request is running.'
-        : 'Talk has no request in progress. The crab is greeting you.';
+        : 'Talk has no request in progress. The crab is walking locally.';
     details.hidden=false;
     if (state==='IDLE') beginGreeting();
   });

@@ -1305,7 +1305,7 @@ html[data-reduce-motion="true"] *::after {
   /* Full-width walking lane, not the former 72px button-width track. */
   position: relative;
   display: block;
-  width: 100%; max-width: none; min-width: 0;
+  width: 100%; max-width: 780px; min-width: 0;
   min-height: 48px; margin: .1rem auto 0;
   padding: 0;
   color: var(--ink); background: var(--ground);
@@ -1330,9 +1330,8 @@ html[data-reduce-motion="true"] *::after {
   width: 62px; height: 41px;
 }
 /* One uninterrupted linear crossing; alternate returns without teleporting. */
-#talk-processing[data-state="PROCESSING"] .talk-processing-crab,
-#talk-processing[data-state="SIMULATED"] .talk-processing-crab {
-  animation: talk-crab-sidestep 8s linear infinite alternate;
+#talk-processing .talk-processing-crab {
+  animation: talk-crab-sidestep 9s linear infinite alternate;
 }
 #talk-processing .talk-crab-canvas { display: block; width: 62px; height: 41px; }
 #talk-processing .talk-processing-copy {
@@ -1455,4 +1454,23 @@ html[data-reduce-motion="true"] #talk-processing .talk-processing-crab {
 }
 #talk-processing .talk-crab-preview-stop:focus-visible {
   outline: 3px solid var(--acento); outline-offset: 2px;
+}
+
+/* Source of release identity is BuildConfig in Android; web fallback says NO_DATA.
+   The second composer row gives the bottom-right label its own space. */
+#form-chat.redactar-anclado { flex-wrap: wrap; }
+#form-chat .app-installed-version {
+  display: block; width: 100%; max-width: 100%; flex: 0 0 100%;
+  box-sizing: border-box; text-align: end; margin: -.18rem 0 0;
+  font-size: .72rem; line-height: 1.1; color: var(--ink-soft);
+  overflow-wrap: anywhere; min-width: 0;
+}
+.node0-public-entry { display: grid; gap: .35rem; padding: .7rem .85rem;
+  border: 1px solid var(--line); border-radius: var(--radio); }
+#node0-public-chat { display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; max-width: 100%; padding: .6rem .75rem; border-radius: var(--radio);
+  font-weight: 700; text-decoration: underline; color: var(--ink); background: var(--paper); }
+#node0-public-chat:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+@media (forced-colors: active) {
+  #node0-public-chat { background: Canvas; color: LinkText; border: 1px solid LinkText; }
 }
