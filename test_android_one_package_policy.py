@@ -20,6 +20,18 @@ def policy_defects(source):
     )
     if not default or default.group(1) != CANONICAL:
         defects.append("default_must_be_canonical")
+    code_default = re.search(
+        r"^def\s+mvpVersionCode\s*=\s*\(project\.hasProperty\('mvpVersionCode'\)"
+        r"\s*\?\s*project\.property\('mvpVersionCode'\)\s*:\s*'(\d+)'\) as Integer",
+        source, re.MULTILINE,
+    )
+    if not code_default or int(code_default.group(1)) < 8:
+        defects.append("version_code_downgrade_default")
+    if not re.search(
+        r"if\s*\(mvpAppId\s*==\s*'org\.preceptoros\.app'\s*&&\s*mvpVersionCode\s*<\s*8\)",
+        source,
+    ):
+        defects.append("canonical_minimum_version_guard_missing")
     if "def legacyMigrationOnly = project.findProperty('legacyMigrationOnly')" not in source:
         defects.append("migration_flag_missing")
     if not re.search(
@@ -70,6 +82,22 @@ class OneAndroidAppPolicyTests(unittest.TestCase):
         )
         self.assertNotEqual(changed, self.source)
         self.assertIn("migration_flag_too_broad", policy_defects(changed))
+
+    def test_mutant_old_version_code_default_goes_red(self):
+        changed = self.source.replace(
+            "project.property('mvpVersionCode') : '8'",
+            "project.property('mvpVersionCode') : '1'",
+        )
+        self.assertNotEqual(changed, self.source)
+        self.assertIn("version_code_downgrade_default", policy_defects(changed))
+
+    def test_mutant_missing_canonical_minimum_goes_red(self):
+        changed = self.source.replace(
+            "mvpAppId == 'org.preceptoros.app' && mvpVersionCode < 8",
+            "mvpAppId == 'org.preceptoros.app' && false",
+        )
+        self.assertNotEqual(changed, self.source)
+        self.assertIn("canonical_minimum_version_guard_missing", policy_defects(changed))
 
     def test_safeguard_does_not_change_java_class_namespace(self):
         self.assertIn('namespace "org.preceptoros.mvp"', self.source)
