@@ -25,6 +25,28 @@ class NotebookReadTests(unittest.TestCase):
         path = self.root / "notebook" / (name + ".json")
         path.write_text(json.dumps(data), encoding="utf-8")
 
+    def test_shared_revision_is_stable_until_receipts_change(self):
+        first = N.read(self.root, NOW)
+        self.assertRegex(first["shared_source_ref"], r"^[0-9a-f]{64}$")
+        self.assertEqual(first["shared_source_ref"],
+                         N.read(self.root, NOW)["shared_source_ref"])
+        later = NOW + dt.timedelta(seconds=2)
+        self.assertEqual(first["shared_source_ref"],
+                         N.read(self.root, later)["shared_source_ref"])
+        self.write("wbr", {
+            "schema": "preceptoros.wbr/1", "period": "2026-W46",
+            "summary": "Synthetic benchmark, without model inference",
+            "measured_at": "2026-11-11T09:01:00Z",
+            "receipt_sha256": SHA,
+        })
+        changed = N.read(self.root, NOW)
+        self.assertNotEqual(first["shared_source_ref"],
+                            changed["shared_source_ref"])
+        self.assertEqual(changed["shared_source_ref"],
+                         N.read(self.root, later)["shared_source_ref"])
+        # A digest is an identity check, not permission, heartbeat, or LIVE.
+        self.assertEqual(changed["agents_status"], "NO_DATA")
+
     def test_missing_never_becomes_running_or_measured(self):
         state = N.read(self.root, NOW)
         self.assertEqual(state["agents_status"], "NO_DATA")
