@@ -3,7 +3,8 @@ plugins { id 'com.android.application' }
 // The panels are the app's own interface/ folder, copied at build time: nothing is duplicated in git.
 def secretDir = new File(System.getProperty("user.home"), ".config/preceptoros/android")
 def passFile = new File(secretDir, "pass")
-def mvpVersionCode = (project.hasProperty('mvpVersionCode') ? project.property('mvpVersionCode') : '1') as Integer
+// v7 is installed on owner devices. Never produce an accidental downgrade by default.
+def mvpVersionCode = (project.hasProperty('mvpVersionCode') ? project.property('mvpVersionCode') : '8') as Integer
 // All normal Android builds target the ONE canonical signed APP identity.
 // The legacy org.preceptoros.mvp ID is allowed only for an explicit, owner-led
 // migration/export build. Changing the package ID is NOT an in-place update,
@@ -18,6 +19,12 @@ if (mvpAppId == 'org.preceptoros.mvp' && !legacyMigrationOnly) {
 }
 if (legacyMigrationOnly && mvpAppId != 'org.preceptoros.mvp') {
     throw new GradleException('Legacy migration flag may only be used with the legacy package ID')
+}
+if (mvpVersionCode < 1) {
+    throw new GradleException('Android versionCode must be positive')
+}
+if (mvpAppId == 'org.preceptoros.app' && mvpVersionCode < 8) {
+    throw new GradleException('Canonical Android upgrade requires versionCode >= 8 after owner release v7')
 }
 
 tasks.register('copyPanels', Copy) {
