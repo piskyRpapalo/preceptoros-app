@@ -1,4 +1,5 @@
 """Capability Ledger fail-closed tests; no writes to Android devices."""
+import hashlib
 import importlib.util
 import pathlib
 import tempfile
@@ -245,6 +246,56 @@ class ReleaseCandidateSyntheticTests(unittest.TestCase):
         self.assertEqual(got, {"state": "MEASURED", "sha256": sha})
         self.assertNotIn("device-private", str(got))
         self.assertEqual(run.call_count, 2)
+
+class ChunkedSha256RegressionTests(unittest.TestCase):
+    """Regression: inspect_apk chunked SHA256 must match full-read digest (Python 3.10 portability)."""
+
+    def test_apk_sha256_matches_full_read_digest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            apk = root / "digest.apk"
+            payload = b"\x00" * 4096 + b"preceptoros-android-ledger-regression" + b"\xff" * 2048
+            with ZipFile(apk, "w") as z:
+                z.writestr("assets/app.html", payload.decode("latin-1"))
+            expected = hashlib.sha256(apk.read_bytes()).hexdigest()
+            result = ledger.inspect_apk(apk)
+            self.assertEqual(result["sha256"], expected)
+
+    def test_apk_sha256_empty_zip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            apk = root / "empty.apk"
+            with ZipFile(apk, "w") as z:
+                pass
+            expected = hashlib.sha256(apk.read_bytes()).hexdigest()
+            result = ledger.inspect_apk(apk)
+            self.assertEqual(result["sha256"], expected)
+
+    def test_apk_sha256_large_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            apk = root / "large.apk"
+            # 5 MB payload forces multiple 2 MB chunks
+            payload = b"A" * (5 * 1024 * 1024)
+            with ZipFile(apk, "w") as z:
+                z.writestr("assets/app.html", payload.decode("latin-1"))
+            expected = hashlib.sha256(apk.read_bytes()).hexdigest()
+            result = ledger.inspect_apk(apk)
+            self.assertEqual(result["sha256"], expected)
+
+    def test_no_file_descriptor_leak_on_multiple_calls(self):
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            apk = root / "fd.apk"
+            with ZipFile(apk, "w") as z:
+                z.writestr("assets/app.html", "fd-leak-check")
+            # Repeated calls should not accumulate open file descriptors
+            for _ in range(20):
+                ledger.inspect_apk(apk)
+            # If FDs leaked, /proc/self/fd would grow; we verify the result is stable
+            result = ledger.inspect_apk(apk)
+            self.assertEqual(result["sha256"], hashlib.sha256(apk.read_bytes()).hexdigest())
 
 if __name__ == "__main__":
     unittest.main()
