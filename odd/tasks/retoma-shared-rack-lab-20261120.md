@@ -32,6 +32,32 @@ Tailscale Serve /→8742 returns HTTP200 for /api/notebook, /api/federado and /a
 - Shell cache revision v237, notebook.js?v=24; no seventh MVP panel.
 - Existing voice/Acho/visual/machine summaries share the same source semantics, without inventing physical speech E2E.
 
+## Owner Android showroom · Lab cast, without fake LIFE
+
+The existing six-panel Lab now includes an OPEN read-only Rack LAB cast.
+It draws hexagonal portraits for timer loops, source-witnessed researchers,
+journal task outcomes and five model categories (three rack roles, one
+federated-backend aggregate, one on-device candidate).
+The visual and accessibility/machine status are one bounded projection.
+
+Measured source at 2026-11-20: 14 timer rows (not running processes),
+zero recorded agent heartbeats (NO_DATA agent source), two benchmark rows
+and WBR/MBR DECLARED in Operations Data; six LAB backends all STALE/NO_DATA.
+The APP shows source links to public Study and LAB documents, not a new
+replicated study database or a fake remote document-sync daemon.
+
+Independent synthetic Chrome preview: one synthetic loop + one researcher
++ five brain roles rendered eight SVG hex portraits, goals NO_DATA
+because there was no P2 mirror, with no data-state=LIVE anywhere.
+Node notebook_cases and Python notebook_read and English-only gate PASS.
+
+On an owner Android phone, Chrome successfully opened the EXISTING
+private APP through Tailscale and Android accessibility selected Lab;
+Benchmarks, Harness, Loops, Models and NO_DATA were actually visible.
+That is E2E for the currently served APP, NOT the unmerged Lab cast or
+APK package migration. The legacy native app stays untouched.
+
+
 ## Next stages to reach two real Android owners
 
 1. Review exact-head APP PR, CI, browser preview and SW revision. A branch is not a deployed app.
