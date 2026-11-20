@@ -31,6 +31,7 @@
     "/api/hitl/",
     "/api/lab",
     "/api/lab-rack",
+    "/api/lab/github",
     "/api/manifiesto",
     "/api/medidas",
     "/api/memoria/inicio",

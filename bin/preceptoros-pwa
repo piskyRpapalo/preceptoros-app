@@ -92,6 +92,7 @@ import pr_blockers as _pr_blockers
 import federado as _federado                                  # noqa: E402
 import notebook_read as _notebook_read
 import notebook_receipts as _notebook_receipts
+import github_snapshot_read as _github_snapshot_read
 import conversacion_comun as _conversacion
 import turnos_hexelion as _turnos
 import tareas_hexelion as _tareas
@@ -700,6 +701,13 @@ class PWA(BaseHTTPRequestHandler):
             return self._canales_leer()
         if ruta == "/api/lab":
             return self._lab_leer()
+        if ruta == "/api/lab/github":
+            # A public Github URL does not authorize reading this owner's
+            # private local snapshot. Require the existing local-only gate.
+            if not self._memoria_local():
+                return self._json(403, {"state": "NO_DATA",
+                                        "cause": "local_owner_origin_required"})
+            return self._json(200, _github_snapshot_read.read(_casa.raiz()))
         if ruta == "/api/lab-rack":
             return self._lab_rack_leer()
         if ruta.startswith("/api/voz"):
