@@ -460,6 +460,16 @@
     <iframe id="openworld-frame" data-i18n-aria="world_frame_title" title="OpenWorld · mapa, partida efímera y Acho" loading="lazy"
             referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
             allow="autoplay; fullscreen" hidden></iframe>
+    <div class="node0-public-entry" role="group" aria-label="Public Node 0 entry">
+      <a id="node0-public-chat" href="https://preceptoros.org/openworld/?go=hexelion"
+         target="_blank" rel="noopener noreferrer"
+         aria-describedby="node0-public-chat-info">Talk to Node 0 · public OpenWorld</a>
+      <p id="node0-public-chat-info" class="pie" role="status"
+         data-state="DRAFT_ONLY" data-acho="DRAFT_ONLY" data-cause="public_link_only">
+        Opens the public communication panel. Your message is not sent until you submit it there.
+        This is not your private Beelink chat or node admission.
+      </p>
+    </div>
     <a class="openworld-fallback" data-i18n="world_open_new" href="https://preceptoros.org/openworld/" target="_blank" rel="noopener noreferrer">Abrir OpenWorld en otra pestaña</a>
   </section>
   <section class="panel" id="panel-ajustes" role="tabpanel" aria-labelledby="tab-ajustes" tabindex="0" aria-label="My node" hidden>
@@ -846,11 +856,74 @@
   <label class="sr" for="dicho" data-i18n="lo_que_dices">Lo que dices</label>
   <textarea id="dicho" rows="2" maxlength="600" data-i18n-ph="ph_dicho" placeholder="Escribe tu respuesta…"></textarea>
   <button class="enviar" id="enviar" type="submit" data-i18n="dilo">Dilo</button>
+  <output id="app-installed-version" class="app-installed-version" role="status"
+          aria-label="Installed Android application version" aria-live="polite"
+          data-state="NO_DATA" data-acho="NO_DATA" data-cause="native_version_not_checked">
+    Version · NO_DATA(not_native_android)
+  </output>
 </form>
 
 <p class="sr" id="guion-zona" role="status" aria-live="polite" aria-atomic="true">Active zone: Talk.</p>
 <script src="/face/bubble/openworld_crab_body.js?v=1"></script>
 <script src="/talk_crab_canvas.js?v=4"></script>
+<script>
+/* Native version, server shell fingerprint and installed service worker are
+ * different identities. Never turn lack of evidence into "up to date". */
+(function (root) {
+  'use strict';
+  const out = root.document && root.document.getElementById('app-installed-version');
+  if (!out) return;
+  const native = root.PreceptorAndroidMiniModel;
+  let nativeText = 'NO_DATA(not_native_android)', shellText = 'NO_DATA(server_not_checked)';
+  let cacheText = 'NO_DATA(cache_not_checked)', attempts = 0;
+  function render(state, cause) {
+    out.textContent = 'APK ' + nativeText + ' · Shell ' + shellText + ' · Cache ' + cacheText;
+    out.dataset.state = out.dataset.acho = state;
+    out.dataset.cause = cause;
+  }
+  function readNative() {
+    if (!native || typeof native.version !== 'function') return;
+    let result = '';
+    try { result = String(native.version()); } catch (_) { result = ''; }
+    if (/^v[0-9]{1,6} · [a-z0-9][a-z0-9._-]{0,63}$/i.test(result)) {
+      nativeText = result; render('MEASURED','native_buildconfig');
+    } else if (++attempts < 18) root.setTimeout(readNative,200);
+    else { nativeText = 'NO_DATA(native_version_unavailable)'; render('NO_DATA','native_version_unavailable'); }
+  }
+  render('NO_DATA','fingerprints_not_checked'); readNative();
+  if (typeof root.fetch !== 'function') return;
+  const controller = typeof root.AbortController === 'function' ? new root.AbortController() : null;
+  const timer = root.setTimeout(()=>{ if(controller)controller.abort(); },5000);
+  root.fetch('/api/estado',{cache:'no-store',credentials:'same-origin',
+       ...(controller ? {signal:controller.signal} : {})})
+    .then(r=>{if(!r.ok)throw new Error('server_version_http');return r.json();})
+    .then(data=>{
+      const v=data && data.version;
+      if (!v || !/^[a-f0-9]{12}$/.test(v.huella) ||
+          !Array.isArray(v.faltan) || v.faltan.length) throw new Error('server_version_invalid');
+      shellText = v.huella;
+      render('MEASURED','server_shell_fingerprint');
+    }).catch(()=>{
+      shellText='NO_DATA(server_version_unreachable)';
+      render('NO_DATA','server_version_unreachable');
+    }).finally(()=>root.clearTimeout(timer));
+  const sw = root.navigator && root.navigator.serviceWorker;
+  if (!sw || typeof sw.getRegistration !== 'function') {
+    cacheText='NO_DATA(no_service_worker)'; render('NO_DATA','cache_unverified');
+    return;
+  }
+  Promise.resolve(sw.getRegistration()).then(reg=>{
+    if (reg && reg.waiting && sw.controller) {
+      cacheText='STALE(update_waiting)';
+      render('STALE','waiting_service_worker');
+    } else {
+      // Cache version numbers and the shell fingerprint are not comparable.
+      cacheText='NO_DATA(cache_hash_not_compared)';
+      render('NO_DATA','cache_hash_not_compared');
+    }
+  }).catch(()=>{cacheText='NO_DATA(cache_state_unavailable)';render('NO_DATA','cache_state_unavailable');});
+})(window);
+</script>
 <script src="/ui_preferences.js?v=1"></script>
 <script src="/connection_guard.js?v=1"></script>
 <script src="/zonas.js?v=7"></script>
