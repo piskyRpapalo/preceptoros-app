@@ -97,6 +97,7 @@ import conversacion_comun as _conversacion
 import turnos_hexelion as _turnos
 import tareas_hexelion as _tareas
 import indice_rack as _indice_rack
+import tailnet_owner_gate as _tailnet_owner_gate
 def _lectura_estado_memoria(ruta):
     """Read memory status without creating, migrating, or changing its file."""
     path = Path(ruta).absolute()
@@ -1435,6 +1436,21 @@ class PWA(BaseHTTPRequestHandler):
                                 "delivery": _conversacion.BY_ID[para]["transport"],
                                 "reply": "PENDING: no authenticated process receipt is available"})
 
+    def _tailnet_chat_owner(self):
+        """Opt-in private Serve *model chat only*, never general APP permission.
+
+        Empty owner config remains denied; the existing normal local origin
+        guard stays exactly as it was for all other endpoints and actions.
+        """
+        address = getattr(self.server, "server_address", ("",))
+        backend_bind = address[0] if isinstance(address, tuple) and address else ""
+        ok, _cause = _tailnet_owner_gate.authorize(
+            self.headers, self.client_address[0],
+            host=os.environ.get("PRECEPTOROS_CHAT_TAILNET_HOST"),
+            owner_login=os.environ.get("PRECEPTOROS_CHAT_OWNER_LOGIN"),
+            backend_bind=backend_bind)
+        return ok
+
     def _hexelion_chat(self):
         """Append the person's turn, then proxy one bounded local station call."""
         # The question's number once written, and the thread it lives in: the person asks in «orquesta»; a rack CLI
@@ -1476,7 +1492,9 @@ class PWA(BaseHTTPRequestHandler):
                                      "respuesta": {"estado": "NO_DATA", "causa": cause}})
         # Two doors. The person's window carries a same-host Origin; a rack CLI agent is loopback with NO Origin
         # and must name its voice (checked after parsing). Anything else is refused before the body is read.
-        persona = self._nodo_local_autorizado()
+        local_persona = self._nodo_local_autorizado()
+        remote_model_only = not local_persona and self._tailnet_chat_owner()
+        persona = local_persona or remote_model_only
         agente_cli = (not persona) and self._es_loopback(self.client_address[0]) and not self.headers.get("Origin")
         if not persona and not agente_cli:
             return no_data("local_origin_required", 403)
@@ -1509,6 +1527,17 @@ class PWA(BaseHTTPRequestHandler):
                 raise ValueError()
         except (TypeError, ValueError, UnicodeError, RecursionError):
             return no_data("request_invalid", 400)
+        # Remote owner may ask the verified model only. Never dispatch local
+        # MCP commands, interpreted read-actions, sensor calls or impersonate a
+        # rack CLI. Deny before the shared conversation is appended.
+        if remote_model_only and (
+                text.lstrip().startswith("/")
+                or _hexelion_acciones.es_accion(text)
+                or _hexelion_acciones.frase(text)
+                or _energia_intencion.es_consulta(text.strip())):
+            return no_data("remote_model_only_tool_denied", 403)
+        if remote_model_only and data.get("voz") is not None:
+            return no_data("remote_chat_voice_not_authorized", 403)
         estilo = None
         if agente is not None:
             team, _causa = _team.load(self._team_path())
@@ -1539,6 +1568,8 @@ class PWA(BaseHTTPRequestHandler):
         # A spoken phrase can name a READ action exactly («¿cómo está el rack?» -> /estado): one sentence, no typing.
         orden = text if _hexelion_acciones.es_accion(text) else (_hexelion_acciones.frase(text) if persona else None)
         if orden:
+            if remote_model_only:
+                return no_data("remote_model_only_tool_denied", 403)
             if not persona:   # a rack CLI agent has its own tools; it never acts through Hexelion's hands
                 return no_data("actions_person_only", 403)
             accion = _hexelion_acciones.ejecuta(orden, base=_casa.raiz())
