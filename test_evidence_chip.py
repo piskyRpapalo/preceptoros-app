@@ -27,7 +27,7 @@ class Cableado(unittest.TestCase):
     def test_el_service_worker_lo_instala_y_sube_la_cache(self):
         sw = leer("interface/sw.js")
         self.assertIn('"/evidence_chip.js?v=3"', sw)
-        self.assertIn("preceptoros-armazon-v236", sw)
+        self.assertIn("preceptoros-armazon-v237", sw)
         self.assertIn("2026-11-13 (evidence chip, visual-coherence commission)", sw)
 
     def test_el_pie_del_hilo_usa_el_componente_y_no_el_texto_crudo(self):
@@ -71,8 +71,8 @@ class EstadoCompartido(unittest.TestCase):
         r = subprocess.run([node, "--test", str(ROOT / "tests" / "estado_cases.cjs")], cwd=ROOT,
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertRegex(r.stdout, r"(?m)^ℹ pass ([1-9]\d*)$")
-        self.assertRegex(r.stdout, r"(?m)^ℹ fail 0$")
+        self.assertRegex(r.stdout, r"(?m)^[#ℹ] pass ([1-9]\d*)$")
+        self.assertRegex(r.stdout, r"(?m)^[#ℹ] fail 0$")
 
     def test_las_cuatro_superficies_usan_la_misma_gramatica(self):
         # Talk reads only its thread: its row of states is painted by the Notebook (talkStates), never fetched by Talk.
