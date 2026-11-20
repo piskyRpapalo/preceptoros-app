@@ -204,6 +204,10 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           test_android_capability_ledger
           # APP-1.1 Mini JNI quality · sampled decoding and fail-closed authority claims.
           test_android_mini_quality
+          # Android asset allowlist, Gradle copy integration, and PUBLIC profile verification.
+          test_android_asset_allowlist
+          test_android_gradle_copy
+          test_android_public_profile
           # APP-1.1 source-observed version, canonical Node 0 and Talk crab.
           test_app11_ui_p0
           test_faro

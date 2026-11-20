@@ -27,7 +27,262 @@ if (mvpAppId == 'org.preceptoros.app' && mvpVersionCode < 8) {
     throw new GradleException('Canonical Android upgrade requires versionCode >= 8 after owner release v7')
 }
 
+// Profile: PUBLIC (default, BYO) or OWNER (explicit -PappProfile=OWNER).
+// PUBLIC/BYO cannot include mandatory rack endpoints; OWNER remote remains NO_DATA(auth_not_connected).
+def appProfile = project.findProperty('appProfile')?.toString()
+if (appProfile && !(appProfile in ['PUBLIC', 'OWNER'])) {
+    throw new GradleException("Invalid appProfile: ${appProfile}. Must be PUBLIC or OWNER.")
+}
+def isOwnerProfile = appProfile == 'OWNER'
+
+// The APP repository root is one level above mvp-android/.
+def appRoot = rootProject.file('..').absoluteFile
+
+// Read the versioned asset allowlist.
+// PUBLIC profile uses a restricted allowlist that excludes files with private API routes.
+// OWNER profile uses the full allowlist.
+def allowlistName = isOwnerProfile ? 'asset_allowlist_v1.txt' : 'asset_allowlist_public.txt'
+def allowlistFile = new File(appRoot, 'mvp-android/' + allowlistName)
+if (!allowlistFile.exists()) {
+    throw new GradleException("Asset allowlist not found: mvp-android/${allowlistName}")
+}
+def allowlistPaths = allowlistFile.readLines()
+    .findAll { line -> line.trim() && !line.trim().startsWith('#') }
+    .collect { it.trim() }
+
+// PUBLIC profile: forbidden private API route patterns (byte-level check).
+// If any staged asset contains these strings, the build MUST fail.
+def PUBLIC_FORBIDDEN_ROUTES = [
+    '/api/hexelion/chat',
+    '/api/hexelion/decision',
+    '/api/hexelion/search',
+    '/api/hitl',
+    '/api/nodo/identity',
+    '/api/nodo/edificio',
+    '/api/nodo/export',
+]
+
+// Security validation at configuration time: reject traversal, duplicates, symlinks.
+def seenAllowlist = new HashSet<String>()
+def rootPath = appRoot.toPath().normalize()
+for (String rel in allowlistPaths) {
+    if (rel.contains('..') || rel.startsWith('/')) {
+        throw new GradleException("Allowlist contains path traversal: ${rel}")
+    }
+    def fullPath = rootPath.resolve(rel).normalize()
+    if (!fullPath.startsWith(rootPath)) {
+        throw new GradleException("Allowlist path escapes project root: ${rel}")
+    }
+    if (!seenAllowlist.add(rel)) {
+        throw new GradleException("Duplicate entry in allowlist: ${rel}")
+    }
+    def fileObj = new File(fullPath.toString())
+    if (fileObj.exists() && java.nio.file.Files.isSymbolicLink(fileObj.toPath())) {
+        throw new GradleException("Allowlist entry is a symlink (rejected): ${rel}")
+    }
+    if (!fileObj.exists() && !rel.contains('offline-mini.gguf')) {
+        throw new GradleException("Allowlist entry missing: ${rel}")
+    }
+}
+
+// Group allowlist paths by source prefix.
+def interfacePaths = allowlistPaths.findAll { it.startsWith('interface/') }
+def assetsPaths = allowlistPaths.findAll { it.startsWith('assets/') }
+def mvpPaths = allowlistPaths.findAll { it.startsWith('mvp-android/') && !it.startsWith('mvp-android/legal/') }
+def legalPaths = allowlistPaths.findAll { it.startsWith('mvp-android/legal/') }
+
+// Build include/exclude sets for interface/ copy.
+def allowedInterfaceBases = interfacePaths.collect { it.substring('interface/'.length()) }
+def allowedAssetsBases = assetsPaths.collect { it.substring('assets/'.length()) }
+
+def assetsDir = file('src/main/assets')
+
+// Safety gate: validate generated output before any copy touches it.
+tasks.register('prepareAssets') {
+    doLast {
+        def assetsPath = assetsDir.toPath().normalize()
+        // 1. Reject symlink at the assets directory itself.
+        if (java.nio.file.Files.isSymbolicLink(assetsPath)) {
+            throw new GradleException('Refusing to stage assets: src/main/assets is a symlink')
+        }
+        // 2. Reject if resolved path escapes the expected module location (projectDir/src/main/assets).
+        def expectedPrefix = projectDir.toPath().resolve('src/main/assets').normalize()
+        if (!assetsPath.startsWith(expectedPrefix.toString())) {
+            throw new GradleException('Refusing to stage assets: resolved path escapes expected location')
+        }
+        // 3. Remove only the GENERATED contents (files and subdirectories we created).
+        if (assetsDir.exists()) {
+            // Collect files and dirs first to avoid concurrent modification.
+            def filesToDelete = []
+            def dirsToDelete = []
+            assetsDir.eachFileRecurse { f ->
+                if (f.isFile()) filesToDelete << f
+            }
+            assetsDir.eachDirRecurse { d ->
+                if (d != assetsDir) dirsToDelete << d
+            }
+            // Delete files first.
+            filesToDelete.each { it.delete() }
+            // Delete directories bottom-up (deepest first).
+            dirsToDelete.sort { a, b -> b.toString().compareTo(a.toString()) }.each { it.delete() }
+        }
+    }
+}
+
+tasks.register('copyPanelsInterface', Copy) {
+    dependsOn 'prepareAssets'
+    from(new File(appRoot, 'interface')) {
+        exclude 'legacy/**'
+        allowedInterfaceBases.each { include it }
+        exclude { details ->
+            def relPath = details.relativePath.toString()
+            if (allowedInterfaceBases.contains(relPath)) return false
+            for (String a in allowedInterfaceBases) {
+                if (a.startsWith(relPath + '/')) return false
+            }
+            return true
+        }
+    }
+    into assetsDir
+}
+
+tasks.register('copyPanelsAssets', Copy) {
+    dependsOn 'prepareAssets'
+    from(new File(appRoot, 'assets')) {
+        allowedAssetsBases.each { include it }
+        exclude { details ->
+            def relPath = details.relativePath.toString()
+            if (allowedAssetsBases.contains(relPath)) return false
+            for (String a in allowedAssetsBases) {
+                if (a.startsWith(relPath + '/')) return false
+            }
+            return true
+        }
+    }
+    // WebViewAssetLoader.AssetsPathHandler maps /assets/X → src/main/assets/assets/X
+    // so the 4 PWA icons and compass.svg must live under the assets/ subdirectory.
+    into file('src/main/assets/assets')
+}
+
+tasks.register('copyPanelsBridges', Copy) {
+    dependsOn 'prepareAssets'
+    // Android-only capability: bridge scripts evaluated by MainActivity.
+    from(rootProject.file('android_review_bridge.js'))
+    from(rootProject.file('offline_mini.js'))
+    from(rootProject.file('android_join_bridge.js'))
+    from(rootProject.file('android_heartbeat_bridge.js'))
+    into assetsDir
+}
+
+// Legal copy: only the three allowlisted license files, never the whole folder.
+def legalAllowlist = legalPaths.collect { it.substring('mvp-android/legal/'.length()) }
+tasks.register('copyPanelsLicenses', Copy) {
+    dependsOn 'prepareAssets'
+    from(new File(appRoot, 'mvp-android/legal')) {
+        legalAllowlist.each { include it }
+        exclude { details ->
+            def relPath = details.relativePath.toString()
+            !legalAllowlist.contains(relPath)
+        }
+    }
+    into file('src/main/assets/licenses')
+}
+
+// PUBLIC profile: generate the source-derived public projection HTML.
+// This replaces interface/app.html with a sanitized six-panel shell that
+// contains no private API route strings. The projection is derived from
+// the canonical interface/app.html at build time via bin/package_public_mini.py.
+// It runs AFTER copyPanels sub-tasks so the generated app.html survives.
+def generatePublicProjection = tasks.register('generatePublicProjection') {
+    onlyIf { !isOwnerProfile }
+    dependsOn 'copyPanelsInterface', 'copyPanelsAssets', 'copyPanelsBridges', 'copyPanelsLicenses'
+    doLast {
+        def python = System.getenv('PYTHON3') ?: 'python3'
+        def script = new File(appRoot, 'bin/package_public_mini.py')
+        if (!script.exists()) {
+            throw new GradleException('PUBLIC projection unavailable: bin/package_public_mini.py not found. NO_DATA(public_sanitized_projection_unavailable)')
+        }
+        def tmpDir = new File(buildDir, 'public-projection-tmp')
+        tmpDir.mkdirs()
+        def proc = [python, '-u', script.toString(), '--out', tmpDir.toString()].execute()
+        def stdout = new StringWriter()
+        def stderr = new StringWriter()
+        proc.waitForProcessOutput(stdout, stderr)
+        if (proc.exitValue() != 0) {
+            throw new GradleException("PUBLIC projection generation failed: ${stderr.toString()}")
+        }
+        // The script writes dist/public-mini-app/app/index.html (the sanitized HTML).
+        // Copy it as app.html into assets/ so MainActivity loads it.
+        def projHtml = new File(tmpDir, 'app/index.html')
+        if (!projHtml.exists()) {
+            throw new GradleException('PUBLIC projection did not produce index.html. NO_DATA(public_sanitized_projection_unavailable)')
+        }
+        def destHtml = new File(assetsDir, 'app.html')
+        destHtml.parentFile.mkdirs()
+        destHtml.text = projHtml.text
+        // Also copy public-boot.js, public-mini.css, and the public sw.js if present.
+        for (def extra in ['public-boot.js', 'public-mini.css', 'sw.js']) {
+            def src = new File(tmpDir, "app/${extra}")
+            if (src.exists()) {
+                def dst = new File(assetsDir, extra)
+                dst.text = src.text
+            }
+        }
+        // Copy the face/bubble subdirectory if present.
+        def faceSrc = new File(tmpDir, 'app/face/bubble')
+        if (faceSrc.exists()) {
+            def faceDst = new File(assetsDir, 'face/bubble')
+            faceDst.mkdirs()
+            faceSrc.eachFile { f ->
+                if (f.isFile()) {
+                    new File(faceDst, f.name).text = f.text
+                }
+            }
+        }
+        // Copy assets from projection if present.
+        def assetsSrc = new File(tmpDir, 'app/assets')
+        if (assetsSrc.exists()) {
+            assetsSrc.eachFile { f ->
+                if (f.isFile()) {
+                    new File(assetsDir, 'assets/' + f.name).parentFile.mkdirs()
+                    new File(assetsDir, 'assets/' + f.name).bytes = f.bytes
+                }
+            }
+        }
+    }
+}
+
+// PUBLIC profile: byte-level verification that no staged asset contains forbidden routes.
+// This runs AFTER copyPanels and FAILS the build if any violation is found.
+def verifyPublicAssets = tasks.register('verifyPublicAssets') {
+    onlyIf { !isOwnerProfile }
+    doLast {
+        if (!assetsDir.exists()) {
+            return
+        }
+        def violations = []
+        assetsDir.eachFileRecurse { f ->
+            if (!f.isFile()) return
+            if (f.name.endsWith('.gguf') || f.name.endsWith('.png') || f.name.endsWith('.svg') || f.name.endsWith('.jar')) return
+            try {
+                def text = f.text
+                for (def route in PUBLIC_FORBIDDEN_ROUTES) {
+                    if (text.contains(route)) {
+                        violations.add("${f.name}: contains ${route}")
+                    }
+                }
+            } catch (Exception e) {
+                // Skip binary files
+            }
+        }
+        if (!violations.isEmpty()) {
+            throw new GradleException("PUBLIC profile asset violation — private API routes found in staged assets:\n  " + violations.join("\n  ") + "\nBuild aborted. NO_DATA(public_asset_violation)")
+        }
+    }
+}
+
 tasks.register('copyPanels', Copy) {
+    dependsOn 'copyPanelsInterface', 'copyPanelsAssets', 'copyPanelsBridges', 'copyPanelsLicenses'
     // The pinned source GGUF is owner-read-only. Gradle's Copy may preserve 0400
     // on the generated build asset, so a subsequent clean build must restore
     // write permission on that GENERATED copy only (never on the source).
@@ -44,23 +299,28 @@ tasks.register('copyPanels', Copy) {
             }
         }
     }
-    from(rootProject.file('../interface')) {
-        exclude 'legacy/**'
-    }
-    // Android-only capability: do not change or cache the browser/PWA shell.
-    from(rootProject.file('android_review_bridge.js'))
-    from(rootProject.file('offline_mini.js'))
-    from(rootProject.file('android_join_bridge.js'))
-    from(rootProject.file('android_heartbeat_bridge.js'))
-    from(rootProject.file('legal')) { into 'licenses' }
+    // Optional GGUF model (OWNER profile or explicit property).
     if (project.hasProperty('offlineMiniModel')) {
         from(project.file(project.property('offlineMiniModel'))) {
             rename { 'offline-mini.gguf' }
         }
     }
-    into file('src/main/assets')
+    into assetsDir
 }
-afterEvaluate { tasks.named('preBuild') { dependsOn 'copyPanels' } }
+
+// PUBLIC profile: generatePublicProjection depends on copyPanels sub-tasks (so it runs
+// AFTER prepareAssets + copy, and the generated app.html is preserved).
+// copyPanels depends on generatePublicProjection (so the projection is present).
+// verification runs after copyPanels (so all staged assets are checked).
+if (!isOwnerProfile) {
+    tasks.named('copyPanels') {
+        dependsOn 'generatePublicProjection'
+        finalizedBy 'verifyPublicAssets'
+    }
+}
+afterEvaluate {
+    tasks.named('preBuild') { dependsOn 'copyPanels' }
+}
 
 android {
     namespace "org.preceptoros.mvp"
@@ -72,6 +332,10 @@ android {
         versionCode mvpVersionCode
         versionName (mvpAppId == 'org.preceptoros.app' ?
           (mvpVersionCode >= 8 ? '0.3.1-mini-recovery' : '0.3.0-mvp') : '0.1.0-mvp')
+        // Machine-readable distribution profile: PUBLIC (default) or OWNER (explicit).
+        // Both profiles share the same package ID; OWNER does not imply connected auth.
+        def profileValue = appProfile ?: 'PUBLIC'
+        buildConfigField 'String', 'APP_DISTRIBUTION_PROFILE', "\"${profileValue}\""
     }
     signingConfigs {
         release {

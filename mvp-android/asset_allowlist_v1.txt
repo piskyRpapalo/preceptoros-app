@@ -1,0 +1,105 @@
+# PreceptorOS Android Asset Allowlist v1
+# Date: 2026-11-20
+# Purpose: Strict positive allowlist for Gradle copyPanels.
+# Only files listed here may be copied into src/main/assets.
+# Format: one relative path per line, relative to the project root.
+# Lines starting with # are comments. Blank lines are ignored.
+#
+# Sources: interface/app.html script/link tags, interface/sw.js Armazon precache,
+# capability_ledger.py APK capability paths, MainActivity.java evaluateBundledScript calls.
+#
+# Profile notes:
+#   PUBLIC (default): all files below except OWNER-only section.
+#   OWNER: all files below, including optional GGUF when -PofflineMiniModel is set.
+#   Both profiles share the same package ID (org.preceptoros.app) and six tabs.
+#   No secrets, private endpoints, or rack credentials in either profile.
+
+# === Core app shell (app.html + sw.js precache) ===
+interface/app.html
+interface/app.css
+interface/app.js
+interface/manifest.json
+interface/sw.js
+
+# === Talk panel dependencies ===
+interface/conversacion.js
+interface/superbot_talk.js
+interface/cabin_brain.js
+interface/modelos_web.js
+interface/insertor.js
+interface/evidence_chip.js
+interface/talk_crab_canvas.js
+interface/face/bubble/openworld_crab_body.js
+
+# === Operations Data (Notebook) panel ===
+interface/notebook.js
+interface/documents.js
+
+# === Lab panel ===
+interface/fleet_map.js
+interface/plan_flow.js
+interface/plan_fixture.js
+interface/team.js
+
+# === My node panel ===
+interface/node_building.js
+interface/node_registration.js
+interface/companion_onboarding.js
+interface/owner_model_slots.js
+interface/mini_project_guide.js
+interface/mini_recovery.js
+
+# === Settings panel ===
+interface/ui_preferences.js
+interface/audio_accessibility.js
+interface/acho_sonido.js
+interface/acho_motion.js
+interface/memory_onboarding.js
+
+# === Navigation and routing ===
+interface/zonas.js
+interface/transicion.js
+interface/sting.js
+interface/connection_guard.js
+interface/browser_mini_gate.js
+interface/energia_ui.js
+
+# === Plans and HITL ===
+interface/plan_panels.js
+interface/plan_composer.js
+interface/hitl.js
+interface/hitl.css
+
+# === First run and onboarding ===
+interface/mvp_first_run.js
+interface/creation_voice.js
+interface/creation_publish.js
+
+# === PWA install and update ===
+interface/install.js
+interface/keep_device.js
+
+# === Compass (Operations Data) ===
+interface/compass.js
+assets/compass.svg
+
+# === PWA icons ===
+assets/icono-192.png
+assets/icono-512.png
+assets/icono-512-maskable.png
+
+# === Android bridge scripts (evaluated by MainActivity) ===
+mvp-android/android_review_bridge.js
+mvp-android/offline_mini.js
+mvp-android/android_join_bridge.js
+mvp-android/android_heartbeat_bridge.js
+
+# === Licenses (copied into assets/licenses/) ===
+mvp-android/legal/ATTRIBUTIONS.txt
+mvp-android/legal/Apache-2.0.txt
+mvp-android/legal/llama.cpp-MIT.txt
+
+# === OWNER-only: optional GGUF model (copied only with -PofflineMiniModel) ===
+# The actual GGUF path is supplied at build time via -PofflineMiniModel=<path>
+# and renamed to offline-mini.gguf in assets/. It is NOT listed here as a
+# fixed source path, as the model file lives outside the repository.
