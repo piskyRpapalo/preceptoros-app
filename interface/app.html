@@ -380,7 +380,9 @@
     <details class="grupo" id="lab-connection-diagnostics">
       <summary><h3>Connection details</h3><span class="fold-teaser">Availability and connection causes</span></summary>
       <p class="pie" id="lab-estado" role="status" aria-live="polite" data-i18n="lab_cargando">Checking the local Lab…</p>
-      <p class="pie" id="lab-rack-estado" role="status" aria-live="polite" hidden></p>
+      <p id="lab-mini-recovery-state" class="pie" role="status" aria-live="polite" aria-atomic="true"
+       data-state="NO_DATA" data-acho="NO_DATA" data-cause="no_previous_recovery">NO_DATA(no_previous_recovery) · No previous MINI project restored.</p>
+    <p class="pie" id="lab-rack-estado" role="status" aria-live="polite" hidden></p>
       <a id="lab-rack-enlace" href="#" target="_blank" rel="noopener noreferrer" hidden>Rack Lab</a>
     </details>
     <details class="grupo" id="lab-boundary-group">
@@ -504,6 +506,23 @@
     <details class="grupo ajustes-grupo" id="ajustes-nodo">
       <summary><h3 id="ajustes-nodo-titulo">Node identity</h3><span class="fold-teaser">Local node ID and identity controls</span></summary>
       <p class="pie">Read and configure your local node identity. This does not register, deploy or approve a remote node.</p>
+      <section id="mini-recovery" class="tarjeta" aria-labelledby="mini-recovery-title">
+        <h3 id="mini-recovery-title">Recover a previous MINI project</h3>
+        <p class="pie">Import the <code data-i18n="mini_recovery_filename">preceptoros-mini-project.json</code> you exported from your earlier MINI. This restores local project text and documents after your consent. The export does not contain an owner signature: this does not claim ownership of a node, import model weights, or send a request.</p>
+        <label for="mini-recovery-file" data-i18n="mini_recovery_choose">Choose your earlier MINI export (local JSON)</label>
+        <input id="mini-recovery-file" type="file" accept="application/json,.json" aria-describedby="mini-recovery-state">
+        <label for="mini-recovery-json" data-i18n="mini_recovery_paste">Or paste the earlier MINI export JSON</label>
+        <textarea id="mini-recovery-json" rows="3" maxlength="262144" autocomplete="off" spellcheck="false"></textarea>
+        <button id="mini-recovery-preview-button" type="button" class="probar">Preview MINI recovery</button>
+        <p id="mini-recovery-preview" class="pie" role="status" aria-live="polite">Preview the fingerprint before consenting. No import has occurred.</p>
+        <label class="fila-switch" for="mini-recovery-consent">
+          <input type="checkbox" id="mini-recovery-consent">
+          <span data-i18n="mini_recovery_consent">I authorize restoring this MINI project and documents into local storage on this device. I understand this is not proof of node ownership.</span>
+        </label>
+        <button id="mini-recovery-import" class="probar" type="button" disabled>Recover project locally</button>
+        <p id="mini-recovery-state" role="status" aria-live="polite" aria-atomic="true"
+           data-state="NO_DATA" data-acho="NO_DATA" data-cause="no_previous_recovery">NO_DATA(no_previous_recovery). No MINI project imported on this device.</p>
+      </section>
       <section id="node-public-template" class="tarjeta"
                aria-labelledby="node-public-template-title" data-state="DRAFT_ONLY"
                data-acho="DRAFT_ONLY" data-cause="not_authorized_for_publication">
@@ -855,8 +874,8 @@
 <script src="/acho_sonido.js?v=3"></script>
 <script src="/audio_accessibility.js?v=1"></script>
 <script src="/memory_onboarding.js?v=1"></script>
-<script src="/app.js?v=56"></script>
-<script src="/mvp_first_run.js?v=1"></script>
+<script src="/app.js?v=57"></script>
+<script src="/mvp_first_run.js?v=2"></script>
 <script src="/creation_voice.js?v=1"></script>
 <script src="/keep_device.js?v=1"></script>
 <script src="/install.js?v=2"></script>
@@ -866,12 +885,28 @@
 <script src="/node_registration.js?v=2"></script>
 <script src="/companion_onboarding.js?v=5"></script>
 <script src="/documents.js?v=1"></script>
+<script src="/mini_project_guide.js?v=1"></script>
+<script src="/mini_recovery.js?v=1"></script>
 <script src="/owner_model_slots.js?v=1"></script>
 <script src="/offline_mini.js?v=1"></script>
 <script src="/browser_mini_gate.js?v=2"></script>
 <script>PreceptorNodeRegistration.mount(document);</script>
 <script>PreceptorCompanionOnboarding.mount(document); PreceptorCompanionOnboarding.mountBuilding(document);</script>
 <script>PreceptorDocuments.mount(document);</script>
+<script>(function(){
+  try {
+    PreceptorMiniRecovery.mount(document,window.localStorage,{
+      guide:PreceptorMiniProjectGuide,
+      companion:PreceptorCompanionOnboarding,
+      crypto:window.crypto
+    });
+  } catch (_error) {
+    const status=document.getElementById('mini-recovery-state');
+    if(status){status.dataset.state=status.dataset.acho='NO_DATA';
+      status.dataset.cause='mini_recovery_storage_unavailable';
+      status.textContent='NO_DATA(mini_recovery_storage_unavailable)';}
+  }
+})();</script>
 <script>
 document.getElementById('tray-read').addEventListener('click', async function () {
   const out = document.getElementById('tray-result');

@@ -12,6 +12,8 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebChromeClient;
+import android.webkit.ValueCallback;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
@@ -40,6 +42,19 @@ public class MainActivity extends Activity {
     private final AtomicLong lastReviewRequest = new AtomicLong(0L);
     private final Object miniModelLock = new Object();
     private long lastMiniAsk = 0L;
+    // Owner-selected JSON through Android's system SAF picker. Never broad storage access.
+    private static final int MINI_RECOVERY_PICKER = 3114;
+    private ValueCallback<Uri[]> pendingMiniRecoveryFile;
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != MINI_RECOVERY_PICKER) return;
+        ValueCallback<Uri[]> callback = pendingMiniRecoveryFile;
+        pendingMiniRecoveryFile = null;
+        if (callback == null) return;
+        Uri selected = (resultCode == RESULT_OK && data != null) ? data.getData() : null;
+        callback.onReceiveValue(selected == null ? null : new Uri[]{selected});
+    }
     private static final String MINI_MODEL_SHA256 =
             "ed5fa30c487b282ec156c29062f1222e5c20875a944ac98289dbd242e947f747";
 
@@ -171,8 +186,37 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
-        s.setAllowContentAccess(false);
+        s.setAllowContentAccess(true); // SAF URI grant only; filesystem access remains false.
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+                                             FileChooserParams params) {
+                // Only our packaged first-party page may open the picker. No automatic
+                // scan, no filesystem permissions; Android grants exactly one JSON URI
+                // after an explicit user gesture. File bytes stay in this WebView.
+                if (callback == null) return true;
+                if (!ownPageReady || !START.equals(view.getUrl()) ||
+                    pendingMiniRecoveryFile != null) {
+                    callback.onReceiveValue(null);
+                    return true;
+                }
+                pendingMiniRecoveryFile = callback;
+                Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                picker.addCategory(Intent.CATEGORY_OPENABLE);
+                picker.setType("application/json");
+                picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                try {
+                    startActivityForResult(picker, MINI_RECOVERY_PICKER);
+                } catch (ActivityNotFoundException error) {
+                    pendingMiniRecoveryFile = null;
+                    callback.onReceiveValue(null);
+                    Toast.makeText(MainActivity.this,
+                        "NO_DATA(mini_recovery_picker_unavailable)", Toast.LENGTH_LONG).show();
+                }
+                return true;
+            }
+        });
         web.addJavascriptInterface(new ReviewHandoff(), "PreceptorAndroidReview");
         web.addJavascriptInterface(new OfflineModelBridge(), "PreceptorAndroidMiniModel");
         // No addJavascriptInterface for network/identity: only origin/main-frame checked listener.

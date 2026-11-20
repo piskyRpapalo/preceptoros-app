@@ -117,8 +117,10 @@ try {
  const first=await evaluate("({open:!document.getElementById('mvp-first-run').hidden,steps:document.querySelectorAll('#mvp-first-run ol > li').length,draft:localStorage.getItem('preceptoros.node-public-template/1')})");
  assert.deepEqual(first,{open:true,steps:3,draft:null});
  assert.ok(initial.scroll<=initial.client+4,'horizontal overflow '+JSON.stringify(initial));
- const firstOpen=await evaluate("(()=>{document.getElementById('mvp-first-run-mini').click();return {shown:!document.getElementById('modelos-menu').hidden,focus:document.activeElement.id,mini:document.getElementById('mini-local-toggle').getAttribute('aria-pressed')};})()");
- assert.deepEqual(firstOpen,{shown:true,focus:'mini-local-toggle',mini:'true'});
+ // "Find previous MINI" must reach the owner-controlled importer, NOT an unrelated model toggle.
+ // Deterministic Mini model routing is unchanged and must remain available.
+ const firstOpen=await evaluate("(()=>{document.getElementById('mvp-first-run-mini').click();return {node:!document.getElementById('panel-ajustes').hidden,expanded:document.getElementById('ajustes-nodo').open,focus:document.activeElement.id,import:!!document.getElementById('mini-recovery-file'),mini:document.getElementById('mini-local-toggle').getAttribute('aria-pressed'),cause:document.getElementById('mvp-first-run-state').dataset.cause};})()");
+ assert.deepEqual(firstOpen,{node:true,expanded:true,focus:'mini-recovery-file',import:true,mini:'true',cause:'prior_export_required'});
  const firstNode=await evaluate("(()=>{document.getElementById('mvp-first-run-node').click();return {node:!document.getElementById('panel-ajustes').hidden,expanded:document.getElementById('ajustes-nodo').open,focus:document.activeElement.id,posts:0};})()");
  assert.deepEqual(firstNode,{node:true,expanded:true,focus:'node-default-name',posts:0});
  assert.equal(writes.length,0,'opening My node must not write to any server');
@@ -173,6 +175,53 @@ try {
                'offline_router_and_local_project_reloaded');
  const offline=await evaluate("({loaded:!!window.PreceptorOfflineMini,project:window.PreceptorMiniProjectGuide.load(localStorage,window.PreceptorCompanionOnboarding).ok})");
  assert.equal(offline.loaded,true);assert.equal(offline.project,true);
+ // Browser end-to-end: the previously created MINI export is imported on
+ // another (cleared) local identity surface, with an explicit owner gesture.
+ // This never upgrades a project SHA to a signed owner node identity.
+ const recovered=await evaluate(`(async()=>{
+    const g=window.PreceptorMiniProjectGuide,c=window.PreceptorCompanionOnboarding;
+    const prior=g.load(localStorage,c);
+    if(!prior.ok)return {error:'prior_missing'};
+    const exported=g.exportBundle(prior.value,window.PreceptorDocuments);
+    if(!exported.ok)return {error:'export_failed'};
+    localStorage.removeItem('preceptoros.public-mini.project.v1');
+    localStorage.removeItem('preceptoros.documents.v1');
+    document.getElementById('tab-ajustes').click();
+    const input=document.getElementById('mini-recovery-json');
+    input.value=exported.content;
+    document.getElementById('mini-recovery-preview-button').click();
+    await new Promise(resolve=>setTimeout(resolve,150));
+    const beforeConsent=document.getElementById('mini-recovery-import').disabled;
+    const consent=document.getElementById('mini-recovery-consent');
+    consent.checked=true;
+    consent.dispatchEvent(new Event('change'));
+    document.getElementById('mini-recovery-import').click();
+    await new Promise(resolve=>setTimeout(resolve,150));
+    const state=window.PreceptorMiniRecovery.read(localStorage);
+    return {
+      beforeConsent,ok:state.ok,authority:state.authority,
+      ownerProof:state.ownerProof,state:state.state,
+      project:window.PreceptorMiniProjectGuide.load(localStorage,c).value?.title,
+      documents:window.PreceptorDocuments.loadDocuments().length,
+      fingerprint:state.fingerprint,
+      myNode:document.getElementById('mini-recovery-state').dataset.state,
+      lab:document.getElementById('lab-mini-recovery-state').dataset.state
+    };
+  })()`);
+ assert.equal(recovered.beforeConsent,true);
+ assert.equal(recovered.ok,true,JSON.stringify(recovered));
+ assert.equal(recovered.state,'UNVERIFIED_LOCAL');
+ assert.equal(recovered.authority,'NONE');
+ assert.equal(recovered.ownerProof,'NO_DATA(no_signed_owner_proof)');
+ assert.equal(recovered.project,'Owner Law Study');
+ assert.equal(recovered.documents,1);
+ assert.equal(recovered.myNode,'UNVERIFIED_LOCAL');
+ assert.equal(recovered.lab,'UNVERIFIED_LOCAL');
+ await command('Page.reload',{ignoreCache:false});
+ await waitFor("!!(window.PreceptorMiniRecovery&&window.PreceptorMiniRecovery.read(localStorage).ok)",
+               'offline_previous_mini_recovery_persisted');
+ const stable=await evaluate("window.PreceptorMiniRecovery.read(localStorage).fingerprint");
+ assert.equal(stable,recovered.fingerprint,'content fingerprint lost after offline restart');
  assert.equal(requests.filter(x=>x.includes('/api/')).length,0);
  assert.equal(writes.length,0);
  console.log(JSON.stringify({status:'PASS',width,tabs:6,docCount:docs,model:node.model,

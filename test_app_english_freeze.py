@@ -40,9 +40,9 @@ class EnglishOnlyApp(unittest.TestCase):
         self.assertIn('lengua === "ar" ? "rtl" : "ltr"', self.js)
 
     def test_fresh_shell_asset_versions_match_pinned_service_worker(self):
-        self.assertIn('src="/app.js?v=56"', self.html)
-        self.assertIn('"/app.js?v=56"', self.sw)
-        self.assertIn('preceptoros-armazon-v235', self.sw)
+        self.assertIn('src="/app.js?v=57"', self.html)
+        self.assertIn('"/app.js?v=57"', self.sw)
+        self.assertIn('preceptoros-armazon-v236', self.sw)
         self.assertIn('src="/owner_model_slots.js?v=1"', self.html)
         self.assertIn('"/owner_model_slots.js?v=1"', self.sw)
         self.assertIn('src="/energia_ui.js?v=2"', self.html)

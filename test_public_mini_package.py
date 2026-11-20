@@ -68,7 +68,7 @@ class PublicMiniPackage(unittest.TestCase):
                 self.assertEqual(manifest["source_panels"],
                                  ["conversacion","cuaderno","lab","ajustes","modelos","settings"])
                 self.assertTrue(manifest["projection_not_android_apk"])
-                self.assertEqual(manifest["approved_app_sw"],"preceptoros-armazon-v235")
+                self.assertEqual(manifest["approved_app_sw"],"preceptoros-armazon-v236")
                 self.assertTrue(manifest["no_model_download"])
                 self.assertTrue(manifest["no_rack_connection"])
                 self.assertEqual(manifest["public_entry"], "/app/")
