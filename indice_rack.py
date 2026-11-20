@@ -14,6 +14,7 @@ Lines that look like secrets are dropped before indexing; they never reach a pro
 
 import hashlib
 import json
+import os
 import re
 import sqlite3
 from contextlib import closing
@@ -64,6 +65,12 @@ def construir(db, documentos):
     db.parent.mkdir(parents=True, exist_ok=True)
     tmp = db.with_suffix(".tmp")
     tmp.unlink(missing_ok=True)
+    # The index includes private memory/receipts. sqlite3.connect on an absent
+    # path would use the caller's umask (0644 under umask 0002 on this rack).
+    # Create the private inode first; the permanent safety rule must be in
+    # source, not dependent on one systemd unit's UMask setting.
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    os.close(fd)
     n = 0
     with closing(sqlite3.connect(tmp)) as con:
         con.execute("create virtual table trozos using fts5(origen, titulo, texto, actualizado unindexed,"
