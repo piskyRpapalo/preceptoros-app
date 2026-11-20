@@ -61,7 +61,7 @@ From the isolated APP worktree:
 
     python3 mvp-android/capability_ledger.py --strict-source
     python3 -m unittest -v test_android_capability_ledger
-    ANDROID_BUILD_TOOLS=/path/to/build-tools/36.0.0 python3 mvp-android/capability_ledger.py --apk /path/to/new.apk
+    ANDROID_BUILD_TOOLS=/path/to/build-tools/36.0.0 python3 mvp-android/capability_ledger.py --apk /path/to/new.apk --model-sha256 OWNER_APPROVED_64_HEX --jni-sha256 OWNER_APPROVED_64_HEX
     ANDROID_ADB=/path/to/adb python3 mvp-android/capability_ledger.py --serial YOUR_CONNECTED_SERIAL
 
 Never paste a serial or full local path into a public PR. The output omits
@@ -113,3 +113,15 @@ previous model/APP data.
 - Two Android owner devices read by ADB dumpsys package, pm path and sha256sum; no install, no disable, no data writes. Canonical v7 on one device byte-equal to independently verified signed rack APK SHA 9c4d227db2ba395cdb232bdd3eb6a52f83d344f3386a99bb5274d42837eebe6b; historical v6 on second byte-equal to owner-signed APK SHA 0c10659d3111b4ebb234f812bcc48b04b27422f3769c7f9a29dc9684f1d53a22. Legacy v2 on first device remains user-disabled and preserved. Installed package SHA proves bytes, not model inference. Device identifiers and serials excluded from public file.
 - The runner bin/pruebas explicitly registers test_android_capability_ledger as a unittest suite; full gate and exact-head CI require independent result.
 - Historical signed v7 and legacy v6 are correctly BLOCKED as new APP 1.1 v8 upgrade candidates; historical APK assets are not silently promoted to present-day capabilities.
+
+## Additional digest-pin regression gate
+
+The third directed suite revision explicitly requires model/JNI digest pins for a signed candidate. Static model presence is not sufficient: a developer-supplied signed synthetic APK without pins remains NO_DATA, and a wrong pin is rejected. The genuine next-release digests are deliberately unassigned until an owner-reviewed model choice and reproducible build exist. 23/23 directed tests ×2 PASS on Beelink (2026-11-20). This is not an APP 1.1 release.
+
+## Full repository gate · RED receipt, not PASS
+
+Observed on the Beelink 2026-11-20 21:56–22:05 UTC: ./bin/pruebas ×2 **FAILED**, rc=2 on round 1 and rc=1 on round 2. The runner was updated after round 1 had begun, creating a transient test_superficie registration failure in the first round. The second round no longer contained that fault; explicit test_superficie 5/5 ×2 PASS afterward. Both full rounds still have real, independent test failures. Seven sabotage suites in both rounds returned their expected detection results. **Never claim full APP gate green.**
+
+Named failing suites include test_app_mvp_trim, test_energia_estado, test_energia_intencion, test_app_english_freeze, test_evidence_chip, test_cabin_brain, test_fleet_map, test_companion_onboarding, test_room_building, test_dayd_browser_mini, test_android_final_main_package, test_plan_flow, test_lisbon_table_operator, test_public_names, test_talk_turn_parity, test_tareas_hexelion and test_acho_sonido. Directed reproduction: stale SW v236 expectations while current main serves v237, notebook.js?v=23 expected while v24 is served; evidence_chip Node fixture expects custom pass lines while the observed output uses TAP. A public-name inventory mismatch also remains. **Do not assign all failures to one root cause without each receipt.** No core UI/SW file was edited by this Ledger PR.
+
+The in-progress gate used a changing worktree while independent source witnesses were being incorporated. This is a failing diagnostic, not a certified exact final-head gate. NO_DATA(exact_head_full_suite_pass); no merge, deployment or APP 1.1 publication. Current independent ledger 23/23 ×2 PASS and seven source groups ×2 CODE_PRESENT at final test revision.

@@ -35,11 +35,17 @@ SOURCE = {
         "interface/app.html": ('id="tab-conversacion"', 'id="tab-cuaderno"',
                                'id="tab-lab"', 'id="tab-ajustes"',
                                'id="tab-modelos"', 'id="tab-settings"'),
+        "interface/app.js": (),
+        "interface/mvp_first_run.js": (),
+        "interface/superbot_talk.js": (),
+        "interface/talk_crab_canvas.js": (),
     },
     "node_consent": {
         "mvp-android/android_join_bridge.js": (),
+        "mvp-android/android_review_bridge.js": (),
         "mvp-android/android_heartbeat_bridge.js": (),
         "mvp-android/app/src/main/java/org/preceptoros/mvp/DeploymentJoinBridge.java": ("addWebMessageListener",),
+        "mvp-android/app/src/main/java/org/preceptoros/mvp/HeartbeatOnceBridge.java": (),
         "interface/node_registration.js": (),
     },
     "documents_harness": {
@@ -53,9 +59,11 @@ APK = {
     "jni": ("lib/arm64-v8a/libmini_llama.so",),
     "local_model": ("assets/offline-mini.gguf", "assets/offline_mini.js"),
     "accessibility": ("assets/audio_accessibility.js", "assets/acho_sonido.js"),
-    "six_panels": ("assets/app.html", "assets/app.css"),
-    "node_consent": ("assets/android_join_bridge.js", "assets/android_heartbeat_bridge.js",
-                     "assets/node_registration.js"),
+    "six_panels": ("assets/app.html", "assets/app.css", "assets/app.js",
+                    "assets/mvp_first_run.js", "assets/superbot_talk.js",
+                    "assets/talk_crab_canvas.js"),
+    "node_consent": ("assets/android_join_bridge.js", "assets/android_review_bridge.js",
+                     "assets/android_heartbeat_bridge.js", "assets/node_registration.js"),
     "documents_harness": ("assets/documents.js", "assets/notebook.js",
                           "assets/owner_model_slots.js"),
 }
@@ -106,25 +114,28 @@ def source_parity(archive, source_root):
         return no_data("source_root_not_provided")
     mismatch = []
     # Gradle's copyPanels copies interface and Android-only bridge scripts.
+    compared = 0
     for name in sorted({asset for paths in APK.values() for asset in paths}):
         if not name.startswith("assets/") or name.endswith(".gguf"):
             continue
+        compared += 1
         rel = name.removeprefix("assets/")
         source_path = Path(source_root) / (
             ("mvp-android/" if rel in
-             ("offline_mini.js", "android_join_bridge.js", "android_heartbeat_bridge.js")
+             ("offline_mini.js", "android_join_bridge.js", "android_review_bridge.js",
+              "android_heartbeat_bridge.js")
              else "interface/") + rel)
         if not source_path.is_file() or source_path.is_symlink() or name not in archive.namelist():
             mismatch.append(name)
             continue
         if hashlib.sha256(source_path.read_bytes()).hexdigest() != sha_archive_member(archive, name):
             mismatch.append(name)
-    return ({"state": "BYTE_EQUAL", "compared_assets": 11}
+    return ({"state": "BYTE_EQUAL", "compared_assets": compared}
             if not mismatch else {"state": "NO_DATA", "cause": "apk_source_bytes_mismatch",
                                   "mismatched_assets": mismatch})
 
 
-def inspect_apk(path, tools_dir=None, min_version=NEXT_VERSION, source_root=None):
+def inspect_apk(path, tools_dir=None, min_version=NEXT_VERSION, source_root=None, expected_model_sha=None, expected_jni_sha=None):
     path = Path(path)
     if not path.is_file() or path.is_symlink():
         return {"layer": "apk", **no_data("apk_missing_or_symlink")}
@@ -132,7 +143,8 @@ def inspect_apk(path, tools_dir=None, min_version=NEXT_VERSION, source_root=None
         digest = hashlib.file_digest(handle, "sha256").hexdigest()
     result = {"layer": "apk", "bytes": path.stat().st_size, "sha256": digest,
               "capabilities": {}, "identity": no_data("build_tools_unavailable"),
-              "source_parity": no_data("source_root_not_provided"), "embedded_artifacts": {}}
+              "source_parity": no_data("source_root_not_provided"),
+              "embedded_artifacts": {}, "embedded_identity": no_data("approved_digests_not_provided")}
     try:
         with zipfile.ZipFile(path) as archive:
             names = archive.namelist()
@@ -154,6 +166,18 @@ def inspect_apk(path, tools_dir=None, min_version=NEXT_VERSION, source_root=None
                         "sha256": sha_archive_member(archive, artifact)}
     except (OSError, zipfile.BadZipFile, ValueError, RuntimeError):
         return {**result, **no_data("apk_unreadable")}
+    model = result["embedded_artifacts"].get("assets/offline-mini.gguf")
+    jni = result["embedded_artifacts"].get("lib/arm64-v8a/libmini_llama.so")
+    pin_valid = (isinstance(expected_model_sha, str) and
+                 isinstance(expected_jni_sha, str) and
+                 re.fullmatch(r"[0-9a-f]{64}", expected_model_sha) and
+                 re.fullmatch(r"[0-9a-f]{64}", expected_jni_sha))
+    if pin_valid:
+        match = (model and jni and model["sha256"] == expected_model_sha and
+                 jni["sha256"] == expected_jni_sha)
+        result["embedded_identity"] = (
+            {"state": "PINNED"} if match
+            else no_data("model_or_jni_digest_changed"))
     if tools_dir:
         aapt, signer = Path(tools_dir) / "aapt2", Path(tools_dir) / "apksigner"
         if aapt.is_file() and signer.is_file():
@@ -175,12 +199,15 @@ def inspect_apk(path, tools_dir=None, min_version=NEXT_VERSION, source_root=None
                 result["identity"] = no_data("apk_tool_failed")
     complete = all(x["state"] == "PACKAGED" for x in result["capabilities"].values())
     parity_ok = result["source_parity"]["state"] == "BYTE_EQUAL"
+    pins_ok = result["embedded_identity"]["state"] == "PINNED"
     result["state"] = ("VERIFIED_PACKAGE"
-                       if complete and parity_ok and result["identity"]["state"] == "VERIFIED" else "NO_DATA")
+                       if complete and parity_ok and pins_ok and
+                       result["identity"]["state"] == "VERIFIED" else "NO_DATA")
     if result["state"] == "NO_DATA":
         result["cause"] = ("apk_capability_missing" if not complete else
                            result["identity"].get("cause") or
-                           result["source_parity"].get("cause") or "apk_unverified")
+                           result["source_parity"].get("cause") or
+                           result["embedded_identity"].get("cause") or "apk_unverified")
     return result
 
 def parse_dumpsys(text, package):
@@ -238,10 +265,14 @@ def installed_ledger(serial, adb="adb"):
             "legacy_migration": "NEEDS_OWNER_REVIEW" if legacy["state"] == "INSTALLED_METADATA" else "NO_DATA",
             "certificate": no_data("installed_cert_requires_matching_signed_candidate")}
 
-def make_report(root, apk=None, tools_dir=None, serial=None, adb="adb"):
+def make_report(root, apk=None, tools_dir=None, serial=None, adb="adb",
+                expected_model_sha=None, expected_jni_sha=None):
     return {"schema": SCHEMA,
             "source": source_ledger(root),
-            "apk": inspect_apk(apk, tools_dir, source_root=root) if apk else {"layer": "apk", **no_data("candidate_apk_not_provided")},
+            "apk": inspect_apk(apk, tools_dir, source_root=root,
+                               expected_model_sha=expected_model_sha,
+                               expected_jni_sha=expected_jni_sha)
+                   if apk else {"layer": "apk", **no_data("candidate_apk_not_provided")},
             "installed": installed_ledger(serial, adb) if serial else {"layer": "installed", **no_data("device_not_examined")},
             "runtime": {"layer": "runtime", **no_data("physical_inference_a11y_rack_turn_not_measured")},
             "product": {"APP 1.0": "owner_distribution_label_not_versionCode",
@@ -252,11 +283,14 @@ def main():
     p.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     p.add_argument("--apk", type=Path)
     p.add_argument("--tools-dir", type=Path, default=Path(os.environ["ANDROID_BUILD_TOOLS"]) if "ANDROID_BUILD_TOOLS" in os.environ else None)
+    p.add_argument("--model-sha256", help="owner-approved GGUF digest for candidate release")
+    p.add_argument("--jni-sha256", help="owner-approved native library digest for candidate release")
     p.add_argument("--serial", help="ADB serial, never included in output")
     p.add_argument("--adb", default=os.environ.get("ANDROID_ADB", "adb"))
     p.add_argument("--strict-source", action="store_true")
     a = p.parse_args()
-    report = make_report(a.root, a.apk, a.tools_dir, a.serial, a.adb)
+    report = make_report(a.root, a.apk, a.tools_dir, a.serial, a.adb,
+                         a.model_sha256, a.jni_sha256)
     print(json.dumps(report, indent=2, sort_keys=True))
     # Supplying a candidate APK is a release gate, not a casual information
     # display. NO_DATA or BLOCKED must not return a successful process exit.
