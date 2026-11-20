@@ -45,9 +45,14 @@ public class MainActivity extends Activity {
     // Owner-selected JSON through Android's system SAF picker. Never broad storage access.
     private static final int MINI_RECOVERY_PICKER = 3114;
     private ValueCallback<Uri[]> pendingMiniRecoveryFile;
+    private HeartbeatOnceBridge heartbeatBridge;
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == HeartbeatOnceBridge.PICKER_REQUEST) {
+            if (heartbeatBridge != null) heartbeatBridge.onCredentialSelected(resultCode,data);
+            return;
+        }
         if (requestCode != MINI_RECOVERY_PICKER) return;
         ValueCallback<Uri[]> callback = pendingMiniRecoveryFile;
         pendingMiniRecoveryFile = null;
@@ -221,6 +226,7 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new OfflineModelBridge(), "PreceptorAndroidMiniModel");
         // No addJavascriptInterface for network/identity: only origin/main-frame checked listener.
         final boolean joinAvailable = DeploymentJoinBridge.install(this, web);
+        heartbeatBridge = HeartbeatOnceBridge.install(this,web);
         web.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
@@ -232,6 +238,7 @@ public class MainActivity extends Activity {
                         evaluateBundledScript(view, "android_review_bridge.js");
                         evaluateBundledScript(view, "offline_mini.js");
                         if (joinAvailable) evaluateBundledScript(view, "android_join_bridge.js");
+                        if (heartbeatBridge != null) evaluateBundledScript(view, "android_heartbeat_bridge.js");
                     } catch (IOException unavailable) {
                         ownPageReady = false;
                         Toast.makeText(MainActivity.this,
