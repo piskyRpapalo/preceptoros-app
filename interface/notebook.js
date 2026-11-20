@@ -78,7 +78,7 @@
       benchmarks: 0, receipts: 0, timers: 0, enabledTimers: 0,
       harnessCause: loops.cause, agentsState: "NO_DATA",
       processState: "NO_DATA", processCause: "live_process_binding_missing",
-      observedAt: "" };
+      observedAt: "", sourceRef: null };
     const available = notebook.bench.filter(r => r && typeof r === "object");
     const rows = loops.rows;
     return {
@@ -88,7 +88,9 @@
       harnessCause: loops.cause, agentsState: notebook.agents_status === "DECLARADO"
         ? "DECLARED" : "NO_DATA",
       processState: "NO_DATA", processCause: "live_process_binding_missing",
-      observedAt: clean(notebook.observed_at, 40)
+      observedAt: clean(notebook.observed_at, 40),
+      sourceRef: typeof notebook.shared_source_ref === "string" && /^[0-9a-f]{64}$/.test(notebook.shared_source_ref)
+        ? notebook.shared_source_ref : null
     };
   }
 
@@ -219,7 +221,9 @@
       : "Rack LAB (read-only, same source): " + p.benchmarks + " recorded benchmark runs; " +
         p.receipts + " command receipts; " + p.timers + " timer entries (" + p.enabledTimers +
         " declared enabled). Timers are not running processes. " +
-        "Harness: " + (p.harnessCause || "recent sensor") + ".";
+        "Harness: " + (p.harnessCause || "recent sensor") + ". " +
+        "Receipt revision: " + (p.sourceRef ? p.sourceRef.slice(0, 16) + "…" : "NO_DATA(source_revision_missing)") +
+        " (byte identity only; not an owner grant).";
     processes.dataset.state = "NO_DATA";
     processes.dataset.cause = p.processCause;
     processes.dataset.acho = "silent";
