@@ -39,6 +39,20 @@
     field?.scrollIntoView?.({block:"nearest",behavior:"auto"});
   }
   function goMini() {
+    // A previous MINI export is not discoverable across browser/WebView origins.
+    // Bring its explicit owner-controlled recovery control into view instead
+    // of misleadingly treating a model switch as identity recognition.
+    if ($("mini-recovery")) {
+      $("tab-ajustes")?.click();
+      const node=$("ajustes-nodo");
+      if (node) node.open=true;
+      $("mynode-identity-toggle")?.setAttribute("aria-expanded","true");
+      $("mini-recovery-file")?.focus({preventScroll:true});
+      $("mini-recovery")?.scrollIntoView?.({block:"nearest",behavior:"auto"});
+      mark(feedback,"NO_DATA","prior_export_required",
+        "Choose your earlier MINI project export to recover locally. Ownership and node admission are not verified.");
+      return;
+    }
     $("tab-conversacion")?.click();
     // The existing Mini toggle lives inside the model picker dialog.
     // Reveal its existing owner before transferring focus; no implicit click.

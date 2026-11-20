@@ -144,13 +144,13 @@ class TalkNeverWordsAResultItself(unittest.TestCase):
         self.assertIn('class="estado sr" id="estado" role="status" aria-live="polite"',html)
         self.assertIn('id="connection-status"',html)
         self.assertNotIn('id="talk-diagnostics"', html.split('id="panel-conversacion"',1)[1].split('id="panel-cuaderno"',1)[0])
-        self.assertLess(html.index('src="/notebook.js?v=23"'), html.index('src="/app.js?v=56"'))
+        self.assertLess(html.index('src="/notebook.js?v=23"'), html.index('src="/app.js?v=57"'))
 
     def test_the_shell_serves_the_new_scripts_under_a_new_cache(self):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf-8")
-        for asset in ('"/notebook.js?v=23"', '"/app.js?v=56"'):
+        for asset in ('"/notebook.js?v=23"', '"/app.js?v=57"'):
             self.assertIn(asset, sw)
-        self.assertIn('const Cache = "preceptoros-armazon-v235";', sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v236";', sw)
 
 
 if __name__ == "__main__":

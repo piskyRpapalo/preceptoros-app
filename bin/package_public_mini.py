@@ -25,6 +25,7 @@ FILES = {
     "companion_onboarding.js": SOURCE / "companion_onboarding.js",
     "node_registration.js": SOURCE / "node_registration.js",
     "mini_project_guide.js": SOURCE / "mini_project_guide.js",
+    "mini_recovery.js": SOURCE / "mini_recovery.js",
     "mvp_first_run.js": SOURCE / "mvp_first_run.js",
     "superbot_talk.js": SOURCE / "superbot_talk.js",
     "talk_crab_canvas.js": SOURCE / "talk_crab_canvas.js",
@@ -83,6 +84,7 @@ def shell(source: str) -> str:
     intro = extract(source, "section", "mvp-first-run")
     agent_disclosure = extract(source, "details", "superbot-agent-disclosure")
     node_template = extract(source, "section", "node-public-template")
+    mini_recover = extract(source, "section", "mini-recovery")
     node_identity_form = extract(source, "form", "node-identity-form")
     crab = extract(source, "div", "talk-processing")
     talk_input = extract(source, "form", "form-chat")
@@ -164,6 +166,7 @@ def shell(source: str) -> str:
 <section class="panel" id="panel-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0" hidden>
   <h2>Lab · create your project</h2>
   <p>Follow the six steps. Each project is editable; source links are references only, not downloaded or indexed documents.</p>
+  <p id="lab-mini-recovery-state" role="status" aria-live="polite" data-state="NO_DATA" data-acho="NO_DATA" data-cause="no_previous_recovery">NO_DATA(no_previous_recovery). No local Mini project restored.</p>
   <section class="tarjeta" id="mini-project-guide">
     <h3>Create project → Describe purpose → Add documents → Review project → Configure AI → My node</h3>
     <label for="mini-project-template">Optional editable example</label>
@@ -208,7 +211,7 @@ def shell(source: str) -> str:
   <p>Your Companion belongs to you. A local draft is never a verified or publicly admitted node.</p>
   <button id="mvp-first-run-reopen" type="button">Show three-step introduction again</button>
   <details id="ajustes-nodo" open><summary><h3>Node identity</h3></summary>
-  """ + node_template + """
+  """ + node_template + mini_recover + """
   <p>The suggested ID below is not unique, signed or deployed. Local provisioning is unavailable in this static preview.</p>
   """ + node_identity_form + """
   <p id="node-identity-status" role="status" aria-live="polite" data-state="DRAFT_ONLY" data-acho="DRAFT_ONLY">Local suggestion only. No registration request sent.</p>
@@ -245,6 +248,7 @@ def shell(source: str) -> str:
 <script src="./owner_model_slots.js"></script>
 <script src="./node_registration.js"></script>
 <script src="./mini_project_guide.js"></script>
+<script src="./mini_recovery.js"></script>
 <script src="./offline_mini.js"></script>
 <script src="./mvp_first_run.js"></script>
 <script src="./superbot_talk.js"></script>
@@ -314,6 +318,11 @@ BOOT = r"""/* Thin six-panel adapter for the EXISTING APP's owner-safe local mod
  window.PreceptorNodeRegistration.mount(document);
  window.PreceptorMiniProjectGuide.mount(document,window.localStorage,
    window.PreceptorCompanionOnboarding,window.PreceptorDocuments,window.PreceptorOwnerModelSlots);
+ window.PreceptorMiniRecovery.mount(document,window.localStorage,{
+   guide:window.PreceptorMiniProjectGuide,
+   companion:window.PreceptorCompanionOnboarding,
+   crypto:window.crypto
+ });
  const status=id('offline-mini-status');
  if(status){status.hidden=false;status.textContent='DETERMINISTIC_ONLY · shared Mini router, no model or network';}
  const form=id('form-chat');
@@ -404,11 +413,11 @@ html[data-reduce-motion=true] #talk-processing .talk-processing-crab{animation:n
 @media (max-width:390px){body.public-mini{padding:.4rem}.public-mini .pestanas button{font-size:.82rem}}
 """
 SW = r"""/* Public APP static shell. Never intercept or cache /api or remote requests. */
-const CACHE='preceptoros-public-mini-';
+const CACHE='preceptoros-public-mini-recover-v1';
 const BASE=new URL('./',self.registration.scope);
 const ASSETS=['./','./index.html','./app.css','./public-mini.css','./documents.js',
 './owner_model_slots.js','./companion_onboarding.js','./node_registration.js',
-'./mini_project_guide.js','./offline_mini.js','./mvp_first_run.js','./superbot_talk.js',
+'./mini_project_guide.js','./mini_recovery.js','./offline_mini.js','./mvp_first_run.js','./superbot_talk.js',
 './talk_crab_canvas.js','./face/bubble/openworld_crab_body.js','./public-boot.js','./manifest.webmanifest',
 './assets/icono-192.png','./assets/icono-512.png','./assets/icono-512-maskable.png'];
 self.addEventListener('install',event=>{
@@ -454,7 +463,7 @@ def build(out: Path) -> dict:
     receipt={"schema":"preceptoros.public-mini-package/2","source_repository":"piskyRpapalo/preceptoros-app",
              "source_head":source_head, "mode":"SIX_ZONE_PUBLIC_SAFE_DETERMINISTIC_ONLY",
              "source_panels":["conversacion","cuaderno","lab","ajustes","modelos","settings"],
-             "projection_not_android_apk":True,"approved_app_sw":"preceptoros-armazon-v235",
+             "projection_not_android_apk":True,"approved_app_sw":"preceptoros-armazon-v236",
              "public_entry":"/app/","redirect_required":"/app -> /app/",
              "no_model_download":True,"no_rack_connection":True,"files":hashes}
     (app/"package-manifest.json").write_text(json.dumps(receipt,sort_keys=True,indent=2)+"\n",encoding="utf-8")

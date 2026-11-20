@@ -53,7 +53,8 @@ android {
         minSdk 26
         targetSdk 36
         versionCode mvpVersionCode
-        versionName (mvpAppId == 'org.preceptoros.app' ? '0.3.0-mvp' : '0.1.0-mvp')
+        versionName (mvpAppId == 'org.preceptoros.app' ?
+          (mvpVersionCode >= 8 ? '0.3.1-mini-recovery' : '0.3.0-mvp') : '0.1.0-mvp')
     }
     signingConfigs {
         release {

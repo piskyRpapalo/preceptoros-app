@@ -21,6 +21,11 @@ const paneles = window.PreceptorZonas.zonas;
  * El idioma lo manda la memoria, no el navegador. */
 const textos = {
   es: {
+    // Dormant historical Spanish dictionary. APP MVP stays English-only.
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "Elige el archivo exportado de tu Mini anterior (JSON local)",
+    mini_recovery_paste: "O pega el JSON exportado de tu Mini anterior",
+    mini_recovery_consent: "Autorizo restaurar este proyecto Mini y sus documentos en el almacenamiento local de este dispositivo. Entiendo que esto no demuestra que soy propietario del nodo.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",
@@ -83,6 +88,11 @@ const textos = {
     nodo_export_titulo: 'Identidad del nodo', nodo_export_ayuda: 'Selecciona una cédula ya firmada. Esta app no firma; el envío ocurre solo al pulsar el botón.', nodo_export_archivo: 'Cédula firmada (.json)', nodo_export_boton: 'Enviar a la aduana', nodo_export_espera: 'Sin cédula seleccionada. No se ha enviado nada.', nodo_export_enviando: 'Verificando y enviando la cédula firmada…', nodo_export_ok: 'La aduana recibió el paquete.', nodo_export_error: 'No se confirmó el envío. Revisa la cédula firmada y la conexión.', nodo_export_causas: {cuerpo_invalido: 'Archivo o formato de cédula inválido.', firma_no_disponible: 'No hay firma verificable disponible; la persona debe traer la cédula firmada.', firma_rechazada: 'La firma de la cédula no verifica.', plan_no_coincide: 'La cédula no coincide con el plan firmado.', aduana_rechazo: 'La aduana rechazó la solicitud.', aduana_no_disponible: 'No se pudo alcanzar la aduana.', paquete_invalido: 'La respuesta no contiene un paquete válido.', general: 'Archivo o formato de cédula inválido.', clave_publica_no_configurada: 'La aduana no tiene configurada la clave pública.', plan_firmado_no_configurado: 'La aduana no tiene configurado un plan firmado.', registro_no_disponible: 'El registro de auditoría no está disponible; no se registró nada.', firma_cedula_rechazada: 'La firma de la cédula no verifica.', cedula_mal_formada: 'Los campos de la cédula no son válidos.', cuerpo_fuera_de_rango: 'La cédula supera el tamaño permitido.'}
   },
   en: {
+    // MINI recovery uses the existing APP language hook (English-only MVP).
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "Choose your earlier MINI export (local JSON)",
+    mini_recovery_paste: "Or paste the earlier MINI export JSON",
+    mini_recovery_consent: "I authorize restoring this MINI project and documents into local storage on this device. I understand this is not proof of node ownership.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",
@@ -148,6 +158,11 @@ const textos = {
    * `textos.py`. Traducidas por Claude; nadie con oido nativo las ha leido.
    * El arabe se escribe de derecha a izquierda: lo pone `pintarEstaticos`. */
   fr: {
+    // Dormant translations; APP MVP still renders only English.
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "Sélectionnez le fichier exporté de votre ancien Mini (JSON local)",
+    mini_recovery_paste: "Ou collez le JSON exporté de votre ancien Mini",
+    mini_recovery_consent: "J’autorise la restauration de ce projet Mini et de ses documents dans le stockage local de cet appareil. Cela ne prouve pas la propriété d’un nœud.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",
@@ -211,6 +226,11 @@ const textos = {
     nodo_export_titulo: 'Identité du nœud', nodo_export_ayuda: 'Choisis un justificatif déjà signé. Cette app ne signe pas ; l’envoi ne part qu’après ton clic.', nodo_export_archivo: 'Justificatif signé (.json)', nodo_export_boton: 'Envoyer à la douane', nodo_export_espera: 'Aucun justificatif choisi. Rien n’a été envoyé.', nodo_export_enviando: 'Vérification et envoi du justificatif signé…', nodo_export_ok: 'La douane a reçu le paquet.', nodo_export_error: 'Envoi non confirmé. Vérifie le justificatif et la connexion.', nodo_export_causas: {cuerpo_invalido: 'Fichier ou format du justificatif invalide.', firma_no_disponible: 'Aucune signature vérifiable ; apporte un justificatif signé.', firma_rechazada: 'La signature du justificatif n’est pas valide.', plan_no_coincide: 'Le justificatif ne correspond pas au plan signé.', aduana_rechazo: 'La douane a rejeté la demande.', aduana_no_disponible: 'La douane est injoignable.', paquete_invalido: 'La réponse ne contient pas de paquet valide.', general: 'Fichier ou format du justificatif invalide.', clave_publica_no_configurada: 'La clé publique n’est pas configurée dans la douane.', plan_firmado_no_configurado: 'Aucun plan signé n’est configuré dans la douane.', registro_no_disponible: 'Le registre d’audit est indisponible ; rien n’a été enregistré.', firma_cedula_rechazada: 'La signature du justificatif n’est pas valide.', cedula_mal_formada: 'Les champs du justificatif sont invalides.', cuerpo_fuera_de_rango: 'Le justificatif dépasse la taille autorisée.'}
   },
   pt: {
+    // Dormant translations; APP MVP still renders only English.
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "Escolha o ficheiro exportado do seu Mini anterior (JSON local)",
+    mini_recovery_paste: "Ou cole o JSON exportado do seu Mini anterior",
+    mini_recovery_consent: "Autorizo restaurar este projeto Mini e os seus documentos no armazenamento local deste dispositivo. Isto não comprova a propriedade de um nó.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",
@@ -273,6 +293,11 @@ const textos = {
     nodo_export_titulo: 'Identidade do nó', nodo_export_ayuda: 'Escolhe uma cédula já assinada. Esta app não assina; o envio só ocorre quando carregas no botão.', nodo_export_archivo: 'Cédula assinada (.json)', nodo_export_boton: 'Enviar para a alfândega', nodo_export_espera: 'Nenhuma cédula selecionada. Nada foi enviado.', nodo_export_enviando: 'A verificar e enviar a cédula assinada…', nodo_export_ok: 'A alfândega recebeu o pacote.', nodo_export_error: 'O envio não foi confirmado. Verifica a cédula e a ligação.', nodo_export_causas: {cuerpo_invalido: 'Ficheiro ou formato da cédula inválido.', firma_no_disponible: 'Não há assinatura verificável; traz uma cédula assinada.', firma_rechazada: 'A assinatura da cédula não foi verificada.', plan_no_coincide: 'A cédula não corresponde ao plano assinado.', aduana_rechazo: 'A alfândega rejeitou o pedido.', aduana_no_disponible: 'Não foi possível contactar a alfândega.', paquete_invalido: 'A resposta não contém um pacote válido.', general: 'Ficheiro ou formato da cédula inválido.', clave_publica_no_configurada: 'A chave pública não está configurada na alfândega.', plan_firmado_no_configurado: 'Não há um plano assinado configurado na alfândega.', registro_no_disponible: 'O registo de auditoria está indisponível; nada foi registado.', firma_cedula_rechazada: 'A assinatura da cédula não foi verificada.', cedula_mal_formada: 'Os campos da cédula são inválidos.', cuerpo_fuera_de_rango: 'A cédula excede o tamanho permitido.'}
   },
   it: {
+    // Dormant translations; APP MVP still renders only English.
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "Seleziona il file esportato dal Mini precedente (JSON locale)",
+    mini_recovery_paste: "Oppure incolla il JSON esportato dal Mini precedente",
+    mini_recovery_consent: "Autorizzo il ripristino locale di questo progetto Mini e dei suoi documenti. Questo non prova la proprietà di un nodo.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",
@@ -335,6 +360,11 @@ const textos = {
     nodo_export_titulo: 'Identità del nodo', nodo_export_ayuda: 'Scegli una credenziale già firmata. Questa app non firma; l’invio parte solo dopo il tuo clic.', nodo_export_archivo: 'Credenziale firmata (.json)', nodo_export_boton: 'Invia alla dogana', nodo_export_espera: 'Nessuna credenziale selezionata. Non è stato inviato nulla.', nodo_export_enviando: 'Verifica e invio della credenziale firmata…', nodo_export_ok: 'La dogana ha ricevuto il pacchetto.', nodo_export_error: 'Invio non confermato. Controlla la credenziale e la connessione.', nodo_export_causas: {cuerpo_invalido: 'File o formato della credenziale non valido.', firma_no_disponible: 'Nessuna firma verificabile; porta una credenziale firmata.', firma_rechazada: 'La firma della credenziale non è valida.', plan_no_coincide: 'La credenziale non corrisponde al piano firmato.', aduana_rechazo: 'La dogana ha rifiutato la richiesta.', aduana_no_disponible: 'La dogana non è raggiungibile.', paquete_invalido: 'La risposta non contiene un pacchetto valido.', general: 'File o formato della credenziale non valido.', clave_publica_no_configurada: 'La chiave pubblica non è configurata nella dogana.', plan_firmado_no_configurado: 'Nessun piano firmato è configurato nella dogana.', registro_no_disponible: 'Il registro di audit non è disponibile; non è stato registrato nulla.', firma_cedula_rechazada: 'La firma della credenziale non è valida.', cedula_mal_formada: 'I campi della credenziale non sono validi.', cuerpo_fuera_de_rango: 'La credenziale supera la dimensione consentita.'}
   },
   de: {
+    // Dormant translations; APP MVP still renders only English.
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "Exportdatei Ihres früheren Mini auswählen (lokales JSON)",
+    mini_recovery_paste: "Oder das JSON Ihres früheren Mini einfügen",
+    mini_recovery_consent: "Ich stimme zu, dieses Mini-Projekt und seine Dokumente lokal wiederherzustellen. Dies beweist keinen Besitz eines Knotens.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",
@@ -397,6 +427,11 @@ const textos = {
     nodo_export_titulo: 'Knotenidentität', nodo_export_ayuda: 'Wähle einen bereits signierten Nachweis. Diese App signiert nicht; gesendet wird erst nach deinem Klick.', nodo_export_archivo: 'Signierter Nachweis (.json)', nodo_export_boton: 'An die Zollstelle senden', nodo_export_espera: 'Kein Nachweis ausgewählt. Es wurde nichts gesendet.', nodo_export_enviando: 'Signierten Nachweis prüfen und senden…', nodo_export_ok: 'Die Zollstelle hat das Paket empfangen.', nodo_export_error: 'Der Versand wurde nicht bestätigt. Prüfe Nachweis und Verbindung.', nodo_export_causas: {cuerpo_invalido: 'Datei oder Nachweisformat ungültig.', firma_no_disponible: 'Keine überprüfbare Signatur verfügbar; bringe einen signierten Nachweis mit.', firma_rechazada: 'Die Signatur des Nachweises ist ungültig.', plan_no_coincide: 'Der Nachweis stimmt nicht mit dem signierten Plan überein.', aduana_rechazo: 'Die Zollstelle hat die Anfrage abgelehnt.', aduana_no_disponible: 'Die Zollstelle ist nicht erreichbar.', paquete_invalido: 'Die Antwort enthält kein gültiges Paket.', general: 'Datei oder Nachweisformat ungültig.', clave_publica_no_configurada: 'Der Zollstelle fehlt der öffentliche Schlüssel.', plan_firmado_no_configurado: 'Bei der Zollstelle ist kein signierter Plan eingerichtet.', registro_no_disponible: 'Das Auditprotokoll ist nicht verfügbar; es wurde nichts erfasst.', firma_cedula_rechazada: 'Die Signatur des Nachweises ist ungültig.', cedula_mal_formada: 'Die Nachweisfelder sind ungültig.', cuerpo_fuera_de_rango: 'Der Nachweis überschreitet die zulässige Größe.'}
   },
   ru: {
+    // Dormant translations; APP MVP still renders only English.
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "Выберите экспорт прежнего Mini (локальный JSON)",
+    mini_recovery_paste: "Или вставьте JSON из прежнего Mini",
+    mini_recovery_consent: "Я разрешаю локальное восстановление проекта Mini и документов. Это не подтверждает право собственности на узел.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",
@@ -459,6 +494,11 @@ const textos = {
     nodo_export_titulo: 'Идентификатор узла', nodo_export_ayuda: 'Выбери уже подписанное удостоверение. Приложение не подписывает; отправка начнётся только после нажатия.', nodo_export_archivo: 'Подписанное удостоверение (.json)', nodo_export_boton: 'Отправить в шлюз', nodo_export_espera: 'Удостоверение не выбрано. Ничего не отправлено.', nodo_export_enviando: 'Проверка и отправка подписанного удостоверения…', nodo_export_ok: 'Шлюз получил пакет.', nodo_export_error: 'Отправка не подтверждена. Проверь удостоверение и соединение.', nodo_export_causas: {cuerpo_invalido: 'Файл или формат удостоверения недействителен.', firma_no_disponible: 'Нет проверяемой подписи; предоставь подписанное удостоверение.', firma_rechazada: 'Подпись удостоверения не прошла проверку.', plan_no_coincide: 'Удостоверение не соответствует подписанному плану.', aduana_rechazo: 'Шлюз отклонил запрос.', aduana_no_disponible: 'Шлюз недоступен.', paquete_invalido: 'В ответе нет действительного пакета.', general: 'Файл или формат удостоверения недействителен.', clave_publica_no_configurada: 'В шлюзе не настроен открытый ключ.', plan_firmado_no_configurado: 'В шлюзе не настроен подписанный план.', registro_no_disponible: 'Журнал аудита недоступен; запись не выполнена.', firma_cedula_rechazada: 'Подпись удостоверения не прошла проверку.', cedula_mal_formada: 'Поля удостоверения недействительны.', cuerpo_fuera_de_rango: 'Размер удостоверения превышает допустимый.'}
   },
   el: {
+    // Dormant translations; APP MVP still renders only English.
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "Επιλέξτε εξαγωγή από το προηγούμενο Mini (τοπικό JSON)",
+    mini_recovery_paste: "Ή επικολλήστε το JSON του προηγούμενου Mini",
+    mini_recovery_consent: "Συναινώ στην τοπική επαναφορά του έργου Mini και των εγγράφων. Αυτό δεν αποδεικνύει την κυριότητα κόμβου.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",
@@ -520,6 +560,11 @@ const textos = {
     nodo_export_titulo: 'Ταυτότητα κόμβου', nodo_export_ayuda: 'Επίλεξε διαπιστευτήριο που έχεις ήδη υπογράψει. Η εφαρμογή δεν υπογράφει· η αποστολή γίνεται μόνο με το πάτημά σου.', nodo_export_archivo: 'Υπογεγραμμένο διαπιστευτήριο (.json)', nodo_export_boton: 'Αποστολή στην πύλη', nodo_export_espera: 'Δεν επιλέχθηκε διαπιστευτήριο. Δεν στάλθηκε τίποτα.', nodo_export_enviando: 'Έλεγχος και αποστολή του υπογεγραμμένου διαπιστευτηρίου…', nodo_export_ok: 'Η πύλη έλαβε το πακέτο.', nodo_export_error: 'Η αποστολή δεν επιβεβαιώθηκε. Έλεγξε το διαπιστευτήριο και τη σύνδεση.', nodo_export_causas: {cuerpo_invalido: 'Μη έγκυρο αρχείο ή σχήμα διαπιστευτηρίου.', firma_no_disponible: 'Δεν υπάρχει επαληθεύσιμη υπογραφή· φέρε υπογεγραμμένο διαπιστευτήριο.', firma_rechazada: 'Η υπογραφή του διαπιστευτηρίου δεν επαληθεύτηκε.', plan_no_coincide: 'Το διαπιστευτήριο δεν ταιριάζει με το υπογεγραμμένο σχέδιο.', aduana_rechazo: 'Η πύλη απέρριψε το αίτημα.', aduana_no_disponible: 'Δεν ήταν δυνατή η σύνδεση με την πύλη.', paquete_invalido: 'Η απάντηση δεν περιέχει έγκυρο πακέτο.', general: 'Μη έγκυρο αρχείο ή σχήμα διαπιστευτηρίου.', clave_publica_no_configurada: 'Δεν έχει ρυθμιστεί δημόσιο κλειδί στην πύλη.', plan_firmado_no_configurado: 'Δεν έχει ρυθμιστεί υπογεγραμμένο σχέδιο στην πύλη.', registro_no_disponible: 'Το αρχείο ελέγχου δεν είναι διαθέσιμο· δεν καταγράφηκε τίποτα.', firma_cedula_rechazada: 'Η υπογραφή του διαπιστευτηρίου δεν επαληθεύτηκε.', cedula_mal_formada: 'Τα πεδία του διαπιστευτηρίου δεν είναι έγκυρα.', cuerpo_fuera_de_rango: 'Το διαπιστευτήριο υπερβαίνει το επιτρεπόμενο μέγεθος.'}
   },
   ar: {
+    // Dormant translations; APP MVP still renders only English.
+    mini_recovery_filename: "preceptoros-mini-project.json",
+    mini_recovery_choose: "اختر ملف التصدير من Mini السابق (JSON محلي)",
+    mini_recovery_paste: "أو الصق JSON المصدّر من Mini السابق",
+    mini_recovery_consent: "أوافق على استعادة مشروع Mini ومستنداته محليًا على هذا الجهاز. هذا لا يثبت ملكية عقدة.",
     energy_title: "Rack energy · read only",
     energy_help: "Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.",
     energy_read: "Read energy",

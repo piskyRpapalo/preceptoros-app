@@ -397,6 +397,9 @@ ESTATICOS = {
     "/llms.txt": (os.path.join(AQUI, "llms.txt"), "text/plain; charset=utf-8"),
     "/zonas.js": ("zonas.js", "application/javascript; charset=utf-8"),
     "/documents.js": ("documents.js", "application/javascript; charset=utf-8"),
+    # Owner-controlled MINI project recovery, shared by Android and public MINI.
+    "/mini_project_guide.js": ("mini_project_guide.js", "application/javascript; charset=utf-8"),
+    "/mini_recovery.js": ("mini_recovery.js", "application/javascript; charset=utf-8"),
     "/owner_model_slots.js": ("owner_model_slots.js", "application/javascript; charset=utf-8"),
     # Shared deterministic parser: the browser gets exactly the Android source.
     "/offline_mini.js": (os.path.join(AQUI, "mvp-android/offline_mini.js"), "application/javascript; charset=utf-8"),
