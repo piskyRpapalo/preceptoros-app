@@ -38,6 +38,17 @@ FORBIDDEN_ROUTES = [
     b'/api/nodo/export',
 ]
 
+# Forbidden credential and private-infrastructure byte patterns.
+# These are the synthetic shapes the PUBLIC verifier must reject.
+FORBIDDEN_CREDENTIAL_PATTERNS = [
+    # GitHub PAT shape: ghp_ + 32 alphanumeric chars (synthetic, not real)
+    b'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    # Private rack hostname
+    b'onexstation',
+    # PEM private key header
+    b'-----BEGIN RSA PRIVATE KEY-----',
+]
+
 # Files known to contain forbidden routes (must be excluded from PUBLIC).
 KNOWN_FORBIDDEN_FILES = {
     'interface/app.js',
@@ -479,6 +490,165 @@ class TestPublicProjectionInjection(unittest.TestCase):
                         item.unlink()
                     elif item.is_dir():
                         shutil.rmtree(item, ignore_errors=True)
+
+
+class TestPublicSecurityGateNegativeFixtures(unittest.TestCase):
+    """Negative fixtures: inject synthetic secrets into PUBLIC staging and verify rejection.
+
+    Each test injects a synthetic credential shape into a temporary staged asset,
+    runs verifyPublicAssets, and asserts nonzero exit with a cause-class message.
+    No real secrets are involved; cleanup is guaranteed via try/finally.
+    """
+
+    @staticmethod
+    def _clean_assets():
+        """Remove only generated contents of the assets directory."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        if assets_dir.exists():
+            import shutil
+            for item in assets_dir.iterdir():
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item, ignore_errors=True)
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_synthetic_github_pat_rejected(self):
+        """A synthetic GitHub PAT (ghp_ + 32 A chars) in a staged .js must be rejected."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_pat.js"
+        # Synthetic token — NOT a real credential
+        injected.write_text('// synthetic test token\nvar t = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";\n')
+
+        try:
+            rc, stdout, stderr = _run_gradle(["verifyPublicAssets"])
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject synthetic GitHub PAT shape",
+            )
+            self.assertIn(
+                "FORBIDDEN_PATTERN",
+                combined,
+                f"Expected FORBIDDEN_PATTERN cause class, got: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_synthetic_private_hostname_rejected(self):
+        """A private rack hostname (onexstation) in a staged .js must be rejected."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_host.js"
+        injected.write_text('// synthetic test host\nvar h = "onexstation.local";\n')
+
+        try:
+            rc, stdout, stderr = _run_gradle(["verifyPublicAssets"])
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject private rack hostname",
+            )
+            self.assertIn(
+                "FORBIDDEN_PATTERN",
+                combined,
+                f"Expected FORBIDDEN_PATTERN cause class, got: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_synthetic_pem_private_key_rejected(self):
+        """A synthetic PEM private key header in a staged .js must be rejected."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        injected = assets_dir / "synthetic_pem.js"
+        injected.write_text(
+            '// synthetic test PEM\n'
+            'var k = "-----BEGIN RSA PRIVATE KEY-----\\nMIIBogIBAAJBALt...\n-----END RSA PRIVATE KEY-----";\n'
+        )
+
+        try:
+            rc, stdout, stderr = _run_gradle(["verifyPublicAssets"])
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject synthetic PEM private key",
+            )
+            self.assertIn(
+                "FORBIDDEN_PATTERN",
+                combined,
+                f"Expected FORBIDDEN_PATTERN cause class, got: {combined[-500:]}",
+            )
+        finally:
+            if injected.exists():
+                injected.unlink()
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_synthetic_private_route_in_allowlisted_asset_rejected(self):
+        """A synthetic private API route injected into an allowlisted asset must be rejected."""
+        assets_dir = MVP_ANDROID / "app" / "src" / "main" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        # Stage a clean PUBLIC build first, then overwrite one allowlisted file
+        rc, stdout, stderr = _run_gradle(["copyPanels"])
+        if rc != 0:
+            self._clean_assets()
+            self.skipTest(f"copyPanels not available for this test: {stderr[-300:]}")
+
+        # Overwrite an allowlisted bridge with a tainted version
+        injected = assets_dir / "android_review_bridge.js"
+        injected.write_text(
+            '// synthetic tainted bridge\n'
+            'function bridge() { fetch("/api/hexelion/chat", {}); }\n'
+        )
+
+        try:
+            rc, stdout, stderr = _run_gradle(["verifyPublicAssets"])
+            combined = stdout + "\n" + stderr
+
+            self.assertNotEqual(
+                rc, 0,
+                "verifyPublicAssets must reject private route in allowlisted asset",
+            )
+            self.assertIn(
+                "FORBIDDEN_ROUTE",
+                combined,
+                f"Expected FORBIDDEN_ROUTE cause class, got: {combined[-500:]}",
+            )
+        finally:
+            self._clean_assets()
+
+    @unittest.skipUnless(_gradle_available(), "Gradle wrapper not available")
+    def test_clean_public_staging_passes(self):
+        """A clean PUBLIC staging (no injected secrets) must pass verifyPublicAssets."""
+        self._clean_assets()
+        try:
+            rc, stdout, stderr = _run_gradle(["copyPanels"])
+            combined = stdout + "\n" + stderr
+
+            if rc != 0:
+                self.skipTest(f"copyPanels PUBLIC not available: {combined[-300:]}")
+
+            # Now verify should pass on clean staging
+            rc2, stdout2, stderr2 = _run_gradle(["verifyPublicAssets"])
+            combined2 = stdout2 + "\n" + stderr2
+
+            self.assertEqual(
+                rc2, 0,
+                f"verifyPublicAssets should pass on clean PUBLIC staging: {combined2[-500:]}",
+            )
+        finally:
+            self._clean_assets()
 
 
 if __name__ == "__main__":

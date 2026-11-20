@@ -62,6 +62,21 @@ def PUBLIC_FORBIDDEN_ROUTES = [
     '/api/nodo/export',
 ]
 
+// PUBLIC profile: forbidden credential and private-infrastructure markers.
+// These are regex patterns applied to staged asset bytes.
+// A match FAILS the build — no real secrets are stored, only shape detection.
+// Patterns are tuned to avoid false positives on security-defense code that
+// references these shapes for detection purposes.
+def PUBLIC_FORBIDDEN_PATTERNS = [
+    // GitHub PAT value: ghp_/gho_/ghu_/ghs_/ghr_ followed by 20+ alphanum chars
+    // (not inside a regex literal — regex literals contain / or \ before the prefix)
+    ~/gh[pousr]_[A-Za-z0-9]{20,}/,
+    // PEM private key header (actual key material, not a mention in prose)
+    ~/-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/,
+    // Private rack hostname (case-insensitive)
+    ~/(?i)onexstation/,
+]
+
 // Security validation at configuration time: reject traversal, duplicates, symlinks.
 def seenAllowlist = new HashSet<String>()
 def rootPath = appRoot.toPath().normalize()
@@ -252,8 +267,10 @@ def generatePublicProjection = tasks.register('generatePublicProjection') {
     }
 }
 
-// PUBLIC profile: byte-level verification that no staged asset contains forbidden routes.
+// PUBLIC profile: byte-level verification that no staged asset contains forbidden content.
+// Scans for: private API routes, credential shapes, private hostnames, PEM markers.
 // This runs AFTER copyPanels and FAILS the build if any violation is found.
+// Matched byte values are NEVER printed to build logs — only the cause class.
 def verifyPublicAssets = tasks.register('verifyPublicAssets') {
     onlyIf { !isOwnerProfile }
     doLast {
@@ -263,20 +280,35 @@ def verifyPublicAssets = tasks.register('verifyPublicAssets') {
         def violations = []
         assetsDir.eachFileRecurse { f ->
             if (!f.isFile()) return
-            if (f.name.endsWith('.gguf') || f.name.endsWith('.png') || f.name.endsWith('.svg') || f.name.endsWith('.jar')) return
+            // Skip known binary formats that are not text-scannable
+            if (f.name.endsWith('.gguf') || f.name.endsWith('.png') || f.name.endsWith('.jar')) return
+            // Reject symlinks in staged assets
+            if (java.nio.file.Files.isSymbolicLink(f.toPath())) {
+                violations.add("[SYMLINK] staged asset is a symlink — rejected")
+                return
+            }
             try {
                 def text = f.text
+                // 1. Forbidden private API routes (substring match)
                 for (def route in PUBLIC_FORBIDDEN_ROUTES) {
                     if (text.contains(route)) {
-                        violations.add("${f.name}: contains ${route}")
+                        violations.add("[FORBIDDEN_ROUTE] asset contains private API route")
+                    }
+                }
+                // 2. Forbidden credential/infrastructure patterns (regex, case-insensitive)
+                for (def pattern in PUBLIC_FORBIDDEN_PATTERNS) {
+                    if (pattern.matcher(text).find()) {
+                        violations.add("[FORBIDDEN_PATTERN] asset matches credential or private-infrastructure pattern")
                     }
                 }
             } catch (Exception e) {
-                // Skip binary files
+                // Skip files that cannot be decoded as text (binary)
             }
         }
         if (!violations.isEmpty()) {
-            throw new GradleException("PUBLIC profile asset violation — private API routes found in staged assets:\n  " + violations.join("\n  ") + "\nBuild aborted. NO_DATA(public_asset_violation)")
+            // Deduplicate and report cause classes only — never the matched bytes or filenames
+            def uniqueViolations = violations.unique()
+            throw new GradleException("PUBLIC profile asset violation — forbidden content detected in staged assets:\n  " + uniqueViolations.join("\n  ") + "\nBuild aborted. NO_DATA(public_asset_violation)")
         }
     }
 }
