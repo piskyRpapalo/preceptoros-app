@@ -71,4 +71,48 @@ assert.equal(staleShared.timers, 0);
 assert.equal(staleShared.harnessCause, "sensor_stale_or_missing");
 assert.equal(staleShared.processState, "NO_DATA");
 
+
+const cast = N.projectLabCast({
+  estado: "MEDIDO", medido: "2026-11-11T09:59:50Z",
+  bucles: [
+    { unidad: "weekly", descripcion: "Synthetic report", activo: true,
+      resultado: "DECLARED", ultima: "yesterday" },
+    { unidad: "monthly", descripcion: "Synthetic review", activo: false, resultado: "NO_DATA" }
+  ]
+}, { ...fixture, observed_at: "2026-11-11T10:00:00Z",
+  agents_status: "DECLARADO", shared_source_ref: receipt, receipts: [], bench: [] },
+  { schema: "preceptoros.hexelion-tasks/1", state: "NO_DATA",
+    cause: "p2_mirror_not_built", tasks: [] },
+  { modelos: { mini: { tag: "synthetic-mini", disponible: true },
+    grande: { disponible: false, causa: "model_file_missing" },
+    soberano_coder: { disponible: false } } },
+  { schema: "preceptoros.federated-view/1", backends: [
+    { state: "STALE" }, { state: "NO_DATA" }
+  ] }, now);
+assert.equal(cast.loops.length, 2);
+assert.equal(cast.loopsCount, 2);
+assert.equal(cast.loops[0].state, "DECLARED");
+assert.equal(cast.loops[0].cause, "timer_not_live_process");
+assert.match(cast.loops[0].detail, /Synthetic report/);
+assert.match(cast.loops[0].detail, /Enabled in timer declaration/);
+assert.match(cast.loops[1].detail, /Disabled in timer declaration/);
+assert.equal(cast.researchers.length, 1);
+assert.equal(cast.researchers[0].state, "DECLARED");
+assert.equal(cast.goals.length, 0);
+assert.equal(cast.goalsCause, "p2_mirror_not_built");
+assert.equal(cast.brains.length, 5);
+assert.equal(cast.brains[0].state, "DECLARED");
+assert.equal(cast.brains[0].cause, "installed_is_not_inference");
+assert.equal(cast.brains[1].state, "NO_DATA");
+assert.equal(cast.brains[3].state, "STALE");
+assert.equal(cast.brains[4].cause, "android_model_runtime_not_benchmarked");
+assert.equal(cast.sourceRef, receipt);
+assert.equal(cast.loops.some(x => x.state === "LIVE"), false);
+const absentCast = N.projectLabCast(null, null, null, null, null, now);
+assert.equal(absentCast.loops.length, 0);
+assert.equal(absentCast.researchers.length, 0);
+assert.equal(absentCast.goals.length, 0);
+assert.equal(absentCast.brains[3].state, "NO_DATA");
+assert.equal(absentCast.sourceRef, null);
+
 console.log("notebook_cases: OK (schema, status, loop freshness, fail-closed)");
