@@ -136,8 +136,11 @@ def agente(cedula, clave, capacidad, ahora=None, signers=None):
     if mal:
         return mal
     est, aut = autenticidad(cedula, signers)
-    if est == "RECHAZADA":
-        return {"estado": "RECHAZADA", "causa": aut}
+    # A matching SHA-256 only checks integrity; it cannot authorize delegation.
+    # Missing signature/verifier is NO_DATA and MUST NOT enter the grants branch.
+    # A forged signature is RECHAZADA. Only cryptographic OK may continue.
+    if est != "OK":
+        return {"estado": est, "causa": aut}
     ahora = ahora or datetime.now(timezone.utc)
     suyo = [d for d in cedula["dispositivos"] if d.get("clave") == clave and d.get("tipo") == "agente"]
     if not suyo:

@@ -104,39 +104,101 @@ def con_agente(estado="linkeado", ambito=("herramientas",), caduca=AHORA + timed
     return c
 
 
+@unittest.skipUnless(shutil.which("ssh-keygen"), "NO_DATA: ssh-keygen unavailable")
 class AgenteDelegado(unittest.TestCase):
-    """P1 · la clave del agente entra en la cedula con AMBITO, CADUCIDAD y revocacion (patron Artemis:
-    herramienta efimera, 30 min-8 h). La delegacion nunca sube niveles: dice que puede tocar, y cuando."""
+    """P1: signed synthetic cédula required before delegating; negative probes signed too."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="test-agent-cedula-")
+        self.dir = Path(self.temp.name)
+        # Never use the operator's SSH agent for synthetic fixtures.
+        self.no_agent = {k: v for k, v in os.environ.items()
+                         if k not in ("SSH_AUTH_SOCK", "SSH_AGENT_PID")}
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "",
+                        "-f", str(self.dir / "test-only"), "-C", "synthetic-only"],
+                       check=True, capture_output=True, stdin=subprocess.DEVNULL, env=self.no_agent)
+        keytype,key = (self.dir / "test-only.pub").read_text().split()[:2]
+        self.signers = self.dir / "allowed_signers"
+        self.signers.write_text(f'soberano namespaces="preceptoros-cedula" {keytype} {key}\n')
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def signed(self, ced, key="test-only"):
+        payload = self.dir / "payload"
+        payload.write_bytes(NA.cuerpo_firmado(ced))
+        subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", "preceptoros-cedula",
+                        "-f", str(self.dir / key), str(payload)],
+                       check=True, capture_output=True, stdin=subprocess.DEVNULL, env=self.no_agent)
+        c = dict(ced)
+        c.pop("sha256", None)
+        c["firma_ssh"] = (self.dir / "payload.sig").read_text()
+        c["sha256"] = hashlib.sha256(json.dumps(c, sort_keys=True,
+                                    separators=(",", ":")).encode()).hexdigest()
+        return c
+
+    def decide(self, ced, capability="herramientas", now=AHORA):
+        return NA.agente(self.signed(ced), AGENTE, capability, now, signers=self.signers)
 
     def test_agente_vigente_dentro_de_su_ambito(self):
-        r = NA.agente(con_agente(), AGENTE, "herramientas", AHORA)
+        r = self.decide(con_agente())
         self.assertEqual(r["estado"], "OK", r)
 
     def test_fuera_de_su_ambito_rechazado(self):
-        r = NA.agente(con_agente(), AGENTE, "aportar_datos", AHORA)
+        r = self.decide(con_agente(), "aportar_datos")
         self.assertEqual(r["estado"], "RECHAZADA"); self.assertIn("ambito", r["causa"])
 
     def test_clave_vencida_rechazada_con_causa(self):
-        r = NA.agente(con_agente(caduca=AHORA - timedelta(seconds=1)), AGENTE, "herramientas", AHORA)
+        r = self.decide(con_agente(caduca=AHORA - timedelta(seconds=1)))
         self.assertEqual(r["estado"], "RECHAZADA"); self.assertIn("caduc", r["causa"])
 
     def test_revocado_rechazado_al_instante(self):
-        r = NA.agente(con_agente(estado="revocado"), AGENTE, "herramientas", AHORA)
+        r = self.decide(con_agente(estado="revocado"))
         self.assertEqual(r["estado"], "RECHAZADA"); self.assertIn("revocad", r["causa"])
 
     def test_ttl_fuera_de_la_ventana_artemis_no_se_acepta(self):
         for mal in (AHORA + timedelta(hours=9), AHORA + timedelta(days=30)):
             with self.subTest(caduca=iso(mal)):
-                self.assertEqual(NA.agente(con_agente(caduca=mal), AGENTE, "herramientas", AHORA)["estado"], "RECHAZADA")
+                self.assertEqual(self.decide(con_agente(caduca=mal))["estado"], "RECHAZADA")
 
     def test_capacidad_inventada_no_cuela(self):
-        r = NA.agente(con_agente(ambito=("herramientas", "firmar_valor")), AGENTE, "herramientas", AHORA)
+        r = self.decide(con_agente(ambito=("herramientas", "firmar_valor")))
         self.assertEqual(r["estado"], "RECHAZADA")
 
     def test_el_agente_no_es_cuenta_nodo_del_humano(self):
         """La delegacion nunca sube niveles: el agente no hereda el nivel 3 del Soberano."""
         r = NA.lee(con_agente(), soberano.codigo_de(AGENTE))
         self.assertNotEqual(r.get("nivel"), 3)
+
+
+    def test_unsigned_agent_cannot_be_authorized_even_when_scope_ttl_are_valid(self):
+        r = NA.agente(con_agente(), AGENTE, "herramientas", AHORA, signers=self.signers)
+        self.assertEqual(r["estado"], "NO_DATA", r)
+        self.assertIn("sin firma", r["causa"])
+
+    def test_signed_agent_without_trust_anchor_fails_closed(self):
+        r = NA.agente(self.signed(con_agente()), AGENTE, "herramientas",
+                      AHORA, signers=self.dir / "missing-signers")
+        self.assertEqual(r["estado"], "NO_DATA", r)
+        self.assertIn("allowed_signers", r["causa"])
+
+    def test_wrong_signer_rejected_even_with_valid_sha_scope_and_ttl(self):
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "",
+                        "-f", str(self.dir / "impostor"), "-C", "synthetic-impostor"],
+                       check=True, capture_output=True, stdin=subprocess.DEVNULL, env=self.no_agent)
+        signed = self.signed(con_agente(), key="impostor")
+        r = NA.agente(signed, AGENTE, "herramientas", AHORA, signers=self.signers)
+        self.assertEqual(r["estado"], "RECHAZADA", r)
+        self.assertIn("firma", r["causa"])
+
+    def test_tampered_signature_with_recalculated_sha_rejected(self):
+        signed = self.signed(con_agente())
+        signed["dispositivos"][1]["ambito"] = ["aportar_datos"]
+        signed["sha256"] = hashlib.sha256(json.dumps(
+            {k:v for k,v in signed.items() if k!="sha256"}, sort_keys=True,
+            separators=(",", ":")).encode()).hexdigest()
+        r = NA.agente(signed, AGENTE, "aportar_datos", AHORA, signers=self.signers)
+        self.assertEqual(r["estado"], "RECHAZADA", r)
 
     def test_agente_auto_anadido_sin_rehacer_el_hash(self):
         c = cedula([(MIA, "linkeado")])
@@ -163,7 +225,7 @@ class CedulaFirmada(unittest.TestCase):
     def firmada(self, c, clave="k"):
         f = self.d / "cuerpo"
         f.write_bytes(NA.cuerpo_firmado(c))
-        subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", "preceptoros-cedula", "-f", str(self.d / clave), str(f)], check=True)
+        subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", "preceptoros-cedula", "-f", str(self.d / clave), str(f)], check=True, stdin=subprocess.DEVNULL)
         c = dict(c); c.pop("sha256", None)
         c["firma_ssh"] = (self.d / "cuerpo.sig").read_text()
         c["sha256"] = hashlib.sha256(json.dumps(c, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
@@ -236,7 +298,7 @@ class CuentaAgente(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder) / "account"
             source.write_bytes(payload)
-            subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", CC.ACCOUNT_NAMESPACE, "-f", self.sovereign, str(source)], check=True)
+            subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", CC.ACCOUNT_NAMESPACE, "-f", self.sovereign, str(source)], check=True, stdin=subprocess.DEVNULL)
             signature = source.with_name("account.sig").read_text()
         transitioned = CC.cambiar_fase(account, "errante", signature, self.signers)
         self.assertEqual(transitioned["fase"], "errante")
@@ -258,7 +320,7 @@ class AduanaAgente(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder) / "account"
             source.write_bytes(CC._account_payload(account))
-            subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", CC.ACCOUNT_NAMESPACE, "-f", self.sovereign, str(source)], check=True)
+            subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", CC.ACCOUNT_NAMESPACE, "-f", self.sovereign, str(source)], check=True, stdin=subprocess.DEVNULL)
             signature = source.with_name("account.sig").read_text()
         self.account = CC.activar_cuenta(account, signature, self.signers)
         self.payload = b'{"esquema":"atlas.accion/1","accion":"esperar","origen":"agente"}'
@@ -283,7 +345,7 @@ class AduanaAgente(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder) / "account"
             source.write_bytes(CC._account_payload(narrow))
-            subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", CC.ACCOUNT_NAMESPACE, "-f", self.sovereign, str(source)], check=True)
+            subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-n", CC.ACCOUNT_NAMESPACE, "-f", self.sovereign, str(source)], check=True, stdin=subprocess.DEVNULL)
             narrow["firma_ssh"] = source.with_name("account.sig").read_text()
         self.assertEqual(self.customs.verificar_entrada(narrow, self.signature, self.payload, self.signers, self.key_dir)["estado"], "RECHAZADA")
 
