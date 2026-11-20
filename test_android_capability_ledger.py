@@ -1,4 +1,5 @@
 """Capability Ledger fail-closed tests; no writes to Android devices."""
+import hashlib
 import importlib.util
 import pathlib
 import tempfile
@@ -245,6 +246,90 @@ class ReleaseCandidateSyntheticTests(unittest.TestCase):
         self.assertEqual(got, {"state": "MEASURED", "sha256": sha})
         self.assertNotIn("device-private", str(got))
         self.assertEqual(run.call_count, 2)
+
+class ChunkedSha256RegressionTests(unittest.TestCase):
+    """Regression: inspect_apk chunked SHA256 must match full-read digest (Python 3.10 portability)."""
+
+    def test_apk_sha256_matches_full_read_digest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            apk = root / "digest.apk"
+            payload = b"\x00" * 4096 + b"preceptoros-android-ledger-regression" + b"\xff" * 2048
+            with ZipFile(apk, "w") as z:
+                z.writestr("assets/app.html", payload.decode("latin-1"))
+            expected = hashlib.sha256(apk.read_bytes()).hexdigest()
+            result = ledger.inspect_apk(apk)
+            self.assertEqual(result["sha256"], expected)
+
+    def test_apk_sha256_empty_zip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            apk = root / "empty.apk"
+            with ZipFile(apk, "w") as z:
+                pass
+            expected = hashlib.sha256(apk.read_bytes()).hexdigest()
+            result = ledger.inspect_apk(apk)
+            self.assertEqual(result["sha256"], expected)
+
+    def test_apk_sha256_large_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            apk = root / "large.apk"
+            # 5 MB payload forces multiple 2 MB chunks
+            payload = b"A" * (5 * 1024 * 1024)
+            with ZipFile(apk, "w") as z:
+                z.writestr("assets/app.html", payload.decode("latin-1"))
+            expected = hashlib.sha256(apk.read_bytes()).hexdigest()
+            result = ledger.inspect_apk(apk)
+            self.assertEqual(result["sha256"], expected)
+
+    def test_no_file_descriptor_leak_on_multiple_calls(self):
+        import os
+        proc_fd = pathlib.Path("/proc/self/fd")
+        if not proc_fd.is_dir():
+            self.skipTest("/proc/self/fd not available (non-Linux environment)")
+
+        def count_fds():
+            """Count open file descriptors via /proc/self/fd."""
+            return len(os.listdir(proc_fd))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            apk = root / "fd.apk"
+            with ZipFile(apk, "w") as z:
+                z.writestr("assets/app.html", "fd-leak-check")
+
+            before = count_fds()
+            for _ in range(21):
+                ledger.inspect_apk(apk)
+            after = count_fds()
+
+            self.assertEqual(
+                before, after,
+                f"File descriptor leak detected: {before} → {after} (leaked {after - before} FDs after 21 inspect_apk calls)"
+            )
+
+    def test_sabotage_single_leaked_fd_is_detected(self):
+        """Deterministic proof: a single leaked FD causes the no-leak assertion to fail."""
+        import os
+        proc_fd = pathlib.Path("/proc/self/fd")
+        if not proc_fd.is_dir():
+            self.skipTest("/proc/self/fd not available (non-Linux environment)")
+
+        fd, tmp_path = tempfile.mkstemp()
+        try:
+            before = len(os.listdir(proc_fd))
+            # Simulate a leak: open a file and deliberately do not close it
+            leaked_fd = os.open(tmp_path, os.O_RDONLY)
+            after_open = len(os.listdir(proc_fd))
+            self.assertEqual(after_open, before + 1, "Injected FD should increase count by exactly 1")
+            # Now close it to prove the test itself does not leak
+            os.close(leaked_fd)
+            after_close = len(os.listdir(proc_fd))
+            self.assertEqual(after_close, before, "After cleanup, FD count must return to baseline")
+        finally:
+            os.close(fd)
+            os.unlink(tmp_path)
 
 if __name__ == "__main__":
     unittest.main()

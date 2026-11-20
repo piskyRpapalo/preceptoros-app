@@ -139,8 +139,14 @@ def inspect_apk(path, tools_dir=None, min_version=NEXT_VERSION, source_root=None
     path = Path(path)
     if not path.is_file() or path.is_symlink():
         return {"layer": "apk", **no_data("apk_missing_or_symlink")}
+    h = hashlib.sha256()
     with path.open("rb") as handle:
-        digest = hashlib.file_digest(handle, "sha256").hexdigest()
+        while True:
+            block = handle.read(2 * 1024 * 1024)
+            if not block:
+                break
+            h.update(block)
+    digest = h.hexdigest()
     result = {"layer": "apk", "bytes": path.stat().st_size, "sha256": digest,
               "capabilities": {}, "identity": no_data("build_tools_unavailable"),
               "source_parity": no_data("source_root_not_provided"),
