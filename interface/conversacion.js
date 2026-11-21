@@ -15,7 +15,6 @@
     external: "external", door: "door (not a model)", unknown: "unknown voice" };
   let seen = 0, routes = {}, names = {}, busy = false, timer = null, readGeneration = 0;
 
-  // One owner-facing SuperBot conversation, never a private-rack persona.
   function paintInterlocutor() {
     const container = doc.getElementById("conv-interlocutor");
     const glyph = doc.getElementById("conv-interlocutor-glyph");
@@ -30,7 +29,6 @@
     container.dataset.cause = "model_reply_not_verified";
   }
 
-  // Invalidate pending OWNER reads on downgrade, keeping separate local MINI drafts.
   function clearOwnerProjection() {
     ++readGeneration;
     seen = 0; routes = {}; names = {};
@@ -82,7 +80,6 @@
     return li;
   }
 
-  // One announcement per change: a live line is written only when its words change (same words = silence).
   function say(el, text) { if (el && el.textContent !== text) el.textContent = text; }
 
   function paintDestinations(list) {
@@ -99,10 +96,8 @@
     out.title = list.map((d) => "@" + d.id + ": " + d.transport).join("\n");
   }
 
-  // sync({ replaceLocal }) -> the projection, or null. New messages after `seen` are appended in order.
   async function sync(opts) {
     if (root.PreceptorProfile !== "private_rack") {
-      // Do not pull the private rack's thread into a personal interface.
       clearOwnerProjection();
       const line = doc.getElementById("conv-destinos");
       say(line, "Personal profile: the private rack conversation was not read.");
@@ -118,7 +113,6 @@
     try {
       const r = await fetch("/api/conversacion?desde=" + seen, { cache: "no-store" });
       const d = await r.json();
-      // Async OWNER replies cannot repopulate a downgraded private view.
       if (generation !== readGeneration || root.PreceptorProfile !== "private_rack") {
         clearOwnerProjection();
         return { state: "NO_DATA", cause: "owner_thread_view_invalidated" };
@@ -128,15 +122,12 @@
       (d.destinations || []).forEach((x) => { routes[x.id] = x.route; names[x.id] = x.name; });
       paintDestinations(d.destinations);
       paintInterlocutor();
-      // Who is here, and what the evidence says each is doing: the Notebook paints it (Talk reads only its thread).
       if (root.PreceptorNotebook && root.PreceptorNotebook.talkStates) root.PreceptorNotebook.talkStates(d.destinations);
       if (d.state !== "MEASURED") {
         say(status, "NO_DATA: " + String(d.cause || "the shared thread could not be read").replace(/_/g, " ") + ".");
         return d;
       }
-      // Drafts this window drew were already announced. Their thread copies replace them quietly (identity:
-      // the copy's words are in a draft), so the same words never enter the live log twice; new words still do.
-      const drafts = opts && opts.replaceLocal ? [...list.querySelectorAll("li.local")] : [];
+      const drafts = opts && opts.replaceLocal ? [...list.querySelectorAll('li.local[data-owner-thread="true"]')] : [];
       const draftWords = drafts.map((li) => li.textContent);
       drafts.forEach((li) => li.remove());
       const fresh = (d.messages || []).filter((m) => Number.isSafeInteger(m.n) && m.n > seen &&
@@ -173,12 +164,10 @@
     }
   }
 
-  // send(para, texto) -> { ok, cause, n }. The server stores it in the thread with `para`; no reply is promised.
   async function send(para, texto) {
     // A personal_mvp is not the private rack's shared preceptor thread.
-    // Neither a previously discovered destination nor a label confers scope.
+    if (root.PreceptorProfile !== "private_rack") clearOwnerProjection();
     if (root.PreceptorProfile !== "private_rack") {
-      clearOwnerProjection();
       return { ok: false, cause: "personal_profile_shared_thread_denied" };
     }
     try {
