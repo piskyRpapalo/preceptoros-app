@@ -13,7 +13,7 @@
   function status(state,cause,words) {
     const line=$("settings-audio-status");
     if (!line) return {state,cause};
-    line.dataset.state=state;line.dataset.cause=cause;line.dataset.acho=state==="NO_DATA"?"silent":state==="SPEAKING"?"working":"ok";
+    line.dataset.state=state;line.dataset.cause=cause;line.dataset.acho=(state==="NO_DATA"||state==="BLOCKED")?"silent":state==="REQUESTED"?"uncertain":state==="SPEAKING"?"working":"ok";
     line.textContent=words;return {state,cause};
   }
   function persist(){
