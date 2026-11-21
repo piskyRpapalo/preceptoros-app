@@ -225,7 +225,7 @@
       'own PreceptorOS and connect your own model if you want one.',
       'At the table, prepare a docs-only Companion HITL PR if you have GitHub.',
       'Otherwise keep this draft. Connect your own model at home later.',
-      'Hexelion is not included; it runs only on the founder\'s rack.',
+      'This draft does not connect any model, private service or owner account.',
       'Feedback must remain on the owner\'s own hardware.',
       'Nothing was submitted, registered, signed or published.'
     ];
