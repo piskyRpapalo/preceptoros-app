@@ -219,3 +219,16 @@ test("NATIVE bridge blocks remote OpenWorld frame, without any fetch", async () 
   assert.equal(status.dataset.cause, "native_world_external_launch_not_verified");
   assert.match(status.textContent, /NO_DATA\(native_world_external_launch_not_verified\)/);
 });
+
+
+test("NATIVE OpenWorld keeps Kill switch PAUSED precedence", async () => {
+  let calls=0;
+  const {document, window, api}=setup(async () => { calls++; throw Error("unexpected"); });
+  window.PreceptorAndroidMiniModel={generate(){return "N/A";}};
+  window.PreceptorConnectionGuard={isPaused:()=>true};
+  await api.openWorld();
+  assert.equal(api.state(), "paused");
+  assert.equal(document.getElementById("openworld-frame").hasAttribute("src"), false);
+  assert.equal(document.getElementById("openworld-status").dataset.state, "PAUSED");
+  assert.equal(calls,0);
+});
