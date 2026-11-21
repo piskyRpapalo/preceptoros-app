@@ -233,6 +233,9 @@ public class MainActivity extends Activity {
         // No addJavascriptInterface for network/identity: only origin/main-frame checked listener.
         final boolean joinAvailable = DeploymentJoinBridge.install(this, web);
         heartbeatBridge = HeartbeatOnceBridge.install(this,web);
+        if ("OWNER".equals(BuildConfig.APP_DISTRIBUTION_PROFILE)) {
+            PrivateTalkBridge.install(this, web);
+        }
         web.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {

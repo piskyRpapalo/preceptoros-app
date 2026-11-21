@@ -3,6 +3,7 @@ plugins { id 'com.android.application' }
 // The panels are the app's own interface/ folder, copied at build time: nothing is duplicated in git.
 def secretDir = new File(System.getProperty("user.home"), ".config/preceptoros/android")
 def passFile = new File(secretDir, "pass")
+def useReleaseSigning = project.findProperty('unsignedRelease')?.toString() != 'true' && passFile.exists()
 // v7 is installed on owner devices. Never produce an accidental downgrade by default.
 def mvpVersionCode = (project.hasProperty('mvpVersionCode') ? project.property('mvpVersionCode') : '8') as Integer
 // All normal Android builds target the ONE canonical signed APP identity.
@@ -28,7 +29,7 @@ if (mvpAppId == 'org.preceptoros.app' && mvpVersionCode < 8) {
 }
 
 // Profile: PUBLIC (default, BYO) or OWNER (explicit -PappProfile=OWNER).
-// PUBLIC/BYO cannot include mandatory rack endpoints; OWNER remote remains NO_DATA(auth_not_connected).
+// PUBLIC/BYO cannot include mandatory rack endpoints; OWNER still requires verified Serve identity.
 def appProfile = project.findProperty('appProfile')?.toString()
 if (appProfile && !(appProfile in ['PUBLIC', 'OWNER'])) {
     throw new GradleException("Invalid appProfile: ${appProfile}. Must be PUBLIC or OWNER.")
@@ -441,7 +442,7 @@ android {
     signingConfigs {
         release {
             // Signing material lives outside the repository; a build without it stays unsigned.
-            if (passFile.exists()) {
+            if (useReleaseSigning) {
                 storeFile new File(secretDir, "preceptoros.keystore")
                 storePassword passFile.text.trim()
                 keyAlias "preceptoros"
@@ -452,7 +453,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            if (passFile.exists()) { signingConfig signingConfigs.release }
+            if (useReleaseSigning) { signingConfig signingConfigs.release }
         }
     }
     buildFeatures { buildConfig true }
