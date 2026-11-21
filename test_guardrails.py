@@ -491,6 +491,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # La terminal zombie oxida su metal con la banda SIMULATED: el mapa de
         # la cara ES una simulacion, asi que el color dice la verdad literal.
         INTRINSECOS |= {"SIMULATED"}
+        # My node ladder (FASE2 contract): rejection, expiry and revocation move a stage back; they are states, not policies.
+        INTRINSECOS |= {"EXPIRED", "REVOKED"}
         # Settings · Your private memory says its state in the APP's own words (memory_onboarding.js).
         INTRINSECOS |= {"READY", "CREATED", "BLOCKED", "NEEDS", "YOU", "WORKING", "REFUSED"}
         # El busto canon del Codex lleva su ojo violeta en la banda FIRMADO:
