@@ -61,3 +61,12 @@ function assertOwnerDraft(app){
  a.match(app,/const ownerDraft = burbuja\(escrito, "mio"\);\s*ownerDraft\.dataset\.ownerThread = "true"/);
  a.match(app,/const localDraft = burbuja\(escrito, "mio"\);/);
 }
+
+test("replacing addressed owner drafts preserves a local MINI row",async()=>{
+ const c=client(async()=>reply([m(1)]));
+ const local=new E("li");local.className="local";local.textContent="device MINI";
+ c.el("hilo").appendChild(local);
+ await c.api.sync({replaceLocal:true});
+ a(c.el("hilo").children.includes(local),"local MINI must survive OWNER sync");
+ a.deepEqual(rows(c),["1"]);
+});
