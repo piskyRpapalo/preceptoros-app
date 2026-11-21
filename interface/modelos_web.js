@@ -103,6 +103,22 @@
     frame.addEventListener("error", () => setWorldFailure("iframe_load_error"));
 
     async function openWorld() {
+      // Android injects MiniModel into every frame, not just the trusted top
+      // frame. Never fetch or embed a remote origin while this bridge exists.
+      // External-browser handoff remains NO_DATA until native Java validates a
+      // user gesture and opens a separate, unprivileged browser.
+      if (win.PreceptorAndroidMiniModel) {
+        frame.removeAttribute("src");
+        frame.hidden = true;
+        retry.hidden = true;
+        worldState = "external_only";
+        worldCause = "native_world_external_launch_not_verified";
+        worldStatus.dataset.state = NO_DATA;
+        worldStatus.dataset.acho = NO_DATA;
+        worldStatus.dataset.cause = worldCause;
+        worldStatus.textContent = "NO_DATA(" + worldCause + "): open OpenWorld in a separate browser.";
+        return;
+      }
       if (win.PreceptorConnectionGuard?.isPaused()) {
         pauseWorld();
         return;
