@@ -66,5 +66,13 @@ jobs:
           test ! -f requirements.txt || (echo "apareció requirements.txt" && exit 1)
           test ! -f setup.py || (echo "apareció setup.py" && exit 1)
 
+      # Tests of Android asset isolation use Gradle --offline on purpose.
+      # A fresh GitHub runner has no AGP/Gradle cache: bootstrap build tooling
+      # first without weakening offline/negative tests or Python's stdlib gate.
+      - name: Prime Android Gradle build-tool cache
+        run: |
+          java -version
+          ./mvp-android/gradlew -p mvp-android :app:copyPanels -PappProfile=PUBLIC --console=plain
+
       - name: La tanda
         run: ./bin/pruebas
