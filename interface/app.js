@@ -1217,7 +1217,7 @@ $("form-chat").addEventListener("submit", async (e) => {
     // A rack preceptor: the message goes to the shared thread, addressed. It reads it on its own turn.
     $("dicho").value = "";
     const ownerDraft = burbuja(escrito, "mio");
-    ownerDraft.dataset.ownerThread = "true"; // owner-only draft, never a MINI/local-mode turn
+    ownerDraft.dataset.ownerThread = "true"; // owner thread only, not a MINI reply
     $("enviar").disabled = true;
     const sent = await conversacion.send(ruta.para, ruta.texto);
     $("enviar").disabled = false;
