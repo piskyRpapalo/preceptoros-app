@@ -81,8 +81,11 @@ class CarcasaUnaPestana(unittest.TestCase):
         self.assertIn('"memory_counts_not_verified"', js)
         self.assertIn('"NO_DATA: " + String((d && d.causa)', js)       # the server's own cause, never "unreachable"
         self.assertNotIn('$("estado").textContent = d.motor', js)
-        # Three failure paths keep the draft: station error, transport error, and an addressed send that was not delivered.
-        self.assertEqual(js.count('if (!$("dicho").value.trim()) $("dicho").value = escrito;'), 4)
+        # Local/station failures retain drafts; an OWNER draft can only return while OWNER scope remains valid.
+        self.assertEqual(js.count('if (!$("dicho").value.trim()) $("dicho").value = escrito;'), 3)
+        self.assertIn('if (!downgraded && !$("dicho").value.trim()) $("dicho").value = escrito;', js)
+        self.assertIn('const downgraded = sent.cause === "owner_thread_view_invalidated"', js)
+        self.assertIn('ownerDraft.remove();', js)
 
     def test_tema_instalado_coincide_con_cara_crema(self):
         html = (RAIZ / "interface/app.html").read_text(encoding="utf-8")
