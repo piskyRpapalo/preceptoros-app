@@ -1476,3 +1476,11 @@ html[data-reduce-motion="true"] #talk-processing .talk-processing-crab {
 @media (forced-colors: active) {
   #node0-public-chat { background: Canvas; color: LinkText; border: 1px solid LinkText; }
 }
+
+/* Round 5 · touch targets measured under 44 px on the live Beelink APP (390/420/780 px, 2026-11-21). */
+.fila-switch { min-height: 44px; }
+/* The pill keeps its 24 px look; a transparent border makes the touch area 44 px. */
+.panel button.switch[role="switch"] { box-sizing: content-box; border: 10px solid transparent; background-clip: padding-box; margin: -10px 0; }
+#panel-cuaderno summary, #panel-lab summary, #panel-ajustes summary { min-height: 44px; box-sizing: border-box; padding-block: .65rem; }
+#compass-modo-camino, #compass-modo-detalle, #nodo-export-send { min-height: 44px; }
+#lab-rack-enlace:not([hidden]) { display: inline-flex; align-items: center; min-height: 44px; }
