@@ -22,7 +22,8 @@ test('home install and Companion are later, own model and feedback hardware',()=
   const r=app.renderBuildingDraft(good());
   assert.match(r.text,/at home/i);
   assert.match(r.text,/Companion HITL PR if you have GitHub/i);
-  assert.match(r.text,/Hexelion is not included/);
+  assert.match(r.text,/does not connect any model, private service or owner account/);
+  assert.doesNotMatch(r.text,/Hexelion|founder.s rack|founder.s private|private rack/i);
   assert.match(r.text,/owner's own hardware/);
   assert.match(r.text,/NO_DATA\(owner_model_not_connected\)/);
 });
@@ -74,4 +75,13 @@ test('no model/provider is required for the room',()=>{
   assert.equal(r.ok,true);
   assert.match(r.text,/NO_DATA\(owner_model_not_connected\)/);
   assert.doesNotMatch(r.text,/github\.com.*pull/);
+});
+
+test("portable draft contains only local owner status, not founder topology",()=>{
+ const r=app.renderBuildingDraft({name:"Accessible Garden",purpose:"Plan the garden locally"});
+ assert.equal(r.ok,true);
+ assert.doesNotMatch(r.text,/founder|Hexelion|private rack/i);
+ assert.match(r.text,/State: DRAFT_ONLY/);
+ assert.match(r.text,/NO_DATA\(owner_identity_not_verified\)/);
+ assert.match(r.text,/NO_DATA\(world_publication_not_verified\)/);
 });
