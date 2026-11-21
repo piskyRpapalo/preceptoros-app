@@ -28,6 +28,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from concurrent.futures import ProcessPoolExecutor
 from importlib.machinery import SourceFileLoader
 from unittest import mock
 
@@ -43,21 +44,20 @@ FUENTE = open(RUTA, encoding="utf-8").read()
 import estado as E                                          # noqa: E402
 
 PERMITIDOS = {"__future__", "argparse", "datetime", "fcntl", "json", "os", "re", "sys",
-              "unicodedata", "pathlib", "casa", "guardrails", "sqlite3",
+              "unicodedata", "pathlib", "casa", "guardrails", "sqlite3", "hashlib",
               # importlib carga el Registro Unico de la maquina, para anexar por
               # SU puerta. De ese modulo solo se llama `anexar_evento`.
               "importlib"}
 
 
-def _escritor(base, voz, veces, cola):
+def _escritor(base, voz, veces):
     # Proceso hijo: escribe `veces` mensajes y devuelve los n que le dieron.
     sys.path.insert(0, AQUI)
     spec = importlib.util.spec_from_file_location("canales_hijo", RUTA)
     k = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(k)
-    ns = [k.di("lab", voz, f"mensaje {i} de {voz} " + "x" * 300, base=base)["n"]
-          for i in range(veces)]
-    cola.put(ns)
+    return [k.di("lab", voz, f"mensaje {i} de {voz} " + "x" * 300, base=base)["n"]
+            for i in range(veces)]
 
 
 class Base(unittest.TestCase):
@@ -120,17 +120,12 @@ class TestVozSoberano(Base):
 class TestConcurrencia(Base):
 
     def test_varios_escritores_no_pisan_ni_repiten(self):
-        ctx = multiprocessing.get_context("fork")
-        cola = ctx.Queue()
-        hijos = [ctx.Process(target=_escritor, args=(str(self.casa), f"agente{i}", 60, cola))
-                 for i in range(8)]
-        for h in hijos:
-            h.start()
-        dados = []
-        for _ in hijos:
-            dados += cola.get(timeout=120)
-        for h in hijos:
-            h.join(timeout=60)
+        # Seed the fixture before forking so children race over the ledger,
+        # not over the initial copy of the shared guardrail policy file.
+        K.G.ruta_politicas()
+        with ProcessPoolExecutor(max_workers=8, mp_context=multiprocessing.get_context("fork")) as pool:
+            hijos = [pool.submit(_escritor, str(self.casa), f"agente{i}", 60) for i in range(8)]
+            dados = [n for hijo in hijos for n in hijo.result(timeout=120)]
         filas = self.filas()
         self.assertEqual(len(filas), 480, "se perdieron mensajes")
         for _n, _t, _a, c in filas:

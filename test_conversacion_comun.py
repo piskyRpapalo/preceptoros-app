@@ -1,6 +1,8 @@
 """APP-ROUTER-01 · one conversation, many preceptors: the projection, the addressed send, and the Talk wiring."""
 from __future__ import annotations
 
+import concurrent.futures
+from contextlib import ExitStack
 import datetime as dt
 import importlib.machinery
 import importlib.util
@@ -8,6 +10,7 @@ import io
 import json
 import os
 import pathlib
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -175,6 +178,121 @@ class Door(unittest.TestCase):
             self.assertEqual(self.call("GET", "/api/conversacion", tmp=tmp)["body"]["state"], "NO_DATA")
             self.assertEqual(self.call("GET", "/api/conversacion", loopback=False, tmp=tmp)["code"], 403)
             self.assertEqual(self.call("GET", "/api/conversacion?desde=x", tmp=tmp)["code"], 400)
+
+
+REQUEST = {"para": "codex", "texto": "first turn", "request_id": "app-" + "1" * 32}
+ORIGIN = "http://127.0.0.1:32123"
+
+
+class OwnerThreadIdempotency(unittest.TestCase):
+    def setUp(self):
+        context = ExitStack()
+        self.addCleanup(context.close)
+        self.base = pathlib.Path(context.enter_context(tempfile.TemporaryDirectory()))
+        context.enter_context(mock.patch.object(PWA._casa, "raiz", return_value=self.base))
+        context.enter_context(mock.patch.dict("os.environ", {"PRECEPTOROS_REGISTRO_PY": ""}))
+        context.enter_context(mock.patch.object(canales.G, "POLICIES_PATH", canales.G.DEFECTO_PATH))
+
+    def call(self, body=REQUEST, *, origin=ORIGIN, client="127.0.0.1", host="127.0.0.1:32123"):
+        raw = json.dumps(body).encode()
+        handler = PWA.PWA.__new__(PWA.PWA)
+        handler.headers = {"Content-Type": "application/json", "Content-Length": str(len(raw)), "Host": host}
+        if origin is not None:
+            handler.headers["Origin"] = origin
+        handler.rfile, handler.client_address = io.BytesIO(raw), (client, 1)
+        handler.server = mock.Mock(server_port=32123)
+        handler._json = lambda status, receipt: (status, receipt)
+        return handler._conversacion_enviar()
+
+    def history(self, hilo="orquesta"):
+        return canales.lee(hilo, base=self.base)["mensajes"]
+
+    def test_lost_ack_retry_after_another_turn(self):
+        first = self.call()
+        self.assertEqual(first[0], 200)
+        canales.di("orquesta", "codex", "second turn", base=self.base)
+        self.assertEqual(self.call(), first)
+        self.assertEqual([row["texto"] for row in self.history()], ["first turn", "second turn"])
+        self.assertEqual(first[1]["n"], self.history()[0]["n"])
+        self.assertNotIn("request_fingerprint", self.history()[0]["maquina"])
+        self.assertEqual(first[1]["state"], "DELIVERED_TO_THREAD")
+        self.assertTrue(first[1]["reply"].startswith("PENDING"))
+
+    def test_concurrent_retries_write_once(self):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as workers:
+            acks = list(workers.map(lambda _: self.call(), range(8)))
+        self.assertEqual([status for status, _ in acks], [200] * 8)
+        self.assertTrue(all(ack == acks[0] for ack in acks))
+        self.assertEqual(len(self.history()), 1)
+
+    def test_request_id_is_bound_to_normalized_text_and_recipient(self):
+        first = self.call()
+        self.assertEqual(self.call(dict(REQUEST, texto=" first turn ")), first)
+        for payload in (dict(REQUEST, texto="changed"), dict(REQUEST, para="claude")):
+            self.assertEqual(self.call(payload), (409, {"state": "NO_DATA", "cause": "request_id_conflict"}))
+        self.assertEqual(len(self.history()), 1)
+
+    def test_different_original_texts_cannot_share_a_redacted_receipt(self):
+        with mock.patch.object(canales.G, "redactar_salida",
+                               side_effect=lambda value: ("[redacted]" if value.startswith("private-") else value, [])):
+            first = self.call(dict(REQUEST, texto="private-a"))
+            self.assertEqual(first[0], 200)
+            self.assertEqual(self.call(dict(REQUEST, texto="private-b"))[0], 409)
+        self.assertEqual([row["texto"] for row in self.history()], ["[redacted]"])
+
+    def test_access_is_checked_before_receipt_lookup(self):
+        self.assertEqual(self.call()[0], 200)
+        with mock.patch.object(canales, "_solicitud_anterior") as lookup:
+            for options in ({"origin": None}, {"origin": "https://visitor.invalid"},
+                            {"host": "localhost:32123"}, {"client": "192.0.2.9"}):
+                with self.subTest(options=options):
+                    self.assertEqual(self.call(**options),
+                                     (403, {"state": "NO_DATA", "cause": "local_origin_required"}))
+            lookup.assert_not_called()
+        self.assertEqual(len(self.history()), 1)
+
+    def test_unknown_outcome_fails_closed_and_allows_later_reconciliation(self):
+        first = self.call()
+        with mock.patch.object(canales, "_solicitud_anterior", side_effect=sqlite3.OperationalError):
+            self.assertEqual(self.call(), (503, {"state": "NO_DATA", "cause": "thread_append_refused"}))
+        self.assertEqual(self.call(), first)
+        self.assertEqual(len(self.history()), 1)
+
+    def test_existing_thread_and_actor_scope(self):
+        request_id = REQUEST["request_id"]
+        canales.di_soberano("app", REQUEST["texto"], base=self.base, para="codex",
+                            request_id=request_id, deduplicar=True)
+        canales.di("orquesta", "observer", "different actor", base=self.base,
+                   maquina={"via": "app", "request_id": request_id})
+        self.assertEqual(self.call()[0], 200)
+        self.assertEqual([row["voz"] for row in self.history()], ["observer", "soberano"])
+        self.assertEqual(len(self.history("app")), 1)
+
+    def test_legacy_post_and_legacy_id_collision(self):
+        a = self.call({"para": "codex", "texto": "legacy"})
+        b = self.call({"para": "codex", "texto": "legacy"})
+        self.assertEqual((a[0], b[0]), (200, 200))
+        self.assertNotEqual(a[1]["request_id"], b[1]["request_id"])
+        self.assertEqual(self.call(dict(REQUEST, texto="legacy", request_id=a[1]["request_id"]))[0], 409)
+        self.assertEqual(len(self.history()), 2)
+
+    def test_invalid_id_is_refused_without_creating_a_database(self):
+        for invalid in (None, 1, ["x"], "", "app-" + "1" * 32 + "\n"):
+            self.assertEqual(self.call(dict(REQUEST, request_id=invalid)),
+                             (400, {"state": "NO_DATA", "cause": "request_id_invalid"}))
+        self.assertFalse(canales.ruta_canal(self.base).exists())
+
+    def test_reuses_receipt_written_through_configured_registry_adapter(self):
+        canales.di("orquesta", "observer", "existing registry", base=self.base)
+        fixture = pathlib.Path(__file__).parent / "tests" / "fixtures" / "registry" / "registro.py"
+        with mock.patch.dict("os.environ", {"PRECEPTOROS_REGISTRO_PY": str(fixture)}):
+            registry = canales._registro().Registro
+            with mock.patch.object(canales._registro(), "Registro", wraps=registry) as writer:
+                first = self.call()
+                self.assertEqual(first[0], 200)
+                self.assertEqual(self.call(), first)
+                writer.assert_called_once()
+        self.assertEqual(len(self.history()), 2)
 
 
 class Shell(unittest.TestCase):

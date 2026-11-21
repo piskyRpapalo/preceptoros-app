@@ -1422,14 +1422,22 @@ class PWA(BaseHTTPRequestHandler):
             data = json.loads(raw.decode("utf-8", "strict"), object_pairs_hook=unique)
         except (UnicodeError, ValueError, RecursionError):
             return refuse(400, "request_invalid")
+        supplied_id = isinstance(data, dict) and "request_id" in data
+        if supplied_id:
+            request_id = data.pop("request_id")
+            if not _canales.solicitud_app_valida(request_id):
+                return refuse(400, "request_id_invalid")
+        else:
+            request_id = "app-" + uuid.uuid4().hex
         para, texto, cause = _conversacion.check_send(data)
         if cause:
             return refuse(409 if cause in ("no_transport", "use_station_door") else 400, cause)
         try:
-            request_id = "app-" + uuid.uuid4().hex
             m = _canales.di_soberano(_conversacion.THREAD, texto, base=_casa.raiz(), para=para,
-                                     request_id=request_id)
-        except _canales.CanalRechazado:
+                                     request_id=request_id, deduplicar=supplied_id)
+        except _canales.ConflictoSolicitud:
+            return refuse(409, "request_id_conflict")
+        except (_canales.CanalRechazado, OSError, sqlite3.Error):
             return refuse(503, "thread_append_refused")
         return self._json(200, {"state": "DELIVERED_TO_THREAD", "n": m["n"], "request_id": request_id, "to": para,
                                 "delivery": _conversacion.BY_ID[para]["transport"],

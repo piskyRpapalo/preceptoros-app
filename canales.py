@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import hashlib
 import json
 import os
 import re
@@ -55,6 +56,7 @@ CANALES = ("orquesta", "app", "web", "lab", "cli")   # hilos dentro del canal ú
 SELLOS = ("MEDIDO", "EMULADO", "NO_DATA", "PROPUESTA", "REQUIERE_FIRMA", "DECLARADO")
 VOZ_RESERVADA = "soberano"
 _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,60}$")     # el mismo `SLUG` del registro
+_SOLICITUD_APP = re.compile(r"app-[0-9a-f]{32}")
 TOPE_TEXTO = 8000
 TOPE_MAQUINA = 4000
 TOPE_LECTURA = 200
@@ -123,6 +125,14 @@ class CanalRechazado(ValueError):
     """El mensaje no se anexa. La causa va en el texto de la excepción."""
 
 
+class ConflictoSolicitud(CanalRechazado):
+    """El identificador ya pertenece a otra solicitud o no tiene huella."""
+
+
+def solicitud_app_valida(valor):
+    return isinstance(valor, str) and _SOLICITUD_APP.fullmatch(valor) is not None
+
+
 def ruta_canal(base=None):
     return Path(base or _casa.raiz()) / "registro" / "eventos.db"
 
@@ -160,7 +170,27 @@ def _limpia_maquina(valor, casa):
     return _limpio(str(valor), casa)
 
 
-def _anexar(canal, actor, texto, sello, rol, maquina, base):
+def _solicitud_anterior(base, hilo, actor, request_id, huella):
+    filas = _filas(base, """
+        select n, ts, json_extract(cuerpo_json, '$.maquina.request_fingerprint')
+          from eventos
+         where tipo = ? and actor = ?
+           and json_extract(cuerpo_json, '$.hilo') = ?
+           and json_extract(cuerpo_json, '$.maquina.via') = 'app'
+           and json_extract(cuerpo_json, '$.maquina.request_id') = ?
+         limit 2
+        """, (TIPO, actor, hilo, request_id))
+    if filas is None or len(filas) > 1:
+        raise CanalRechazado("no se puede determinar el acuse de la solicitud")
+    if not filas:
+        return None
+    n, ts, anterior = filas[0]
+    if anterior != huella:
+        raise ConflictoSolicitud("el identificador ya está reservado")
+    return n, ts
+
+
+def _anexar(canal, actor, texto, sello, rol, maquina, base, *, deduplicar=False):
     hilo = _hilo(canal)
     if not isinstance(texto, str) or not texto.strip():
         raise CanalRechazado("hace falta texto")
@@ -179,6 +209,12 @@ def _anexar(canal, actor, texto, sello, rol, maquina, base):
     cuerpo = {"hilo": hilo, "texto": _limpio(texto, casa),
               "rol": _limpio(str(rol or ""), casa)[:120], "sello": sello,
               "maquina": _limpia_maquina(maquina, casa)}
+    if deduplicar:
+        # Compare the accepted payload before redaction, even when two different
+        # inputs would leave the same visible text. Bind the digest to this ID.
+        payload = json.dumps([maquina["request_id"], maquina["para"], texto])
+        huella = hashlib.sha256(payload.encode("ascii")).hexdigest()
+        cuerpo["maquina"]["request_fingerprint"] = huella
     crudo = json.dumps(cuerpo, ensure_ascii=False, sort_keys=True)
     for patron, que in PRIVADO:                       # segunda puerta, la del registro
         if patron.search(crudo):
@@ -187,13 +223,19 @@ def _anexar(canal, actor, texto, sello, rol, maquina, base):
     destino.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     no_data = [{"campo": "bloquea", "causa": "el adaptador de la app no calcula bloqueos"}]
-    # Solo se pasa por el registro si su canal YA existe: `Registro.inicializar`
-    # crearía también la base de autoridad, y la app no crea nada ahí.
-    reg = _registro() if destino.is_file() else None
     fd = os.open(destino, os.O_RDWR | os.O_CREAT, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
-        if reg is not None:
+        existe = os.fstat(fd).st_size > 0
+        anterior = None
+        if deduplicar and existe:
+            anterior = _solicitud_anterior(base, hilo, actor, maquina["request_id"], huella)
+        # Un fichero vacío aún no es un registro: no llamar a inicializar,
+        # porque podría crear también la base de autoridad.
+        reg = _registro() if existe and anterior is None else None
+        if anterior is not None:
+            (n, ts), via = anterior, "acuse existente"
+        elif reg is not None:
             r = reg.Registro(destino.parent).anexar_evento(TIPO, actor, cuerpo)
             if r.get("estado") != "OK":
                 raise CanalRechazado(f"el registro no lo anexó: {r.get('causa')}")
@@ -217,7 +259,8 @@ def _anexar(canal, actor, texto, sello, rol, maquina, base):
                 con.close()
             via = "adaptador (mismo esquema; registro.py no disponible aquí)"
     finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
+        # Closing releases the flock. Do not let another thread start SQLite
+        # work between unlocking and closing this descriptor for the same inode.
         os.close(fd)
     return {"n": n, "t": ts, "canal": hilo, "voz": actor, "via": via,
             **{k: cuerpo[k] for k in ("rol", "texto", "maquina", "sello")}}
@@ -232,24 +275,26 @@ def di(canal, voz, texto, sello="DECLARADO", rol="", maquina=None, base=None):
     return _anexar(canal, voz, texto, sello, rol, maquina, base)
 
 
-def di_soberano(canal, texto, sello="DECLARADO", base=None, para=None, request_id=None):
+def di_soberano(canal, texto, sello="DECLARADO", base=None, para=None, request_id=None, *, deduplicar=False):
     """La persona escribe desde la app. Solo la llama la puerta de la PWA.
     Tampoco esto concede nada: una frase no es una firma. `para` nombra a quién
     va dirigido (un slug); `request_id` correlaciona una respuesta futura, no prueba
-    recepción ni da permiso a nadie."""
+    recepción ni da permiso a nadie. `deduplicar` reutiliza el acuse del turno
+    existente dentro del mismo hilo y actor, bajo el cerrojo de escritura."""
+    if deduplicar and not solicitud_app_valida(request_id):
+        raise CanalRechazado("la deduplicación requiere un identificador de solicitud")
     maquina = {"via": "app"}
     if para is not None:
         if not isinstance(para, str) or not _SLUG.match(para) or es_soberano(para):
             raise CanalRechazado("`para` es el slug de un agente")
         maquina["para"] = para
         if request_id is not None:
-            if (not isinstance(request_id, str) or
-                    not re.fullmatch(r"app-[0-9a-f]{32}", request_id)):
+            if not solicitud_app_valida(request_id):
                 raise CanalRechazado("`request_id` must be an app-generated opaque id")
             maquina["request_id"] = request_id
     elif request_id is not None:
         raise CanalRechazado("`request_id` requires an addressed recipient")
-    return _anexar(canal, VOZ_RESERVADA, texto, sello, "persona", maquina, base)
+    return _anexar(canal, VOZ_RESERVADA, texto, sello, "persona", maquina, base, deduplicar=deduplicar)
 
 
 VOZ_PUERTA = "hexelion-door"
@@ -299,9 +344,13 @@ def lee(canal, desde=0, base=None, tope=TOPE_LECTURA):
             continue
         ultimo = max(ultimo, n)
         if n > desde:
+            maquina = c.get("maquina") or {}
+            if actor == VOZ_RESERVADA and isinstance(maquina, dict):
+                # The receipt fingerprint is internal to the ledger lookup.
+                maquina.pop("request_fingerprint", None)
             mensajes.append({"n": n, "t": ts, "canal": hilo, "voz": actor,
                              "rol": c.get("rol", ""), "texto": c.get("texto", ""),
-                             "maquina": c.get("maquina") or {}, "sello": c.get("sello")})
+                             "maquina": maquina, "sello": c.get("sello")})
     return {"canal": hilo, "estado": "MEDIDO", "mensajes": mensajes[-tope:],
             "recortados": max(0, len(mensajes) - tope), "corruptas": corruptas, "ultimo": ultimo}
 
