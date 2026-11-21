@@ -1223,6 +1223,9 @@ $("form-chat").addEventListener("submit", async (e) => {
     $("enviar").disabled = false;
     devolverFoco(volverA);
     if (sent.ok && window.PreceptorProfile === "private_rack") {
+      $("estado").dataset.state = "MEASURED";
+      $("estado").dataset.acho = "ok";
+      $("estado").dataset.cause = "source_thread_write_ack";
       $("estado").textContent = `Delivered to the shared thread for ${conversacion.name(ruta.para)} · message ${sent.n} · no reply is promised`;
       conversacion.sync({ replaceLocal: true });
     } else {
