@@ -56,7 +56,7 @@ class SettingsGroups(unittest.TestCase):
 
     def test_header_stays_first_and_markup_balances(self):
         panel = self.panel()
-        self.assertLess(panel.index('class="panel-cabecera"'), panel.index("ajustes-grupo"))
+        self.assertLess(panel.index('class="panel-cabecera'), panel.index("ajustes-grupo"))
         b = Balance()
         b.feed(HTML)
         self.assertEqual(b.errors, [])

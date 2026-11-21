@@ -486,6 +486,8 @@ button.ir { min-height: 44px; margin: 6px 0 12px; }
 .panel-cabecera { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
   gap: .15rem .5rem; margin: 0 0 .5rem; padding-bottom: .35rem; border-bottom: 1px solid var(--line); }
 .panel-cabecera h2 { grid-column: 1; margin: 0; font-size: 1.05rem; }
+/* Round 2: a panel whose title only repeats its tab keeps the h2 for readers, with no visual box or space. */
+.panel-cabecera.sr { margin: 0; padding: 0; border: 0; }
 .panel-cabecera [role="status"] { grid-column: 1; margin: 0; }
 .panel-cabecera .refrescar { grid-column: 2; grid-row: 1; min-width: 44px; min-height: 44px; padding: 0;
   border-radius: 999px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font-size: 1.1rem; cursor: pointer; }
