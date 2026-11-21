@@ -6,10 +6,12 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 import stat
+import sys
 import tempfile
 import unittest
 from zipfile import ZipFile, ZipInfo
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "mvp-android"))
 import release_guard as rg
 
 
