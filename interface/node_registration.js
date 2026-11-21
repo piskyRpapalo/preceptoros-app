@@ -293,43 +293,73 @@
     var loop = root.PreceptorNodeLoopback;
     return loop && typeof loop.intake === 'function' ? loop.intake(win) : null;
   }
+  // [key, label, who acts, next action]. Who acts: 'you' (this owner, in this APP), 'aduana' (the public authority),
+  // 'signature' (a human SSH signature at the rack; this APP never signs).
   var lifecycleStages = Object.freeze([
-    ['prepare', 'Prepare node identity', 'Open «Node identity» and save your node name on this computer.'],
-    ['consent', 'Owner consent', 'In «Node identity», press «Prepare admission request», fill the node name and purpose, preview, then tick the consent box.'],
-    ['request', 'Request admission', 'Press «Sign deployment · request review». A pending request is not a node.'],
-    ['signature', 'Owner signature (SSH)', 'The owner signs the admission decision with SSH at the rack. This APP never signs.'],
-    ['approval', 'Admission approved', 'Wait for Aduana to admit the signed plan.'],
-    ['heartbeat', 'Heartbeat verified', 'Start the node heartbeat after approval.'],
-    ['live', 'LIVE in Open World', 'Check that the public world lists this node as LIVE.'],
-    ['ai', 'Local AI on the public channel', 'Connect your local model to the node\'s public channel and measure one turn.'],
-    ['building', 'Functional building published', 'Publish a building only with an installed, tested function and an authorized policy.'],
-    ['revoke', 'Revoke', 'Revocation is available once the node is admitted.']
+    ['prepare', 'Prepare node identity', 'you', 'Open «Node identity» and save your node name on this computer.'],
+    ['consent', 'Owner consent', 'you', 'In «Node identity», press «Prepare admission request», fill the node name and purpose, preview, then tick the consent box.'],
+    ['request', 'Request admission', 'you', 'Press «Sign deployment · request review». A pending request is not a node.'],
+    ['signature', 'Owner signature (SSH)', 'signature', 'The owner signs the admission decision with SSH at the rack. This APP never signs.'],
+    ['approval', 'Admission approved', 'aduana', 'Aduana checks the signed plan and admits or refuses it.'],
+    ['heartbeat', 'Heartbeat verified', 'you', 'Start the node heartbeat after approval.'],
+    ['live', 'LIVE in Open World', 'aduana', 'Aduana lists the node as LIVE once its heartbeat is fresh.'],
+    ['ai', 'Local AI on the public channel', 'you', 'Connect your local model to the node\'s public channel and measure one turn.'],
+    ['building', 'Functional building published', 'you', 'Publish a building only with an installed, tested function and an authorized policy.'],
+    ['revoke', 'Revoke', 'you', 'You can revoke your node at any time once it is admitted.']
   ]);
+  var actorWords = Object.freeze({ you: 'Next (you)', aduana: 'Waiting for Aduana', signature: 'Needs a human SSH signature' });
   var serverStates = /^(MEASURED|PENDING|REFUSED|EXPIRED|REVOKED|NO_DATA)$/;
-  // Pure: lifecycle(evidence) → ten stages in order, no skips. A later reading never counts while an earlier one is open.
+  function serverReading(server, key) {
+    var r = server && server[key];
+    if (!r || typeof r !== 'object') return null;
+    if (!serverStates.test(String(r.state || ''))) return { state: 'NO_DATA', cause: 'stage_state_unrecognized' };
+    return { state: r.state, cause: boundedCause(r.cause, 'server_reading') };
+  }
+  // Pure: lifecycle(evidence) → ten stages in order, no skips. A later reading never counts while an earlier one is
+  // open; an incomplete or foreign lifecycle answer is NO_DATA, never LIVE.
   function lifecycle(evidence) {
-    var e = evidence || {}, open = false, current = -1, server = e.lifecycle && e.lifecycle.stages;
+    var e = evidence || {}, open = false, current = -1, life = e.lifecycle || {}, server = null, lifeCause;
+    if (life.stages && typeof life.stages === 'object') {
+      if (e.identity && e.identity.node && life.node && life.node !== e.identity.node) lifeCause = 'lifecycle_node_mismatch';
+      else server = life.stages;
+    }
+    lifeCause = boundedCause(lifeCause || life.cause, server ? 'stage_missing_in_lifecycle' : 'node_lifecycle_unverified');
+    var revoked = server && server.revoke && server.revoke.state === 'REVOKED';
     var rows = lifecycleStages.map(function (def, index) {
-      var key = def[0], state, cause;
+      var key = def[0], state, cause, reading = serverReading(server, key);
       if (key === 'prepare') { state = e.identity && e.identity.state === 'MEASURED' ? 'MEASURED' : 'NO_DATA';
         cause = state === 'MEASURED' ? 'local_identity_configured' : boundedCause(e.identity && e.identity.cause, 'local_identity_unread'); }
-      else if (key === 'consent') { state = e.consented === true || (e.receipt && e.receipt.state === 'PENDING') ? 'MEASURED' : 'NO_DATA';
+      else if (key === 'consent') {
+        var sent = (e.receipt && e.receipt.state === 'PENDING') || (reading = serverReading(server, 'request'), reading && /^(PENDING|MEASURED)$/.test(reading.state));
+        state = e.consented === true || sent ? 'MEASURED' : 'NO_DATA';
         cause = state === 'MEASURED' ? 'owner_consent_given_in_this_app' : 'owner_consent_not_given'; }
       else if (key === 'request') {
-        if (e.receipt && e.receipt.state === 'PENDING' && e.receipt.trackingId) { state = 'PENDING'; cause = 'aduana_receipt_awaiting_human'; }
+        if (revoked) { state = 'NO_DATA'; cause = 'node_revoked'; }
+        else if (reading) { state = reading.state; cause = reading.cause; } // the server's record survives a reload
+        else if (e.receipt && e.receipt.state === 'PENDING' && e.receipt.trackingId) { state = 'PENDING'; cause = 'aduana_receipt_awaiting_human'; }
         else { state = 'NO_DATA'; cause = boundedCause(e.receipt && e.receipt.cause, 'request_not_sent'); }
-      } else {
-        var reading = server && server[key];
-        if (reading && serverStates.test(reading.state)) { state = reading.state; cause = boundedCause(reading.cause, 'server_reading'); }
-        else { state = 'NO_DATA'; cause = boundedCause(e.lifecycle && e.lifecycle.cause, 'node_lifecycle_unverified'); }
-      }
+      } else if (reading) { state = reading.state; cause = reading.cause; }
+      else { state = 'NO_DATA'; cause = lifeCause; }
       // The request stage is complete for the ladder once Aduana holds a pending receipt; the node does not exist yet.
       var done = state === 'MEASURED' || (key === 'request' && state === 'PENDING');
+      if (key === 'revoke') done = false; // revocation is an action, never a step to tick off
       if (open && done) { state = 'NO_DATA'; cause = 'earlier_stage_unverified'; done = false; }
-      if (!done && !open) { open = true; current = index; }
-      return { key: key, label: def[1], next: def[2], state: state, cause: cause, done: done };
+      if (!done && !open && key !== 'revoke') { open = true; current = index; }
+      var next = def[3];
+      if (state === 'REFUSED' || state === 'EXPIRED') next = 'Read the cause, then send a new request from «Prepare admission request».';
+      if (key === 'request' && revoked) next = 'Your node was revoked. Send a new request when you want to take part again.';
+      return { key: key, label: def[1], actor: def[2], next: next, state: state, cause: cause, done: done };
     });
-    return { stages: rows, current: current, live: false };
+    if (current < 0) current = rows.length - 1;
+    return { stages: rows, current: current, live: rows[6].done, revoked: !!revoked };
+  }
+  function sentenceOf(view) {
+    var cur = view.stages[view.current], last = null;
+    view.stages.forEach(function (s) { if (s.done) last = s; });
+    var blocked = cur.state === 'REFUSED' || cur.state === 'EXPIRED' || cur.cause === 'node_revoked';
+    var who = blocked ? 'Blocked (' + cur.cause + ')' : actorWords[cur.actor];
+    return (last ? 'Done: ' + last.label + '. ' : '') + 'Stage ' + (view.current + 1) + ' of ' + view.stages.length +
+      ' · ' + cur.label + ' · ' + cur.state + ' (' + cur.cause + '). ' + who + ': ' + cur.next;
   }
   function paintLadder(document, view) {
     var list = document.getElementById('mvp-journey'), teaser = document.querySelector('#mvp-journey-guide .fold-teaser'),
@@ -337,24 +367,22 @@
     if (!list) return null;
     var items = view.stages.map(function (s, i) {
       var li = document.createElement('li');
-      li.className = 'mvp-step'; li.dataset.step = String(i + 1); li.dataset.key = s.key;
+      li.className = 'mvp-step'; li.dataset.step = String(i + 1); li.dataset.key = s.key; li.dataset.actor = s.actor;
       li.dataset.state = s.done ? 'done' : i === view.current ? 'current' : 'pending';
       li.dataset.acho = s.state; li.dataset.cause = s.cause;
       if (i === view.current) li.setAttribute('aria-current', 'step');
       var glyph = document.createElement('span'); glyph.className = 'mvp-step-glyph'; glyph.setAttribute('aria-hidden', 'true');
       glyph.textContent = s.done ? '●' : i === view.current ? '◐' : '○';
-      li.append(glyph, document.createTextNode(' ' + s.label + ' · ' + s.state + (s.done ? '' : ' (' + s.cause + ')')));
+      var by = s.actor === 'you' ? 'you' : s.actor === 'aduana' ? 'Aduana' : 'human signature';
+      li.append(glyph, document.createTextNode(' ' + s.label + ' · ' + by + ' · ' + s.state + (s.done ? '' : ' (' + s.cause + ')')));
       return li;
     });
     list.replaceChildren.apply(list, items);
-    var cur = view.stages[view.current];
-    var sentence = cur ? 'Stage ' + (view.current + 1) + ' of ' + view.stages.length + ' · ' + cur.label + ' · ' +
-      cur.state + ' (' + cur.cause + '). Next: ' + cur.next : 'All stages verified.';
+    var cur = view.stages[view.current], sentence = sentenceOf(view);
     if (teaser) teaser.textContent = sentence;
     if (live && live.textContent !== sentence) {
       live.textContent = sentence;
-      live.dataset.state = cur ? cur.state : 'MEASURED'; live.dataset.acho = live.dataset.state;
-      live.dataset.cause = cur ? cur.cause : 'all_stages_verified';
+      live.dataset.state = cur.state; live.dataset.acho = cur.state; live.dataset.cause = cur.cause;
     }
     return sentence;
   }
@@ -479,6 +507,12 @@
     refreshLadder();
     var tab = document.getElementById('tab-ajustes');
     if (tab) tab.addEventListener('click', refreshLadder);
+    // Transitions are confirmed by the backend, not by this page: re-read while My node is in view.
+    if (tab && typeof win.setInterval === 'function') {
+      win.setInterval(function () {
+        if (tab.getAttribute('aria-selected') === 'true' && document.visibilityState !== 'hidden') refreshLadder();
+      }, 15000);
+    }
     var reread = document.getElementById('node-identity-read');
     if (reread) reread.addEventListener('click', function () { win.setTimeout(refreshLadder, 400); });
     // node_building.js locks the identity input once the server confirms it: re-read the ladder at that moment.
@@ -502,7 +536,7 @@
     verifyAduanaReceipt: verifyAduanaReceipt, aduanaAdapter: aduanaAdapter,
     deploymentStates: deploymentStates, deploymentDraft: deploymentDraft,
     deploymentEvidence: deploymentEvidence, requestDeploymentReview: requestDeploymentReview,
-    lifecycle: lifecycle, paintLadder: paintLadder, readEvidence: readEvidence });
+    lifecycle: lifecycle, lifecycleSentence: sentenceOf, paintLadder: paintLadder, readEvidence: readEvidence });
   } else {
     root.PreceptorNodeRegistration = Object.freeze({ schemaName: schemaName, states: stateNames,
       createRequest: createRequest, pendingSigner: pendingSigner,
@@ -511,6 +545,6 @@
       verifyAduanaReceipt: verifyAduanaReceipt, aduanaAdapter: aduanaAdapter,
     deploymentStates: deploymentStates, deploymentDraft: deploymentDraft,
     deploymentEvidence: deploymentEvidence, requestDeploymentReview: requestDeploymentReview,
-    lifecycle: lifecycle, paintLadder: paintLadder, readEvidence: readEvidence });
+    lifecycle: lifecycle, lifecycleSentence: sentenceOf, paintLadder: paintLadder, readEvidence: readEvidence });
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

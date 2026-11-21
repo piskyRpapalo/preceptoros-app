@@ -88,3 +88,49 @@ test('reads report NO_DATA with cause off the loopback APP and when the lifecycl
   e = await loop.read(win('http://127.0.0.1:8742', () => { throw new Error('down'); }));
   assert.equal(e.identity.cause, 'app_server_unreachable');
 });
+
+// Round 3 · the ladder consumes preceptoros.node-lifecycle/1 receipts.
+const ID = { state: 'MEASURED', node: 'nodo.42.fixture' };
+const R = { state: 'PENDING', trackingId: 'a'.repeat(64) };
+const M = (cause) => ({ state: 'MEASURED', cause });
+const life = (stages, node = 'nodo.42.fixture') => ({ schema: 'preceptoros.node-lifecycle/1', node, stages });
+
+test('backend transitions advance the ladder one stage at a time; actor and next action are explicit', () => {
+  let v = flow.lifecycle({ identity: ID, receipt: R, lifecycle: life({ signature: { state: 'PENDING', cause: 'sshsig_awaited' } }) });
+  assert.equal(v.current, 3); assert.equal(v.stages[3].actor, 'signature');
+  assert.match(flow.lifecycleSentence(v), /^Done: Request admission\. Stage 4 of 10 · Owner signature \(SSH\) · PENDING \(sshsig_awaited\)\. Needs a human SSH signature: /);
+  v = flow.lifecycle({ identity: ID, receipt: R, lifecycle: life({ signature: M('sshsig_verified'), approval: { state: 'PENDING', cause: 'aduana_review' } }) });
+  assert.equal(v.current, 4); assert.match(flow.lifecycleSentence(v), /Waiting for Aduana: /);
+  v = flow.lifecycle({ identity: ID, receipt: R, lifecycle: life({ signature: M('a'), approval: M('b'), heartbeat: { state: 'NO_DATA', cause: 'heartbeat_key_missing' } }) });
+  assert.equal(v.current, 5); assert.match(flow.lifecycleSentence(v), /Next \(you\): Start the node heartbeat/);
+  assert.equal(v.live, false);
+});
+
+test('LIVE only when every earlier stage is MEASURED in a complete answer for this node', () => {
+  const all = { request: M('r'), signature: M('a'), approval: M('b'), heartbeat: M('c'), live: M('world_state_live') };
+  let v = flow.lifecycle({ identity: ID, lifecycle: life(all) });
+  assert.equal(v.live, true); assert.equal(v.current, 7, 'next: local AI');
+  const partial = { ...all }; delete partial.heartbeat;
+  v = flow.lifecycle({ identity: ID, lifecycle: life(partial) });
+  assert.equal(v.live, false); assert.equal(v.stages[5].cause, 'stage_missing_in_lifecycle');
+  assert.equal(v.stages[6].cause, 'earlier_stage_unverified');
+  v = flow.lifecycle({ identity: ID, lifecycle: life(all, 'nodo.99.other') });
+  assert.equal(v.live, false); assert.equal(v.stages[3].cause, 'lifecycle_node_mismatch');
+  v = flow.lifecycle({ identity: ID, lifecycle: life({ ...all, heartbeat: { state: 'ONLINE', cause: 'x' } }) });
+  assert.equal(v.stages[5].cause, 'stage_state_unrecognized'); assert.equal(v.live, false);
+});
+
+test('the server request record survives a reload; refusal and revocation say how to continue', () => {
+  let v = flow.lifecycle({ identity: ID, lifecycle: life({ request: { state: 'PENDING', cause: 'aduana_receipt_awaiting_human' } }) });
+  assert.equal(v.stages[1].done, true, 'consent implied by a recorded request'); assert.equal(v.stages[2].done, true);
+  v = flow.lifecycle({ identity: ID, receipt: R, lifecycle: life({ signature: M('a'), approval: { state: 'REFUSED', cause: 'plan_rejected' } }) });
+  assert.match(flow.lifecycleSentence(v), /Blocked \(plan_rejected\): Read the cause, then send a new request/);
+  v = flow.lifecycle({ identity: ID, lifecycle: life({ request: M('r'), signature: M('a'), approval: M('b'), revoke: { state: 'REVOKED', cause: 'owner_revoked' } }) });
+  assert.equal(v.revoked, true); assert.equal(v.current, 2); assert.equal(v.stages[2].cause, 'node_revoked');
+  assert.match(flow.lifecycleSentence(v), /Blocked \(node_revoked\): Your node was revoked/);
+  assert.equal(v.stages[9].done, false, 'revoke is an action, never ticked off');
+  const every = { request: M('r'), signature: M('a'), approval: M('b'), heartbeat: M('c'), live: M('d'), ai: M('e'), building: M('f'), revoke: M('revocation_available') };
+  v = flow.lifecycle({ identity: ID, lifecycle: life(every) });
+  assert.equal(v.stages[9].done, false); assert.equal(v.current, 9);
+  assert.match(flow.lifecycleSentence(v), /^Done: Functional building published\. Stage 10 of 10 · Revoke · MEASURED \(revocation_available\)\. Next \(you\): You can revoke/);
+});
