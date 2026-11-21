@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icono-512.png?v=2">
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icono-192.png?v=2">
 <link rel="manifest" href="/manifest.json">
-<link rel="stylesheet" href="/app.css?v=55">
+<link rel="stylesheet" href="/app.css?v=56">
 <link rel="stylesheet" href="/hitl.css?v=5">
 </head>
 <body>
@@ -129,7 +129,7 @@
 
   <!-- Operations Data owns documents and receipts; Lab owns measured loops. -->
   <section class="panel" id="panel-cuaderno" role="tabpanel" aria-labelledby="tab-cuaderno" tabindex="0" aria-label="Operations Data" hidden>
-    <header class="panel-cabecera"><h2 id="notebook-title">Operations Data</h2></header>
+    <header class="panel-cabecera sr"><h2 id="notebook-title">Operations Data</h2></header>
     <div class="panel-actions" id="notebook-actions" role="group" aria-label="Operations Data actions">
       <button type="button" id="notebook-document-editor-toggle" aria-expanded="false" aria-controls="notebook-document-editor">Document Editor</button>
       <button type="button" id="notebook-plan-toggle" aria-expanded="false" aria-controls="plan-escribir">Write a plan</button>
@@ -350,7 +350,7 @@
   </section>
 
   <section class="panel" id="panel-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0" aria-label="Lab" hidden>
-    <header class="panel-cabecera"><h2 data-i18n="tab_lab" id="h-lab">Lab</h2></header>
+    <header class="panel-cabecera sr"><h2 data-i18n="tab_lab" id="h-lab">Lab</h2></header>
     <div class="panel-actions" id="lab-actions" role="group" aria-label="Lab actions">
       <button type="button" id="lab-bench-toggle" aria-expanded="false" aria-controls="lab-bench-group">Benchmarks</button>
       <button type="button" class="refrescar" data-refrescar="lab" aria-label="Refresh the Lab" title="Refresh the Lab">Refresh</button>
@@ -460,7 +460,7 @@
     </details>
   </section>
   <section class="panel" id="panel-modelos" role="tabpanel" aria-labelledby="tab-modelos" tabindex="0" aria-label="Open World" hidden>
-    <header class="panel-cabecera"><h2 id="h-modelos">Open World</h2></header>
+    <header class="panel-cabecera sr"><h2 id="h-modelos">Open World</h2></header>
     <p id="openworld-paused" class="world-paused" role="status" hidden>
       Open World is paused by the Kill switch. Reconnect above to load the map.
     </p>
@@ -482,7 +482,7 @@
     <a class="openworld-fallback" data-i18n="world_open_new" href="https://preceptoros.org/openworld/" target="_blank" rel="noopener noreferrer">Abrir OpenWorld en otra pestaña</a>
   </section>
   <section class="panel" id="panel-ajustes" role="tabpanel" aria-labelledby="tab-ajustes" tabindex="0" aria-label="My node" hidden>
-    <header class="panel-cabecera"><h2 data-i18n="tab_mynode" id="h-ajustes">My node</h2></header>
+    <header class="panel-cabecera sr"><h2 data-i18n="tab_mynode" id="h-ajustes">My node</h2></header>
     <div class="panel-actions" id="mynode-actions" role="group" aria-label="My node actions">
       <button type="button" id="mynode-identity-toggle" aria-expanded="false" aria-controls="ajustes-nodo">Node identity</button>
       <button type="button" id="mynode-building-toggle" aria-expanded="false" aria-controls="room-building">Create building</button>
@@ -767,7 +767,10 @@
   <!-- Settings: UI preferences and browser-level connection controls only; no node administration. -->
   <section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings"
     tabindex="0" aria-label="Settings" hidden>
-    <header class="panel-cabecera"><h2 id="h-settings">Settings</h2></header>
+    <header class="panel-cabecera sr"><h2 id="h-settings">Settings</h2></header>
+    <!-- Product release, not a build hash: only a verified source may name it (one source: the version script below). -->
+    <p class="pie settings-version" id="settings-version" data-state="NO_DATA" data-acho="NO_DATA"
+       data-cause="release_manifest_unverified">PreceptorOS APP · NO_DATA(release_manifest_unverified)</p>
     <p class="pie">Appearance and accessibility apply to this browser only. Your node identity and documents are unchanged.</p>
 
     <details class="grupo settings-group" id="settings-appearance">
@@ -885,10 +888,27 @@
   const native = root.PreceptorAndroidMiniModel;
   let nativeText = 'NO_DATA(not_native_android)', shellText = 'NO_DATA(server_not_checked)';
   let cacheText = 'NO_DATA(cache_not_checked)', attempts = 0;
+  // Commercial names (Sovereign, 2026-11-21): APP 1.0 = Android versionCode 7 delivered 19 Nov; APP 1.1 = Android
+  // versionCode 8, which Android only installs over v7 when signed with the same owner key. A build hash or a
+  // user agent never names a release; the Beelink shell has no release manifest yet.
+  const releaseNames = Object.freeze({ 7: 'PreceptorOS APP 1.0 · Android build 7', 8: 'PreceptorOS APP 1.1 · Android build 8' });
+  const settings = root.document.getElementById('settings-version');
+  function product() {
+    const code = /^v([0-9]{1,6}) · /.exec(nativeText);
+    if (code && releaseNames[code[1]]) return { text: releaseNames[code[1]], state: 'MEASURED', cause: 'native_versioncode_' + code[1] };
+    if (code) return { text: 'PreceptorOS APP · Android build ' + code[1] + ' · NO_DATA(release_not_named)', state: 'NO_DATA', cause: 'release_not_named' };
+    if (/^[a-f0-9]{12}$/.test(shellText)) return { text: 'PreceptorOS APP · Shell ' + shellText + ' · NO_DATA(release_manifest_unverified)', state: 'NO_DATA', cause: 'release_manifest_unverified' };
+    return { text: 'PreceptorOS APP · NO_DATA(release_manifest_unverified)', state: 'NO_DATA', cause: 'release_manifest_unverified' };
+  }
   function render(state, cause) {
     out.textContent = 'APK ' + nativeText + ' · Shell ' + shellText + ' · Cache ' + cacheText;
     out.dataset.state = out.dataset.acho = state;
     out.dataset.cause = cause;
+    if (settings) { // Not a live region: the Talk line above already announces; this is the readable Settings copy.
+      const p = product();
+      if (settings.textContent !== p.text) settings.textContent = p.text;
+      settings.dataset.state = settings.dataset.acho = p.state; settings.dataset.cause = p.cause;
+    }
   }
   function readNative() {
     if (!native || typeof native.version !== 'function') return;
