@@ -130,12 +130,19 @@ class CreationPublication(unittest.TestCase):
             "Access-Control-Request-Method": "POST"})
         PWA.PWA.do_OPTIONS(denied)
         self.assertEqual(denied.code, 403)
-        charter = Handler(path="/api/nodo/export")
+        charter = Handler(path="/api/nodo/export", headers={
+            "Origin": "http://127.0.0.1:8740", "Host": "127.0.0.1:8740",
+            "Content-Type": "application/json"})
+        charter.client_address = ("127.0.0.1", 1234)
+        charter._es_loopback = PWA.PWA._es_loopback
+        charter._nodo_local_autorizado = lambda: PWA.PWA._nodo_local_autorizado(charter)
+        charter._nodo_exportar = lambda: PWA.PWA._nodo_exportar(charter)
         charter.body_data = {"credential": "fixture"}
-        with mock.patch.object(PWA._nodo_export, "enviar", return_value={"estado": "encolado", "http": 202}):
+        with mock.patch.object(PWA._nodo_export, "enviar", return_value={"estado": "verificado"}) as export:
             PWA.PWA._despachar_post(charter)
-        self.assertEqual(charter.code, 202)
-        self.assertEqual(charter.body, {"estado": "encolado"})
+        export.assert_called_once_with(charter.body_data, include_receipt=True)
+        self.assertEqual(charter.code, 200)
+        self.assertEqual(charter.body, {"estado": "verificado"})
 
     def test_stable_view_and_assets_are_confined_to_the_pinned_distribution(self):
         assets = ROOT / "assets" / "creation-view"

@@ -43,6 +43,66 @@ def receipt_fixture(c, state="pendiente"):
             "paquete": {"esquema": "preceptoros/cedula-nodo/1", "pares": [c], "firma": None}}
 
 
+class PwaSignedExport(unittest.TestCase):
+    def response(self, payload, *, origin="http://127.0.0.1:8742", extra_headers=None):
+        import io
+        from types import SimpleNamespace
+        from test_agent_voice import _load_pwa
+
+        app = _load_pwa()
+        handler = app.PWA.__new__(app.PWA)
+        body = json.dumps(payload).encode()
+        handler.path = "/api/nodo/export"
+        handler.headers = {"Host": "127.0.0.1:8742", "Origin": origin,
+                           "Content-Type": "application/json", "Content-Length": str(len(body)),
+                           **(extra_headers or {})}
+        handler.client_address = ("127.0.0.1", 5432)
+        handler.server = SimpleNamespace(server_port=8742)
+        handler.rfile = io.BytesIO(body)
+        observed = {}
+        handler._json = lambda code, body: observed.update(code=code, body=body)
+        handler.do_POST()
+        return observed, handler.rfile.tell()
+
+    def test_visitor_and_proxy_rejected_before_body_or_export(self):
+        with patch.object(nodo_export, "enviar") as export:
+            for options in ({"origin": "https://preceptoros.org"},
+                            {"extra_headers": {"X-Forwarded-Proto": "https"}}):
+                reply, read = self.response({"cedula": cedula()}, **options)
+                self.assertEqual((reply["code"], read), (403, 0))
+            export.assert_not_called()
+
+    def test_owner_returns_only_bound_aduana_receipt_with_state_http(self):
+        import shutil
+        import subprocess
+        import tempfile
+        from pathlib import Path
+
+        if not shutil.which("ssh-keygen"):
+            self.skipTest("OpenSSH unavailable")
+        actual = nodo_export.enviar
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            key, body, anchors = (root / name for name in ("key", "body", "anchors"))
+            subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+            anchors.write_text("soberano " + key.with_suffix(".pub").read_text())
+            card = cedula()
+            body.write_bytes(nodo_export.nodo_app.cuerpo_firmado(card))
+            subprocess.run(["ssh-keygen", "-Y", "sign", "-n", "preceptoros-cedula",
+                            "-f", str(key), str(body)], check=True, capture_output=True)
+            card["firma_ssh"] = body.with_suffix(".sig").read_text()
+            card = reseal(card)
+            for state, status in (("pendiente", 202), ("verificado", 200)):
+                remote_receipt = receipt_fixture(card, state)
+                with patch.object(nodo_export, "enviar", side_effect=lambda data, **kwargs:
+                        actual(data, signers=anchors, transport=lambda *_: remote_receipt, **kwargs)):
+                    reply, _ = self.response({"cedula": card})
+                self.assertEqual(reply["code"], status)
+                self.assertEqual(reply["body"]["recibo"], remote_receipt["recibo"])
+                self.assertNotIn("paquete", reply["body"])
+                self.assertNotIn("live", reply["body"])
+
+
 class ExportacionNodo(unittest.TestCase):
     def test_foreign_credential_receipt_is_rejected(self):
         other = cedula(); other["nodo"] = "nodo.2.other"

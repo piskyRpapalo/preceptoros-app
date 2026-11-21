@@ -828,6 +828,8 @@ class PWA(BaseHTTPRequestHandler):
             return self._orquestador()
         if ruta.startswith("/api/hitl/"):
             return self._hitl_firmar(ruta)
+        if ruta == "/api/nodo/export":
+            return self._nodo_exportar()
         datos = self._leer()
         if datos is None:
             return self._json(400, {"estado": "bloqueado",
@@ -861,10 +863,6 @@ class PWA(BaseHTTPRequestHandler):
             return self._canales_decir(datos)
         if ruta == "/api/lab":
             return self._lab_decir(datos)
-        if ruta == "/api/nodo/export":
-            resultado = _nodo_export.enviar(datos)
-            codigo = resultado.pop("http", 200 if resultado.get("estado") == "encolado" else 409)
-            return self._json(codigo, resultado)
         if ruta == "/api/nodo/identity":
             if not self._nodo_local_autorizado():
                 return self._json(403, {"estado": "NO_DATA", "causa": "origen_local_no_autorizado"})
@@ -1097,6 +1095,26 @@ class PWA(BaseHTTPRequestHandler):
                                 "proposal": {"plan_sha256": ref["sha"], "orchestrator": "NO_DATA",
                                              "cause": "proposal_not_built", "tasks": []},
                                 "authority": "none"})
+
+    def _nodo_exportar(self):
+        """OWNER submits an already signed credential to the existing Aduana route."""
+        if (not self._nodo_local_autorizado() or any(self.headers.get(name) is not None for name in
+                ("X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Proto", "Tailscale-User-Login"))):
+            self.close_connection = True
+            return self._json(403, {"estado": "NO_DATA", "causa": "local_owner_origin_required"})
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+            self.close_connection = True
+            return self._json(415, {"estado": "NO_DATA", "causa": "json_required"})
+        try:
+            data = self._leer()
+        except (ValueError, OverflowError):
+            data = None
+        if data is None:
+            self.close_connection = True
+            return self._json(400, {"estado": "NO_DATA", "causa": "cuerpo_invalido"})
+        result = _nodo_export.enviar(data, include_receipt=True)
+        code = result.pop("http", {"verificado": 200, "pendiente": 202}.get(result.get("estado"), 502))
+        return self._json(code, result)
 
     def _nodo_door1_preview(self, datos):
         """Loopback-only dry-run adapter; never reaches the public receiver."""
