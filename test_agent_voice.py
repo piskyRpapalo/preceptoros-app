@@ -105,7 +105,8 @@ class TestPrivateTalkServe(unittest.TestCase):
 
     def walk(self, body=None, *, bound="127.0.0.1", peer="127.0.0.1",
              login=(owner,), origin=origin, host="app.fixture.ts.net", proto="https",
-             forwarded_host="app.fixture.ts.net", funnel=None, configured=True, station=None):
+             forwarded_host="app.fixture.ts.net", funnel=None, configured=True, station=None,
+             site=None, route="/api/hexelion/chat", method="POST"):
         import io
         import json
         from email.message import Message
@@ -114,10 +115,11 @@ class TestPrivateTalkServe(unittest.TestCase):
 
         pwa = _load_pwa()
         handler = pwa.PWA.__new__(pwa.PWA)
-        handler.path = "/api/hexelion/chat"
+        handler.path = route
         handler.headers = Message()
         for name, value in (("Host", host), ("Origin", origin), ("X-Forwarded-Proto", proto),
-                            ("X-Forwarded-Host", forwarded_host), ("Tailscale-Funnel-Request", funnel)):
+                            ("X-Forwarded-Host", forwarded_host), ("Tailscale-Funnel-Request", funnel),
+                            ("Sec-Fetch-Site", site)):
             if value is not None:
                 handler.headers[name] = value
         for value in login:
@@ -130,6 +132,7 @@ class TestPrivateTalkServe(unittest.TestCase):
         handler.server = SimpleNamespace(server_address=(bound, 8742), server_port=8742, ruta_db="unused")
         captured = {}
         handler._json = lambda code, payload: captured.update(code=code, body=payload)
+        handler._conversacion_leer = lambda: handler._json(200, {"state": "fixture_history"})
         env = {"PRECEPTOROS_HEXELION_SERVE_ORIGIN": self.origin if configured else "",
                "PRECEPTOROS_HEXELION_SERVE_OWNER": self.owner if configured else ""}
         evidence = {"esquema": "preceptoros.memory-search/1", "estado": "NO_DATA",
@@ -144,7 +147,10 @@ class TestPrivateTalkServe(unittest.TestCase):
              mock.patch.object(pwa._hexelion_book, "formato_citas", return_value=None), \
              mock.patch.object(pwa._hexelion_proxy, "ask", return_value=station) as ask, \
              mock.patch.object(pwa._hexelion_acciones, "ejecuta") as action:
-            handler._hexelion_chat()
+            if method == "GET":
+                handler.do_GET()
+            else:
+                handler.do_POST()
         action.assert_not_called()
         return captured, handler.rfile.tell(), person, ask
 
@@ -186,3 +192,25 @@ class TestPrivateTalkServe(unittest.TestCase):
                                  (503, stage, cause))
                 person.assert_called_once_with("orquesta", "¿Qué dice el archivo?", base="unused")
                 ask.assert_called_once_with("fixture prompt")
+
+    def test_serve_history_requires_owner_even_without_origin(self):
+        for path in ("/api/conversacion", "/api/canales?canal=orquesta", "/api/notebook", "/api/lab"):
+            with self.subTest(path=path):
+                got, read, person, ask = self.walk(route=path, method="GET", origin=None, login=())
+                self.assertEqual((got["code"], got["body"]["causa"], read),
+                                 (403, "private_talk_owner_auth_required", 0))
+                person.assert_not_called()
+                ask.assert_not_called()
+        got, _, _, _ = self.walk(route="/api/conversacion", method="GET", origin=None, site="same-origin")
+        self.assertEqual((got["code"], got["body"]["state"]), (200, "fixture_history"))
+        got, _, _, _ = self.walk(route="/api/conversacion", method="GET", origin=None, site="cross-site")
+        self.assertEqual(got["code"], 403)
+
+    def test_serve_rejects_other_post_before_reading(self):
+        for path in ("/api/charla", "/api/conversacion", "/api/nodo/identity", "/api/hitl/1"):
+            with self.subTest(path=path):
+                got, read, person, ask = self.walk(route=path)
+                self.assertEqual((got["code"], got["body"]["causa"], read),
+                                 (403, "private_talk_conversation_only", 0))
+                person.assert_not_called()
+                ask.assert_not_called()
