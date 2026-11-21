@@ -13,7 +13,7 @@
   const doc = root.document;
   const kinds = { person: "person", private: "private", "rack-cli": "rack CLI", sensor: "sensor (not a model)",
     external: "external", door: "door (not a model)", unknown: "unknown voice" };
-  let seen = 0, routes = {}, names = {}, busy = false, timer = null;
+  let seen = 0, routes = {}, names = {}, busy = false, timer = null, readGeneration = 0;
 
   // One owner-facing SuperBot conversation, never a private-rack persona.
   function paintInterlocutor() {
@@ -28,6 +28,14 @@
     container.dataset.state = "NO_DATA";
     container.dataset.acho = "NO_DATA";
     container.dataset.cause = "model_reply_not_verified";
+  }
+
+  // Invalidate pending OWNER reads on downgrade, keeping separate local MINI drafts.
+  function clearOwnerProjection() {
+    ++readGeneration;
+    seen = 0; routes = {}; names = {};
+    const list = doc.getElementById("hilo");
+    if (list) [...list.querySelectorAll('li[data-owner-thread="true"]')].forEach((row) => row.remove());
   }
 
   function chip(m) {
@@ -49,6 +57,7 @@
   function row(m) {
     const li = doc.createElement("li");
     li.dataset.n = String(m.n);
+    li.dataset.ownerThread = "true";
     li.className = "hilo-msg" + (m.kind === "person" ? " mio" : "");
     li.appendChild(chip(m));
     const words = doc.createElement("span");
@@ -94,20 +103,26 @@
   async function sync(opts) {
     if (root.PreceptorProfile !== "private_rack") {
       // Do not pull the private rack's thread into a personal interface.
-      routes = {}; names = {};
+      clearOwnerProjection();
       const line = doc.getElementById("conv-destinos");
       say(line, "Personal profile: the private rack conversation was not read.");
-      if (line) { line.dataset.state = "NO_DATA"; line.dataset.cause = "personal_profile_shared_thread_denied"; }
+      if (line) { line.dataset.state = "NO_DATA"; line.dataset.acho = "silent"; line.dataset.cause = "personal_profile_shared_thread_denied"; }
       const detail = doc.getElementById("talk-diagnostics-thread");
       if (detail) detail.textContent = "NO_DATA(personal_profile_shared_thread_denied)";
       return { state: "NO_DATA", cause: "personal_profile_shared_thread_denied" };
     }
     if (busy) return null;
     busy = true;
+    const generation = readGeneration;
     const list = doc.getElementById("hilo"), status = doc.getElementById("conv-destinos");
     try {
       const r = await fetch("/api/conversacion?desde=" + seen, { cache: "no-store" });
       const d = await r.json();
+      // Async OWNER replies cannot repopulate a downgraded private view.
+      if (generation !== readGeneration || root.PreceptorProfile !== "private_rack") {
+        clearOwnerProjection();
+        return { state: "NO_DATA", cause: "owner_thread_view_invalidated" };
+      }
       if (!r.ok || !d || d.schema !== "preceptoros.multipreceptor/1") throw new Error("shape");
       routes = {}; names = {};
       (d.destinations || []).forEach((x) => { routes[x.id] = x.route; names[x.id] = x.name; });
@@ -131,6 +146,7 @@
         if (seen === 0 && d.hidden > 0) {
           const li = doc.createElement("li");
           li.className = "hilo-meta";
+          li.dataset.ownerThread = "true";
           li.textContent = d.hidden + " earlier messages are in the thread and not shown here.";
           list.appendChild(li);
         }
@@ -146,6 +162,10 @@
       seen = Math.max(seen, d.last || 0);
       return d;
     } catch {
+      if (generation !== readGeneration || root.PreceptorProfile !== "private_rack") {
+        clearOwnerProjection();
+        return { state: "NO_DATA", cause: "owner_thread_view_invalidated" };
+      }
       say(status, "NO_DATA: the shared thread did not answer; your words stay in this window only.");
       return null;
     } finally {
@@ -158,6 +178,7 @@
     // A personal_mvp is not the private rack's shared preceptor thread.
     // Neither a previously discovered destination nor a label confers scope.
     if (root.PreceptorProfile !== "private_rack") {
+      clearOwnerProjection();
       return { ok: false, cause: "personal_profile_shared_thread_denied" };
     }
     try {
