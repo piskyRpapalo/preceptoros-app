@@ -8,6 +8,7 @@ import subprocess
 from http.server import ThreadingHTTPServer
 import threading
 import unittest
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 import node_registration as NR
@@ -45,6 +46,7 @@ class Handler:
     _es_loopback = staticmethod(PWA.PWA._es_loopback)
     _despachar_post = PWA.PWA._despachar_post
     _nodo_door1_preview = PWA.PWA._nodo_door1_preview
+    _nodo_local_autorizado = PWA.PWA._nodo_local_autorizado
 
 
 class NodeRegistration(unittest.TestCase):
@@ -238,6 +240,103 @@ const adapter = flow.doorOneAdapter((url, options) => {
         html = (ROOT / "interface/app.html").read_text(encoding="utf-8")
         self.assertIn('id="node-registration-purpose"', html)
         self.assertIn("Sign deployment", html)
+
+
+class PwaDeploymentIntake(unittest.TestCase):
+    def payload(self, **overrides):
+        return dict({"esquema": NR.PWA_INTAKE_SCHEMA, "node": "nodo.42.fixture",
+                     "nonce": "a" * 32, "consent": True}, **overrides)
+
+    @staticmethod
+    def post(url, body, headers, timeout):
+        import hashlib
+        assert url == NR.INTAKE_URL
+        assert headers == {"Content-Type": "application/json", "Accept": "application/json"}
+        assert timeout == 8
+        sent = json.loads(body)
+        assert set(sent) == {"schema", "node", "device_sha256", "nonce", "consent"}
+        assert sent["schema"] == NR.INTAKE_SCHEMA and sent["consent"] is True
+        assert re.fullmatch("[a-f0-9]{64}", sent["device_sha256"])
+        assert re.fullmatch("[a-f0-9]{32}", sent["nonce"])
+        receipt = {"schema": NR.INTAKE_RECEIPT,
+                   "request_id": hashlib.sha256(body).hexdigest(), "state": "AWAITING_HUMAN",
+                   "received_at": "2026-11-21T12:34:56.123Z", "authority": "NONE",
+                   "credential": "NOT_PROVISIONED", "live": "NO_DATA(heartbeat_not_verified)",
+                   "notification": "QUEUED", "owner_alert": "NO_DATA(recipient_notification_not_verified)"}
+        return 202, json.dumps(receipt).encode(), url
+
+    def test_retry_reuses_claim_concurrent_and_keeps_requested_node_unadmitted(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with TemporaryDirectory() as home, ThreadPoolExecutor(max_workers=4) as pool:
+            def send(_):
+                return NR.submit_preliminary(home, self.payload(), post=self.post)
+            results = list(pool.map(send, range(4)))
+            self.assertEqual(results, [results[0]] * 4)
+            code, receipt = results[0]
+            self.assertEqual(code, 202)
+            self.assertEqual(receipt["state"], "PENDING")
+            self.assertFalse(receipt["approved"])
+            self.assertFalse(receipt["live"])
+            self.assertEqual((Path(home) / NR.SEED_FILE).stat().st_mode & 0o777, 0o600)
+            self.assertNotIn("device_sha256", receipt)
+            self.assertFalse((Path(home) / "node-identity.json").exists())
+            _, fresh = NR.submit_preliminary(home, self.payload(nonce="b" * 32), post=self.post)
+            self.assertNotEqual(fresh["trackingId"], receipt["trackingId"])
+
+    def test_unconsented_requests_create_no_state_and_send_nothing(self):
+        from unittest.mock import Mock
+        with TemporaryDirectory() as home:
+            post = Mock()
+            for request in (self.payload(consent=False), self.payload(consent=1),
+                            self.payload(nonce="bad"), self.payload(purpose="private")):
+                self.assertEqual(NR.submit_preliminary(home, request, post=post)[0], 422)
+            post.assert_not_called()
+            self.assertEqual(list(Path(home).iterdir()), [])
+
+    def test_wrong_tracking_or_promotion_rejected(self):
+        with TemporaryDirectory() as home:
+            for key, value in (("request_id", "0" * 64), ("received_at", "2026-99-22T00:00:00Z"),
+                               ("state", "APPROVED"), ("live", True), ("authority", "OWNER")):
+                def post(url, body, headers, timeout):
+                    code, raw, endpoint = self.post(url, body, headers, timeout)
+                    receipt = json.loads(raw)
+                    receipt[key] = value
+                    return code, json.dumps(receipt).encode(), endpoint
+                with self.subTest(key=key):
+                    self.assertEqual(NR.submit_preliminary(home, self.payload(), post=post),
+                                     (502, {"state": "NO_DATA", "cause": "intake_receipt_unverified"}))
+
+    def test_wrong_origin_cannot_trigger_aduana(self):
+        from unittest.mock import patch
+        body = self.payload()
+        with patch.object(NR, "submit_preliminary", return_value=(202, {"state": "PENDING"})) as send:
+            local = "http://127.0.0.1:8740"
+            for client, origin, proxy_headers, expected in (
+                    ("192.0.2.1", local, {}, 403),
+                    ("127.0.0.1", "https://visitor.example.test", {}, 403),
+                    ("127.0.0.1", local, {"X-Forwarded-Proto": "https"}, 403),
+                    ("127.0.0.1", local, {}, 202)):
+                handler = Handler(body, client=client)
+                handler.server.server_port = 8740
+                handler.path = "/api/nodo/identity"
+                handler.headers.update({"Origin": origin, "Host": "127.0.0.1:8740",
+                                        "Content-Type": "application/json"})
+                handler.headers.update(proxy_headers)
+                PWA.PWA._despachar_post(handler)
+                self.assertEqual(handler.code, expected)
+            self.assertEqual(send.call_count, 1)
+
+    def test_open_seed_permissions_never_replaced(self):
+        from unittest.mock import Mock
+        with TemporaryDirectory() as home:
+            seed = Path(home) / NR.SEED_FILE
+            seed.write_text("a" * 64 + "\n")
+            seed.chmod(0o644)
+            post = Mock()
+            self.assertEqual(NR.submit_preliminary(home, self.payload(), post=post),
+                             (503, {"state": "NO_DATA", "cause": "installation_seed_unavailable"}))
+            self.assertEqual(seed.read_text(), "a" * 64 + "\n")
+            post.assert_not_called()
 
 
 if __name__ == "__main__":
