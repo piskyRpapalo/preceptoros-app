@@ -55,7 +55,7 @@ class Wiring(unittest.TestCase):
         said = src.index('_canales.di(turno["hilo"], "hexelion"')
         self.assertLess(verify, relevant)
         self.assertLess(relevant, said)
-        self.assertIn('return no_data("quote_not_relevant")', src[relevant:said])
+        self.assertIn('return no_data("quote_not_relevant", stage="model")', src[relevant:said])
 
     def test_an_unrelated_quote_is_dropped_with_its_citation_and_a_related_one_kept(self):
         sources = [{'id': 1, 'texto': 'LoRA v7 served in Ollama.'}, {'id': 2, 'texto': 'The card carries 3 runs.'}]

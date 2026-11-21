@@ -97,3 +97,92 @@ class TestAgentVoiceDoorLive(unittest.TestCase):
         got, person, agent, _ = self._walk({"texto": "hola", "voz": "claude"}, origin="http://127.0.0.1:8742", persona=True)
         self.assertEqual((got["code"], got["body"]["causa"]), (403, "agent_voice_refused"))
         person.assert_not_called(); agent.assert_not_called()
+
+
+class TestPrivateTalkServe(unittest.TestCase):
+    origin = "https://app.fixture.ts.net"
+    owner = "owner@example.test"
+
+    def walk(self, body=None, *, bound="127.0.0.1", peer="127.0.0.1",
+             login=(owner,), origin=origin, host="app.fixture.ts.net", proto="https",
+             forwarded_host="app.fixture.ts.net", funnel=None, configured=True, station=None):
+        import io
+        import json
+        from email.message import Message
+        from types import SimpleNamespace
+        from unittest import mock
+
+        pwa = _load_pwa()
+        handler = pwa.PWA.__new__(pwa.PWA)
+        handler.path = "/api/hexelion/chat"
+        handler.headers = Message()
+        for name, value in (("Host", host), ("Origin", origin), ("X-Forwarded-Proto", proto),
+                            ("X-Forwarded-Host", forwarded_host), ("Tailscale-Funnel-Request", funnel)):
+            if value is not None:
+                handler.headers[name] = value
+        for value in login:
+            handler.headers["Tailscale-User-Login"] = value
+        raw = json.dumps(body if body is not None else {"texto": "¿Qué dice el archivo?"}).encode()
+        handler.headers["Content-Type"] = "application/json"
+        handler.headers["Content-Length"] = str(len(raw))
+        handler.rfile = io.BytesIO(raw)
+        handler.client_address = (peer, 50000)
+        handler.server = SimpleNamespace(server_address=(bound, 8742), server_port=8742, ruta_db="unused")
+        captured = {}
+        handler._json = lambda code, payload: captured.update(code=code, body=payload)
+        env = {"PRECEPTOROS_HEXELION_SERVE_ORIGIN": self.origin if configured else "",
+               "PRECEPTOROS_HEXELION_SERVE_OWNER": self.owner if configured else ""}
+        evidence = {"esquema": "preceptoros.memory-search/1", "estado": "NO_DATA",
+                    "causa": "no_match", "fuentes": []}
+        prepared = ({"estado": "MEASURED", "fuentes": []}, "fixture prompt")
+        with mock.patch.dict("os.environ", env), \
+             mock.patch.object(pwa._casa, "raiz", return_value="unused"), \
+             mock.patch.object(pwa._canales, "di_soberano", return_value=None) as person, \
+             mock.patch.object(pwa._memory_lookup, "buscar", return_value=evidence), \
+             mock.patch.object(pwa._indice_rack, "buscar", return_value=evidence), \
+             mock.patch.object(pwa._hexelion_book, "construir_prompt", return_value=prepared), \
+             mock.patch.object(pwa._hexelion_book, "formato_citas", return_value=None), \
+             mock.patch.object(pwa._hexelion_proxy, "ask", return_value=station) as ask, \
+             mock.patch.object(pwa._hexelion_acciones, "ejecuta") as action:
+            handler._hexelion_chat()
+        action.assert_not_called()
+        return captured, handler.rfile.tell(), person, ask
+
+    def test_missing_transport_config_is_no_data_before_reading(self):
+        for case in ({"configured": False}, {"bound": "0.0.0.0"}, {"peer": "192.0.2.1"}):
+            with self.subTest(case=case):
+                got, read, person, ask = self.walk(**case)
+                self.assertEqual((got["code"], got["body"]["stage"], read), (503, "connection", 0))
+                person.assert_not_called()
+                ask.assert_not_called()
+
+    def test_wrong_identity_or_origin_is_refused_before_reading(self):
+        for case in ({"login": ()}, {"login": ("visitor@example.test",)},
+                     {"login": (self.owner, self.owner)}, {"origin": None},
+                     {"origin": "https://visitor.example.test"}, {"host": "127.0.0.1:8742"},
+                     {"proto": "http"}, {"funnel": "?1"}, {"forwarded_host": None}):
+            with self.subTest(case=case):
+                got, read, person, ask = self.walk(**case)
+                self.assertEqual((got["code"], got["body"]["stage"], read), (403, "authentication", 0))
+                person.assert_not_called()
+                ask.assert_not_called()
+
+    def test_private_talk_rejects_agent_voice_and_actions(self):
+        for body in ({"texto": "Hola", "voz": "codex"}, {"texto": "/estado"},
+                     {"texto": "¿cómo está el rack?"}):
+            with self.subTest(body=body):
+                got, _, person, ask = self.walk(body)
+                self.assertEqual((got["code"], got["body"]["causa"]),
+                                 (403, "private_talk_conversation_only"))
+                person.assert_not_called()
+                ask.assert_not_called()
+
+    def test_authenticated_turn_distinguishes_station_connection_and_model(self):
+        for cause, stage in (("station_unavailable", "connection"),
+                             ("station_model_unavailable", "model")):
+            with self.subTest(cause=cause):
+                got, _, person, ask = self.walk(station={"estado": "NO_DATA", "causa": cause})
+                self.assertEqual((got["code"], got["body"]["stage"], got["body"]["causa"]),
+                                 (503, stage, cause))
+                person.assert_called_once_with("orquesta", "¿Qué dice el archivo?", base="unused")
+                ask.assert_called_once_with("fixture prompt")
