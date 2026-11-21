@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import urllib.error
 import urllib.request
 
@@ -12,6 +13,7 @@ import nodo_app
 ENDPOINT = "https://api.preceptoros.org/api/v1/cedulas"
 ESTADOS_ADUANA = {"pendiente", "verificado"}
 TIMEOUT_S = 15
+MAX_RESPONSE = 1024 * 1024
 CAUSAS_ADUANA = {
     "clave_publica_no_configurada", "plan_firmado_no_configurado",
     "plan_no_coincide", "firma_cedula_rechazada", "cedula_mal_formada",
@@ -22,6 +24,11 @@ CAUSAS_ADUANA = {
 
 def _rechazo(codigo: str, http: int = 409) -> dict:
     return {"estado": "bloqueado", "codigo": codigo, "http": http}
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def _recibo_corresponde(cedula, respuesta):
@@ -51,7 +58,7 @@ def _recibo_corresponde(cedula, respuesta):
         return False
 
 
-def enviar(datos, *, transport=None, signers=None) -> dict:
+def enviar(datos, *, transport=None, signers=None, include_receipt=False) -> dict:
     """Validate and forward one signed credential; never create a signature.
 
     The only network path is called by the explicit POST route. Tests inject a
@@ -63,7 +70,10 @@ def enviar(datos, *, transport=None, signers=None) -> dict:
     forma = nodo_app._forma(cedula)
     if forma:
         return _rechazo("cedula_rechazada", 422)
-    estado, causa = nodo_app.autenticidad(cedula, signers=signers)
+    try:
+        estado, _causa = nodo_app.autenticidad(cedula, signers=signers)
+    except (OSError, subprocess.SubprocessError):
+        return _rechazo("firma_no_disponible", 503)
     if estado == "NO_DATA":
         return _rechazo("firma_no_disponible", 503)
     if estado != "OK":
@@ -78,13 +88,18 @@ def enviar(datos, *, transport=None, signers=None) -> dict:
             ENDPOINT, data=cuerpo,
             headers={"Content-Type": "application/json"}, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
+            opener = urllib.request.build_opener(_NoRedirect())
+            with opener.open(req, timeout=TIMEOUT_S) as resp:
                 if resp.status < 200 or resp.status >= 300:
                     return _rechazo("aduana_rechazo", 502)
-                respuesta = json.loads(resp.read().decode("utf-8"))
+                raw = resp.read(MAX_RESPONSE + 1)
+                if len(raw) > MAX_RESPONSE:
+                    return _rechazo("recibo_invalido", 502)
+                respuesta = json.loads(raw.decode("utf-8"))
         except urllib.error.HTTPError as exc:
             try:
-                fallo = json.loads(exc.read().decode("utf-8"))
+                with exc:
+                    fallo = json.loads(exc.read(4097).decode("utf-8"))
                 codigo = fallo.get("codigo") if isinstance(fallo, dict) else None
             except (UnicodeDecodeError, json.JSONDecodeError):
                 codigo = None
@@ -114,5 +129,13 @@ def enviar(datos, *, transport=None, signers=None) -> dict:
         return _rechazo("recibo_invalido", 502)
     if not _recibo_corresponde(enviada, respuesta):
         return _rechazo("recibo_no_corresponde", 502)
-    return {"estado": respuesta["estado"], "codigo": "recibido",
-            "causa": respuesta.get("causa"), "recibidos": respuesta.get("recibidos")}
+    result = {"estado": respuesta["estado"], "codigo": "recibido",
+              "causa": respuesta.get("causa"), "recibidos": respuesta.get("recibidos")}
+    if include_receipt:
+        receipt = respuesta["recibo"]
+        fields = ("esquema", "credential_sha256", "node_id", "admin_sha256",
+                  "plan_sha256", "estado", "causa", "recibido", "recibo_sha256")
+        if set(receipt) != set(fields):
+            return _rechazo("recibo_invalido", 502)
+        result["recibo"] = {field: receipt[field] for field in fields}
+    return result
