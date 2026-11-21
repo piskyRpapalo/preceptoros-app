@@ -214,6 +214,7 @@ class OwnerThreadIdempotency(unittest.TestCase):
         self.assertEqual(self.call(), first)
         self.assertEqual([row["texto"] for row in self.history()], ["first turn", "second turn"])
         self.assertEqual(first[1]["n"], self.history()[0]["n"])
+        self.assertNotIn("request_fingerprint", self.history()[0]["maquina"])
         self.assertEqual(first[1]["state"], "DELIVERED_TO_THREAD")
         self.assertTrue(first[1]["reply"].startswith("PENDING"))
 

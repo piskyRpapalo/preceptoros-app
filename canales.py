@@ -344,9 +344,13 @@ def lee(canal, desde=0, base=None, tope=TOPE_LECTURA):
             continue
         ultimo = max(ultimo, n)
         if n > desde:
+            maquina = c.get("maquina") or {}
+            if actor == VOZ_RESERVADA and isinstance(maquina, dict):
+                # The receipt fingerprint is internal to the ledger lookup.
+                maquina.pop("request_fingerprint", None)
             mensajes.append({"n": n, "t": ts, "canal": hilo, "voz": actor,
                              "rol": c.get("rol", ""), "texto": c.get("texto", ""),
-                             "maquina": c.get("maquina") or {}, "sello": c.get("sello")})
+                             "maquina": maquina, "sello": c.get("sello")})
     return {"canal": hilo, "estado": "MEDIDO", "mensajes": mensajes[-tope:],
             "recortados": max(0, len(mensajes) - tope), "corruptas": corruptas, "ultimo": ultimo}
 
