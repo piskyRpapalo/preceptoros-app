@@ -8,5 +8,5 @@ class OwnerThreadRetryGate(unittest.TestCase):
         r = subprocess.run(["node", "--test", "tests/owner_thread_scope_cases.cjs"],
                            cwd=ROOT, capture_output=True, text=True, timeout=35)
         self.assertEqual(r.returncode, 0, (r.stdout + r.stderr)[-2500:])
-        self.assertRegex(r.stdout, r"(?m)^(?:#|ℹ) pass 12$")
+        self.assertRegex(r.stdout, r"(?m)^(?:#|ℹ) pass 16$")
         self.assertRegex(r.stdout, r"(?m)^(?:#|ℹ) fail 0$")
