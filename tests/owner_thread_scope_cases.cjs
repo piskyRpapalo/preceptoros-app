@@ -116,3 +116,39 @@ test("downgrade invalidates a delayed reply without granting owner",async()=>{
  a.equal((await pending).cause,"owner_thread_view_invalidated");
  a.equal((await c.api.send("codex","secret")).cause,"personal_profile_shared_thread_denied");
 });
+
+test("409 conflict releases only rejected ID; next explicit intent is new",async()=>{
+ const posts=[],c=client(async(_,o)=>{const q=JSON.parse(o.body);posts.push(q);
+  return posts.length===1?{ok:false,status:409,json:async()=>({cause:"request_id_conflict"})}
+  :{ok:true,status:200,json:async()=>({state:"DELIVERED_TO_THREAD",request_id:q.request_id,n:11})};
+ });
+ let i=1;c.root.crypto={getRandomValues(b){b.fill(i++);return b}};
+ const res=await c.api.send("codex","first");a.equal(res.conflict,true);
+ a.equal((await c.api.send("codex","second")).ok,true);
+ a.notEqual(posts[0].request_id,posts[1].request_id);a.equal(posts.length,2);
+});
+test("409 no_transport is terminal; does not lock next intent",async()=>{
+ const posts=[],c=client(async(_,o)=>{const q=JSON.parse(o.body);posts.push(q);
+  return posts.length===1?{ok:false,status:409,json:async()=>({cause:"no_transport"})}
+  :{ok:true,status:200,json:async()=>({state:"DELIVERED_TO_THREAD",request_id:q.request_id,n:12})};
+ });
+ let i=1;c.root.crypto={getRandomValues(b){b.fill(i++);return b}};
+ a.equal((await c.api.send("codex","first")).uncertain,false);
+ a.equal((await c.api.send("claude","new")).ok,true);
+ a.notEqual(posts[0].request_id,posts[1].request_id);
+});
+test("downgrade plus transport failure yields privacy invalidation, not resend",async()=>{
+ let reject;const c=client(()=>new Promise((_res,err)=>reject=err));
+ c.root.crypto={getRandomValues(b){b.fill(4);return b}};
+ const pending=c.api.send("codex","private");
+ c.root.PreceptorProfile="personal_mvp";await c.api.sync();
+ reject(new Error("disconnected"));
+ a.equal((await pending).cause,"owner_thread_view_invalidated");
+ a.equal(c.el("hilo").children.length,0);
+});
+test("composer only restores owner draft while owner scope valid",()=>{
+ const app=fs.readFileSync("interface/app.js","utf8");
+ a.match(app,/const downgraded = sent\.cause === "owner_thread_view_invalidated"/);
+ a.match(app,/if \(!downgraded && !\$\("dicho"\)\.value\.trim\(\)\) \$\("dicho"\)\.value = escrito/);
+ a.match(app,/NO_DATA\(request_id_conflict\).*inspect the thread/);
+});
