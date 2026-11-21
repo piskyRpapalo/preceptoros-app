@@ -16,7 +16,11 @@ class App11UIP0(unittest.TestCase):
     def test_native_version_is_buildconfig_only(self):
         self.assertIn('BuildConfig.VERSION_CODE', self.java)
         self.assertIn('BuildConfig.VERSION_NAME', self.java)
-        self.assertIn('if (!ownPageReady) return "NO_DATA(native_page_not_verified)"', self.java)
+        self.assertIn('WebViewCompat.addDocumentStartJavaScript(web, script,', self.java)
+        self.assertIn('Collections.singleton(OwnerFrameAccess.ORIGIN)', self.java)
+        bridge = (R/'mvp-android/app/src/main/res/raw/local_bridge.js').read_text()
+        self.assertIn("window !== window.top || window.location.href !== 'https://preceptoros.mvp.local/app.html'", bridge)
+        self.assertIn('version: () => version', bridge)
         self.assertIn('Installed Android application version', self.html)
         self.assertIn('NO_DATA(not_native_android)', self.html)
         self.assertIn('data-cause="native_version_not_checked"', self.html)

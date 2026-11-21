@@ -133,6 +133,48 @@ class AndroidAdmissionPolicy(unittest.TestCase):
         self.assertNotIn("addJavascriptInterface(", join)
 
 
+    def test_all_native_ports_use_verified_owner_main_document(self):
+        expected = {
+            "MainActivity": "PreceptorLocalNative",
+            "DeploymentJoinBridge": "PreceptorJoinNative",
+            "HeartbeatOnceBridge": "PreceptorHeartbeatNative",
+            "PrivateTalkBridge": "PreceptorPrivateTalkNative",
+        }
+        for source in SOURCE.parent.glob("*.java"):
+            text = source.read_text(encoding="utf-8")
+            with self.subTest(source=source.name):
+                self.assertNotIn(".addJavascriptInterface(", text)
+                if source.stem in expected:
+                    self.assertIn('"' + expected[source.stem] + '"', text)
+                    self.assertIn("OwnerFrameAccess.accepts(", text)
+                else:
+                    self.assertNotIn("addWebMessageListener(", text)
+
+    def test_owner_frame_policy_rejects_foreign_stale_and_subframe_calls(self):
+        probe = self.folder / "FramePolicyProbe.java"
+        probe.write_text("""package org.preceptoros.mvp;
+final class FramePolicyProbe {
+    public static void main(String[] args) {
+        String origin = OwnerFrameAccess.ORIGIN;
+        String page = OwnerFrameAccess.PAGE;
+        if (!OwnerFrameAccess.accepts(origin, true, true, page)
+            || OwnerFrameAccess.accepts(origin, false, true, page)
+            || OwnerFrameAccess.accepts(origin, true, false, page)
+            || OwnerFrameAccess.accepts(origin, true, true, origin + "/other.html")
+            || OwnerFrameAccess.accepts("https://public.example", true, true, page)
+            || OwnerFrameAccess.accepts("null", false, true, page)
+            || OwnerFrameAccess.accepts(null, true, true, page)
+            || OwnerFrameAccess.accepts(origin, true, true, null)) throw new AssertionError();
+    }
+}
+""", encoding="utf-8")
+        subprocess.run(["javac", "-d", str(self.folder),
+                        str(SOURCE.with_name("OwnerFrameAccess.java")), str(probe)],
+                       check=True, capture_output=True, timeout=20)
+        subprocess.run(["java", "-cp", str(self.folder), "org.preceptoros.mvp.FramePolicyProbe"],
+                       check=True, capture_output=True, timeout=10)
+
+
 
 if __name__ == "__main__":
     unittest.main()

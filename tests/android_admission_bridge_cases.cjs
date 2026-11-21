@@ -39,22 +39,22 @@ function fixture(bridgeResult, options = {}) {
   };
   const context = { document: dom, window: options.browser ? {} : { PreceptorAndroidReview: bridge } };
   function activate() { runInNewContext(script, context); }
-  function click() {
+  async function click() {
     let prevented = false;
     for (const event of events) {
       assert.equal(event.type, 'click');
-      event.callback({ preventDefault() { prevented = true; } });
+      await event.callback({ preventDefault() { prevented = true; } });
     }
     return prevented;
   }
   return { activate, click, calls, status, link, events };
 }
 
-test('Android explicit click requests external composer only, NEVER submits', () => {
+test('Android explicit click requests external composer only, NEVER submits', async () => {
   const f = fixture(true);
   f.activate();
   assert.equal(f.events.length, 1);
-  assert.equal(f.click(), true);
+  assert.equal(await f.click(), true);
   assert.equal(f.calls.length, 1);
   assert.equal(f.status.values['data-state'], 'DRAFT_ONLY');
   assert.equal(f.status.values['data-acho'], 'DRAFT_ONLY');
@@ -62,38 +62,38 @@ test('Android explicit click requests external composer only, NEVER submits', ()
   assert.match(f.status.textContent, /Not submitted or received/);
 });
 
-test('Browser mode uses original link with no bridge interception', () => {
+test('Browser mode uses original link with no bridge interception', async () => {
   const f = fixture(true, { browser: true });
   f.activate();
   assert.equal(f.events.length, 0);
-  assert.equal(f.click(), false);
+  assert.equal(await f.click(), false);
 });
 
-test('Android bridge refusal is NO_DATA for eye/ear/machine', () => {
-  const f = fixture(false); f.activate(); f.click();
+test('Android bridge refusal is NO_DATA for eye/ear/machine', async () => {
+  const f = fixture(false); f.activate(); await f.click();
   assert.equal(f.calls.length, 1);
   assert.equal(f.status.values['data-state'], 'NO_DATA');
   assert.equal(f.status.values['data-acho'], 'NO_DATA');
   assert.equal(f.status.values['data-cause'], 'android_review_handoff_rejected');
 });
 
-test('Exception is not presented as delivery', () => {
-  const f = fixture('throw'); f.activate(); f.click();
+test('Exception is not presented as delivery', async () => {
+  const f = fixture('throw'); f.activate(); await f.click();
   assert.equal(f.status.values['data-state'], 'NO_DATA');
   assert.match(f.status.textContent, /Nothing sent/);
 });
 
-test('No draft or hidden link forbids handoff', () => {
+test('No draft or hidden link forbids handoff', async () => {
   for (const settings of [{ empty: true }, { hidden: true }]) {
-    const f = fixture(true, settings); f.activate(); f.click();
+    const f = fixture(true, settings); f.activate(); await f.click();
     assert.equal(f.calls.length, 0);
     assert.equal(f.status.values['data-cause'], 'android_review_draft_missing');
   }
 });
 
-test('Duplicate script injection does not attach duplicate listeners', () => {
+test('Duplicate script injection does not attach duplicate listeners', async () => {
   const f = fixture(true); f.activate(); f.activate();
   assert.equal(f.events.length, 1);
-  assert.equal(f.click(), true);
+  assert.equal(await f.click(), true);
   assert.equal(f.calls.length, 1);
 });

@@ -432,6 +432,7 @@ android {
         applicationId mvpAppId
         minSdk 26
         targetSdk 36
+        testInstrumentationRunner "org.preceptoros.mvp.OwnerFrameProbe"
         versionCode mvpVersionCode
         versionName (mvpAppId == 'org.preceptoros.app' ?
           (mvpVersionCode >= 8 ? '0.3.1-mini-recovery' : '0.3.0-mvp') : '0.1.0-mvp')

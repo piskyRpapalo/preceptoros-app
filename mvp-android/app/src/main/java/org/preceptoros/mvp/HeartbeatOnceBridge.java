@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 final class HeartbeatOnceBridge {
     static final int PICKER_REQUEST = 3115;
-    private static final String ORIGIN = "https://preceptoros.mvp.local";
+    private static final String ORIGIN = OwnerFrameAccess.ORIGIN;
     private static final int MAX_CREDENTIAL = 512, MAX_RESPONSE = 2048;
     private final MainActivity activity;
     private final WebView web;
@@ -42,8 +42,8 @@ final class HeartbeatOnceBridge {
         HeartbeatOnceBridge bridge = new HeartbeatOnceBridge(activity,web);
         WebViewCompat.addWebMessageListener(web,"PreceptorHeartbeatNative",
             Collections.singleton(ORIGIN), (view,message,origin,isMainFrame,reply) -> {
-                if (!isMainFrame || origin == null || !ORIGIN.equals(origin.toString()) ||
-                    !activity.ownPageVerified()) {
+                if (!OwnerFrameAccess.accepts(origin == null ? null : origin.toString(),
+                    isMainFrame, activity.ownPageVerified(), view.getUrl())) {
                     bridge.reply(reply,"",false,"origin_or_page_unverified",null); return;
                 }
                 String raw = message.getData();

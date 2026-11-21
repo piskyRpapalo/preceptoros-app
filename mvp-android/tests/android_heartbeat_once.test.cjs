@@ -76,7 +76,7 @@ test("validated native receipt claims only RECEIVED, not independent public LIVE
  assert.equal(x.button.disabled,false);
 });
 test("bridge transport is origin+main frame restricted, owner-picked and one-shot",()=>{
- assert.match(bridgeJava,/!isMainFrame/);
+ assert.match(bridgeJava,/OwnerFrameAccess\.accepts\([^;]+isMainFrame[^;]+view\.getUrl\(\)/);
  assert.match(bridgeJava,/Collections\.singleton\(ORIGIN\)/);
  assert.match(bridgeJava,/activity\.ownPageVerified\(\)/);
  assert.match(bridgeJava,/Intent\.ACTION_OPEN_DOCUMENT/);

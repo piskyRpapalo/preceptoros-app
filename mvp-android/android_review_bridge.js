@@ -20,7 +20,7 @@
   }
 
   link.dataset.androidReviewBound = '1';
-  link.addEventListener('click', function (event) {
+  link.addEventListener('click', async function (event) {
     event.preventDefault(); // Android has no implicit browser popup support.
     if (link.hidden || !link.href ||
         !draft.textContent.includes('Status: DRAFT_ONLY') ||
@@ -30,7 +30,7 @@
       return;
     }
     try {
-      if (bridge.openReview(link.href) === true) {
+      if (await bridge.openReview(link.href) === true) {
         announce('DRAFT_ONLY · external GitHub form requested. Not submitted or received.',
           'DRAFT_ONLY', 'external_review_requested_not_submitted');
       } else {
