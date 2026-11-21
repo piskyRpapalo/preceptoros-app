@@ -1226,7 +1226,13 @@ $("form-chat").addEventListener("submit", async (e) => {
       $("estado").textContent = `Delivered to the shared thread for ${conversacion.name(ruta.para)} · message ${sent.n} · no reply is promised`;
       conversacion.sync({ replaceLocal: true });
     } else {
-      $("estado").textContent = `@${ruta.para} · NO_DATA · ${sent.cause} · nothing was delivered`;
+      $("estado").dataset.state = "NO_DATA";
+      $("estado").dataset.acho = "silent";
+      $("estado").dataset.cause = sent.cause || "unverified_owner_delivery";
+      $("estado").textContent = sent.uncertain
+        ? `@${ruta.para} · NO_DATA(${sent.cause}) · Delivery unconfirmed; retry this message in this window with the same request ID. After a reload, check the thread first.`
+        : `@${ruta.para} · NO_DATA(${sent.cause}) · Request refused.`;
+      ownerDraft.remove();
       if (!$("dicho").value.trim()) $("dicho").value = escrito;
     }
     return;

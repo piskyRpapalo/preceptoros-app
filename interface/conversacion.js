@@ -1,19 +1,10 @@
-/* One conversation, many preceptors (app router piece 01).
- * Talk shows the shared `orquesta` thread, the same one the rack CLI agents and Hexelion write to. Every message
- * says who wrote it and which kind of voice it is (you, private, rack CLI, sensor, external, unknown voice); a message
- * addressed to someone says to whom. Bubbles this window drew while waiting are marked `local` and are replaced by
- * the thread's own copy once the thread is read: the thread is the source, the bubble was only a draft of it.
- * Read-only except send(), which posts the person's addressed message; a message is never authority.
- *
- * SuperBot provides provenance of the conversation. The MVP doesn't let
- * user preference grant private installation identity or model access.
- */
+
 (function (root) {
   "use strict";
   const doc = root.document;
   const kinds = { person: "person", private: "private", "rack-cli": "rack CLI", sensor: "sensor (not a model)",
     external: "external", door: "door (not a model)", unknown: "unknown voice" };
-  let seen = 0, routes = {}, names = {}, busy = false, timer = null, readGeneration = 0;
+  let seen = 0, routes = {}, names = {}, busy = false, timer = null, readGeneration = 0, pendingSend = null, sendBusy = false;
 
   function paintInterlocutor() {
     const container = doc.getElementById("conv-interlocutor");
@@ -31,6 +22,7 @@
 
   function clearOwnerProjection() {
     ++readGeneration;
+    pendingSend = null;
     seen = 0; routes = {}; names = {};
     const list = doc.getElementById("hilo");
     if (list) [...list.querySelectorAll('li[data-owner-thread="true"]')].forEach((row) => row.remove());
@@ -43,8 +35,6 @@
     return span;
   }
 
-  // provenance(m) -> who produced these words, in words (the Talk cabin): a model by its name, a door or a sensor
-  // as «not a model», anything else as not recorded. Pure; it shows what the thread says and never guesses a model.
   function provenance(m) {
     if (!m || m.kind === "person") return "";
     if (typeof m.model === "string" && m.model) return "model · " + m.model;
@@ -65,8 +55,7 @@
     const meta = doc.createElement("span");
     meta.className = "hilo-meta";
     meta.textContent = m.t.replace("T", " ").replace("Z", " UTC") + " · ";
-    // The seal is the evidence state of this message: a shape, one word and the colour, from the shared chip.
-    const evidencia = root.PreceptorEvidence ? root.PreceptorEvidence.make(doc, m.seal) : doc.createTextNode(String(m.seal || "NO_DATA"));
+      const evidencia = root.PreceptorEvidence ? root.PreceptorEvidence.make(doc, m.seal) : doc.createTextNode(String(m.seal || "NO_DATA"));
     meta.appendChild(evidencia);
     const prov = provenance(m);
     if (prov) { const who = doc.createElement("span"); who.className = "hilo-prov"; who.textContent = " · " + prov; meta.appendChild(who); }
@@ -170,13 +159,38 @@
     if (root.PreceptorProfile !== "private_rack") {
       return { ok: false, cause: "personal_profile_shared_thread_denied" };
     }
+    if (sendBusy) return { ok: false, cause: "owner_request_in_flight", uncertain: true };
+    if (pendingSend && (pendingSend.para !== para || pendingSend.texto !== texto))
+      return { ok: false, cause: "owner_request_unresolved", uncertain: true };
+    if (!pendingSend) {
+      try {
+        const bytes = root.crypto.getRandomValues(new Uint8Array(16));
+        pendingSend = { para, texto, id: "app-" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("") };
+      } catch {
+        return { ok: false, cause: "secure_random_unavailable" };
+      }
+    }
+    const id = pendingSend.id, generation = readGeneration;
+    sendBusy = true;
     try {
       const r = await fetch("/api/conversacion", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ para, texto }) });
+        body: JSON.stringify({ para, texto, request_id: id }) });
       const d = await r.json();
-      return r.ok && d.state === "DELIVERED_TO_THREAD" ? { ok: true, n: d.n } : { ok: false, cause: d.cause || "NO_DATA" };
+      if (generation !== readGeneration || root.PreceptorProfile !== "private_rack") {
+        clearOwnerProjection();
+        return { ok: false, cause: "owner_thread_view_invalidated", uncertain: true };
+      }
+      if (r.ok && d && d.state === "DELIVERED_TO_THREAD" && d.request_id === id && Number.isSafeInteger(d.n)) {
+        pendingSend = null;
+        return { ok: true, n: d.n };
+      }
+      const uncertain = r.ok || r.status === 409 || r.status >= 500;
+      if (!uncertain) pendingSend = null;
+      return { ok: false, cause: d && d.cause || "receipt_unverified", uncertain };
     } catch {
-      return { ok: false, cause: "conversation_transport_unavailable" };
+      return { ok: false, cause: "conversation_transport_unavailable", uncertain: true };
+    } finally {
+      sendBusy = false;
     }
   }
 
@@ -187,7 +201,6 @@
     }, 20000);
   }
 
-  // Paint interlocutor on load, before any sync (guard against Node.js where document is undefined)
   if (doc && doc.readyState === "loading") {
     doc.addEventListener("DOMContentLoaded", paintInterlocutor);
   } else if (doc) {
