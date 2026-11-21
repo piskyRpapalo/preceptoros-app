@@ -3,6 +3,7 @@
     <!-- Optional, consented HTTPS request to fixed Aduana endpoint only; no default telemetry. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
+        android:icon="@drawable/preceptor_launcher"
         android:label="PreceptorOS MVP"
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
