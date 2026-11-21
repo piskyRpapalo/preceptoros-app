@@ -1222,18 +1222,24 @@ $("form-chat").addEventListener("submit", async (e) => {
     const sent = await conversacion.send(ruta.para, ruta.texto);
     $("enviar").disabled = false;
     devolverFoco(volverA);
-    if (sent.ok) {
+    if (sent.ok && window.PreceptorProfile === "private_rack") {
       $("estado").textContent = `Delivered to the shared thread for ${conversacion.name(ruta.para)} · message ${sent.n} · no reply is promised`;
       conversacion.sync({ replaceLocal: true });
     } else {
+      const downgraded = sent.cause === "owner_thread_view_invalidated" ||
+        window.PreceptorProfile !== "private_rack";
       $("estado").dataset.state = "NO_DATA";
       $("estado").dataset.acho = "silent";
-      $("estado").dataset.cause = sent.cause || "unverified_owner_delivery";
-      $("estado").textContent = sent.uncertain
-        ? `@${ruta.para} · NO_DATA(${sent.cause}) · Delivery unconfirmed; retry this message in this window with the same request ID. After a reload, check the thread first.`
-        : `@${ruta.para} · NO_DATA(${sent.cause}) · Request refused.`;
+      $("estado").dataset.cause = downgraded ? "owner_thread_view_invalidated" : sent.cause || "unverified_owner_delivery";
+      $("estado").textContent = downgraded
+        ? "NO_DATA(owner_thread_view_invalidated) · Private draft cleared after profile change."
+        : sent.conflict
+          ? "NO_DATA(request_id_conflict) · Request ID conflict; inspect the thread before a new manual send."
+          : sent.uncertain
+            ? "@" + ruta.para + " · NO_DATA(" + sent.cause + ") · Delivery unconfirmed; retry in this window with the same request ID. After a reload, check the thread first."
+            : "@" + ruta.para + " · NO_DATA(" + sent.cause + ") · Request refused.";
       ownerDraft.remove();
-      if (!$("dicho").value.trim()) $("dicho").value = escrito;
+      if (!downgraded && !$("dicho").value.trim()) $("dicho").value = escrito;
     }
     return;
   }
