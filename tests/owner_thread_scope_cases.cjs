@@ -152,3 +152,8 @@ test("composer only restores owner draft while owner scope valid",()=>{
  a.match(app,/if \(!downgraded && !\$\("dicho"\)\.value\.trim\(\)\) \$\("dicho"\)\.value = escrito/);
  a.match(app,/NO_DATA\(request_id_conflict\).*inspect the thread/);
 });
+
+test("confirmed owner receipt clears prior error state for visual and machine readers",()=>{
+ const app=fs.readFileSync("interface/app.js","utf8");
+ a.match(app,/if \(sent\.ok && window\.PreceptorProfile === "private_rack"\) \{\s*\$\("estado"\)\.dataset\.state = "MEASURED";\s*\$\("estado"\)\.dataset\.acho = "ok";\s*\$\("estado"\)\.dataset\.cause = "source_thread_write_ack";/);
+});
