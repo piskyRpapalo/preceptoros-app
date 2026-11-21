@@ -82,6 +82,7 @@ import memory_onboarding as _memory_onboarding
 import lab as _lab                                          # noqa: E402
 import nodo_export as _nodo_export                         # noqa: E402
 import node_registration as _node_registration              # noqa: E402
+import node_lifecycle as _node_lifecycle                      # noqa: E402
 import node_building as _node_building                      # noqa: E402
 import orquestador as _orquestador                          # noqa: E402
 import estado_compacto as _estado_compacto                   # noqa: E402
@@ -597,6 +598,14 @@ class PWA(BaseHTTPRequestHandler):
     # --- estáticos ---------------------------------------------------------
     def do_GET(self):
         ruta = self.path.split("?")[0]
+        if ruta == "/api/nodo/estado":
+            if (not self._memoria_local() or any(self.headers.get(name) is not None for name in
+                    ("X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Proto",
+                     "Tailscale-User-Login", "Tailscale-Funnel-Request"))):
+                return self._json(403, {"schema": _node_lifecycle.SCHEMA, "state": "NO_DATA",
+                                        "cause": "local_owner_origin_required"})
+            return self._json(200, _node_lifecycle.read(
+                _casa.raiz(), review_key_file=os.environ.get(_node_lifecycle.REVIEW_KEY_FILE)))
         if self._tailnet_proxy_request():
             access = self._hexelion_serve_access(require_origin=False)
             if access != "authorized":
@@ -1113,6 +1122,8 @@ class PWA(BaseHTTPRequestHandler):
             self.close_connection = True
             return self._json(400, {"estado": "NO_DATA", "causa": "cuerpo_invalido"})
         result = _nodo_export.enviar(data, include_receipt=True)
+        if result.get("estado") == "verificado" and "recibo" in result:
+            result["lifecycle_recorded"] = _node_lifecycle.record_export(_casa.raiz(), data["cedula"], result["recibo"])
         code = result.pop("http", {"verificado": 200, "pendiente": 202}.get(result.get("estado"), 502))
         return self._json(code, result)
 

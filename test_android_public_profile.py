@@ -7,7 +7,7 @@ required by the P0 PUBLIC/BYO rule.
 Forbidden patterns (must NOT appear in any PUBLIC-staged asset):
   /api/hexelion/chat, /api/hexelion/decision, /api/hexelion/search
   /api/hitl
-  /api/nodo/identity, /api/nodo/edificio, /api/nodo/export
+  /api/nodo/identity, /api/nodo/edificio, /api/nodo/estado, /api/nodo/export
 
 Run:
     python3 -m unittest test_android_public_profile
@@ -35,6 +35,7 @@ FORBIDDEN_ROUTES = [
     b'/api/hitl',
     b'/api/nodo/identity',
     b'/api/nodo/edificio',
+    b'/api/nodo/estado',
     b'/api/nodo/export',
 ]
 

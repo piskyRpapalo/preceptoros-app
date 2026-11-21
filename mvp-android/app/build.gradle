@@ -60,6 +60,7 @@ def PUBLIC_FORBIDDEN_ROUTES = [
     '/api/hitl',
     '/api/nodo/identity',
     '/api/nodo/edificio',
+    '/api/nodo/estado',
     '/api/nodo/export',
 ]
 

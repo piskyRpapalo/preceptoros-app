@@ -146,6 +146,7 @@
     "/api/nodo/",
     "/api/nodo/door1/preview",
     "/api/nodo/edificio",
+    "/api/nodo/estado",
     "/api/nodo/export",
     "/api/nodo/identity",
     "/api/notebook",
