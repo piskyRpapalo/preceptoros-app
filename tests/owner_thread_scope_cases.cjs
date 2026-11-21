@@ -52,3 +52,12 @@ test("late OWNER response is invalidated by profile downgrade",async()=>{
  release(reply([m(1)]));a.equal((await pending).cause,"owner_thread_view_invalidated");
  a.equal(c.el("hilo").children.length,0);
 });
+
+test("optimistic addressed OWNER drafts are tagged for deletion, unlike MINI replies",()=>{
+ const app=fs.readFileSync("interface/app.js","utf8");
+ assertOwnerDraft(app);
+});
+function assertOwnerDraft(app){
+ a.match(app,/const ownerDraft = burbuja\(escrito, "mio"\);\s*ownerDraft\.dataset\.ownerThread = "true"/);
+ a.match(app,/const localDraft = burbuja\(escrito, "mio"\);/);
+}
