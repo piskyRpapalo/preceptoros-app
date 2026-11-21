@@ -200,3 +200,22 @@ test("probe init is legal under the Fetch standard and an opaque answer loads th
   assert.equal(api.state(), "loading");
   assert.equal(document.getElementById("openworld-frame").getAttribute("src"), "https://preceptoros.org/openworld/");
 });
+
+
+test("NATIVE bridge blocks remote OpenWorld frame, without any fetch", async () => {
+  let calls = 0;
+  const {document, window, api} = setup(async () => {
+    calls++; return {type:"opaque",ok:false};
+  });
+  window.PreceptorAndroidMiniModel = {generate() {return "DO_NOT_CALL";}};
+  await api.openWorld();
+  assert.equal(calls, 0, "must not even probe remote endpoint under native bridge");
+  assert.equal(document.getElementById("openworld-frame").hasAttribute("src"), false);
+  assert.equal(document.getElementById("openworld-frame").hidden, true);
+  assert.equal(document.getElementById("openworld-retry").hidden, true);
+  const status = document.getElementById("openworld-status");
+  assert.equal(status.dataset.state, "NO_DATA");
+  assert.equal(status.dataset.acho, "NO_DATA");
+  assert.equal(status.dataset.cause, "native_world_external_launch_not_verified");
+  assert.match(status.textContent, /NO_DATA\(native_world_external_launch_not_verified\)/);
+});
