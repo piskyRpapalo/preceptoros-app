@@ -197,8 +197,8 @@ const adapter = flow.doorOneAdapter((url, options) => {
         self.assertGreaterEqual(int(re.search(r'preceptoros-armazon-v(\d+)', sw).group(1)), 120)
         self.assertIn("interface/node_registration.js", version.ARMAZON)
         self.assertIn('"/node_building.js": ("node_building.js"', PWA_PATH.read_text())
-        self.assertIn('/node_building.js?v=2', html)
-        self.assertIn('"/node_building.js?v=2"', sw)
+        self.assertIn('/node_building.js?v=3', html)
+        self.assertIn('"/node_building.js?v=3"', sw)
         self.assertIn("interface/node_building.js", version.ARMAZON)
 
 
@@ -209,7 +209,7 @@ const adapter = flow.doorOneAdapter((url, options) => {
             cwd=ROOT, capture_output=True, text=True, timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("pass 9", result.stdout)
+        self.assertIn("pass 11", result.stdout)
         self.assertIn("fail 0", result.stdout)
 
     def test_aduana_client_join_contract(self):

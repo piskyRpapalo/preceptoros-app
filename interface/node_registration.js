@@ -335,8 +335,10 @@
         cause = state === 'MEASURED' ? 'owner_consent_given_in_this_app' : 'owner_consent_not_given'; }
       else if (key === 'request') {
         if (revoked) { state = 'NO_DATA'; cause = 'node_revoked'; }
-        else if (reading) { state = reading.state; cause = reading.cause; } // the server's record survives a reload
+        // The server's record survives a reload; until it holds evidence, this page's verified receipt still counts.
+        else if (reading && reading.state !== 'NO_DATA') { state = reading.state; cause = reading.cause; }
         else if (e.receipt && e.receipt.state === 'PENDING' && e.receipt.trackingId) { state = 'PENDING'; cause = 'aduana_receipt_awaiting_human'; }
+        else if (reading) { state = reading.state; cause = reading.cause; }
         else { state = 'NO_DATA'; cause = boundedCause(e.receipt && e.receipt.cause, 'request_not_sent'); }
       } else if (reading) { state = reading.state; cause = reading.cause; }
       else { state = 'NO_DATA'; cause = lifeCause; }
@@ -350,6 +352,11 @@
       if (key === 'request' && revoked) next = 'Your node was revoked. Send a new request when you want to take part again.';
       return { key: key, label: def[1], actor: def[2], next: next, state: state, cause: cause, done: done };
     });
+    // A refusal or expiry is final for this request whatever its position: the owner must not keep working on an
+    // earlier stage (e.g. signing) of a request Aduana already refused. Nothing is marked done by this.
+    for (var r = 0; r < rows.length; r++) {
+      if ((rows[r].state === 'REFUSED' || rows[r].state === 'EXPIRED') && r > current && current >= 0) { current = r; break; }
+    }
     if (current < 0) current = rows.length - 1;
     return { stages: rows, current: current, live: rows[6].done, revoked: !!revoked };
   }
