@@ -597,6 +597,12 @@ class PWA(BaseHTTPRequestHandler):
     # --- estáticos ---------------------------------------------------------
     def do_GET(self):
         ruta = self.path.split("?")[0]
+        if self._tailnet_proxy_request():
+            access = self._hexelion_serve_access(require_origin=False)
+            if access != "authorized":
+                code = 503 if access == "private_talk_serve_unavailable" else 403
+                return self._json(code, {"estado": "NO_DATA", "causa": access,
+                                         "stage": "connection" if code == 503 else "authentication"})
         if ruta == "/api/plan/flow":
             if not self._plan_local_autorizado():
                 return self._json(403, {"state": "NO_DATA", "cause": "local_origin_required"})
@@ -780,6 +786,10 @@ class PWA(BaseHTTPRequestHandler):
 
     # --- api ---------------------------------------------------------------
     def do_POST(self):
+        if self.path.split("?")[0] != "/api/hexelion/chat" and self._tailnet_proxy_request():
+            self.close_connection = True
+            return self._json(403, {"estado": "NO_DATA", "causa": "private_talk_conversation_only",
+                                    "stage": "authentication"})
         try:
             return self._despachar_post()
         except _creacion_import.CreationError as exc:
@@ -988,19 +998,22 @@ class PWA(BaseHTTPRequestHandler):
             return self._nodo_local_autorizado()
         return site in ("same-origin", "none")
 
-    def _hexelion_serve_access(self):
+    def _tailnet_proxy_request(self):
+        headers = getattr(self, "headers", {})
+        return (any(headers.get(name) is not None for name in
+                    ("Tailscale-User-Login", "Tailscale-Funnel-Request")) or
+                any(headers.get(name, "").casefold().removesuffix(":443").endswith(".ts.net")
+                    for name in ("Host", "X-Forwarded-Host", "Origin")))
+
+    def _hexelion_serve_access(self, *, require_origin=True):
         """Return None for local callers, otherwise the authorization outcome.
 
         Trust Serve's identity headers only on a loopback-bound APP behind
         the owner's dedicated Serve proxy. Serve strips incoming copies.
         """
-        origin = self.headers.get("Origin")
-        host = self.headers.get("Host")
-        forwarded = any(self.headers.get(name) is not None for name in
-                        ("X-Forwarded-Proto", "X-Forwarded-Host", "X-Forwarded-For",
-                         "Tailscale-User-Login", "Tailscale-Funnel-Request"))
-        if not forwarded and not any(
-                value and value.casefold().endswith(".ts.net") for value in (host, origin)):
+        if not self._tailnet_proxy_request() and not any(
+                self.headers.get(name) is not None for name in
+                ("X-Forwarded-Proto", "X-Forwarded-Host", "X-Forwarded-For")):
             return None
         base = os.environ.get("PRECEPTOROS_HEXELION_SERVE_ORIGIN", "")
         owner = os.environ.get("PRECEPTOROS_HEXELION_SERVE_OWNER", "")
@@ -1012,10 +1025,16 @@ class PWA(BaseHTTPRequestHandler):
         if self.headers.get("Tailscale-Funnel-Request") is not None:
             return "private_talk_origin_refused"
         serve_host = base[len("https://"):]
-        for name, value in (("Host", serve_host), ("X-Forwarded-Host", serve_host), ("Origin", base),
+        for name, value in (("Host", serve_host), ("X-Forwarded-Host", serve_host),
                             ("X-Forwarded-Proto", "https")):
             if self.headers.get_all(name) != [value]:
                 return "private_talk_origin_refused"
+        origin = self.headers.get_all("Origin")
+        if require_origin or origin is not None:
+            if origin != [base]:
+                return "private_talk_origin_refused"
+        if self.headers.get("Sec-Fetch-Site") not in (None, "none", "same-origin"):
+            return "private_talk_origin_refused"
         if self.headers.get_all("Tailscale-User-Login") != [owner]:
             return "private_talk_owner_auth_required"
         return "authorized"
