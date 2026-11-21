@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Fail closed when the WebView provider cannot enforce the origin rule.
  */
 final class DeploymentJoinBridge {
-    private static final String EXPECTED_ORIGIN="https://preceptoros.mvp.local";
+    private static final String EXPECTED_ORIGIN=OwnerFrameAccess.ORIGIN;
     private static final int MAX_REPLY_BYTES=3072;
     private final MainActivity activity;
     private final AtomicBoolean busy=new AtomicBoolean(false);
@@ -38,8 +38,8 @@ final class DeploymentJoinBridge {
         WebViewCompat.addWebMessageListener(web,"PreceptorJoinNative",
             Collections.singleton(EXPECTED_ORIGIN),
             (view,message,origin,isMainFrame,reply)->{
-                if(!isMainFrame||origin==null||!EXPECTED_ORIGIN.equals(origin.toString())||
-                    !activity.ownPageVerified()){
+                if(!OwnerFrameAccess.accepts(origin == null ? null : origin.toString(),
+                    isMainFrame, activity.ownPageVerified(), view.getUrl())){
                     bridge.reply(reply,"",false,"origin_or_page_unverified",null);return;
                 }
                 String payload=message.getData();

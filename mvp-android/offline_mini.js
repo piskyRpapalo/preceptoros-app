@@ -107,7 +107,7 @@
       while (thread.childElementCount > 36) thread.firstElementChild.remove();
       thread.scrollTop = thread.scrollHeight;
     };
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
       // Android uses the on-device bridge; the browser needs an explicit
       // toggle and a personal profile. Neither state is an auth credential.
       if (!native && (root.PreceptorMiniBrowserEnabled !== true ||
@@ -138,7 +138,7 @@
       let answer = result.text, state = result.state, source = contract, cause = result.cause;
       if (result.source === 'model' && native && typeof native.generate === 'function') {
         try {
-          const generated = String(native.generate(text) || '').trim();
+          const generated = String(await native.generate(text) || '').trim();
           if (generated && !generated.startsWith('NO_DATA(') && generated.length <= 4000) {
             answer = generated; state = 'DRAFT_ONLY';
             source = 'smollm2_135m_on_device'; cause = 'generated_unverified_facts';

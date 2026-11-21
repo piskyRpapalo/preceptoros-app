@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -23,7 +22,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import androidx.webkit.JavaScriptReplyProxy;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
 
 import androidx.webkit.WebViewAssetLoader;
 
@@ -33,14 +40,14 @@ import androidx.webkit.WebViewAssetLoader;
  * (/app.js, /app.css) therefore resolve, and nothing is loaded from the network.
  */
 public class MainActivity extends Activity {
-    static final String DOMAIN = "preceptoros.mvp.local";
-    static final String START = "https://" + DOMAIN + "/app.html";
+    static final String DOMAIN = OwnerFrameAccess.DOMAIN;
+    static final String START = OwnerFrameAccess.PAGE;
 
     private WebViewAssetLoader loader;
     private volatile boolean ownPageReady = false;
     boolean ownPageVerified() { return ownPageReady; }
-    private final AtomicLong lastReviewRequest = new AtomicLong(0L);
-    private final Object miniModelLock = new Object();
+    private long lastReviewRequest;
+    private final AtomicBoolean miniBusy = new AtomicBoolean();
     private long lastMiniAsk = 0L;
     // Owner-selected JSON through Android's system SAF picker. Never broad storage access.
     private static final int MINI_RECOVERY_PICKER = 3114;
@@ -66,12 +73,16 @@ public class MainActivity extends Activity {
     private void evaluateBundledScript(WebView view, String name) throws IOException {
         // Scripts are loaded exclusively from APK assets, not from an external URL.
         try (InputStream in = getAssets().open(name)) {
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            byte[] block = new byte[2048];
-            int n;
-            while ((n = in.read(block)) != -1) bytes.write(block, 0, n);
-            view.evaluateJavascript(new String(bytes.toByteArray(), StandardCharsets.UTF_8), null);
+            view.evaluateJavascript(readScript(in), null);
         }
+    }
+
+    private static String readScript(InputStream in) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        byte[] block = new byte[2048];
+        int n;
+        while ((n = in.read(block)) != -1) bytes.write(block, 0, n);
+        return new String(bytes.toByteArray(), StandardCharsets.UTF_8);
     }
 
     /**
@@ -79,59 +90,99 @@ public class MainActivity extends Activity {
      * never sends a message, submits an issue, or reads private node data.
      * A compromised frame still cannot pass arbitrary destinations or content.
      */
-    private final class ReviewHandoff {
-        @JavascriptInterface
-        public boolean openReview(String url) {
-            if (!ownPageReady || !CompanionReviewPolicy.accepts(url)) return false;
-            long now = SystemClock.elapsedRealtime();
-            long previous = lastReviewRequest.get();
-            if (previous != 0 && now - previous < 3000) return false;
-            if (!lastReviewRequest.compareAndSet(previous, now)) return false;
-            runOnUiThread(() -> {
-                if (!ownPageReady) return;
-                try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                    intent.addCategory(Intent.CATEGORY_BROWSABLE);
-                    startActivity(intent);
-                } catch (ActivityNotFoundException error) {
-                    Toast.makeText(MainActivity.this,
-                        "NO_DATA: no browser available. Nothing submitted.",
-                        Toast.LENGTH_LONG).show();
-                }
-            });
-            return true; // Dispatch requested, NOT proof that a browser opened or issue was sent.
+    private boolean openReview(String url) {
+        if (!CompanionReviewPolicy.accepts(url)) return false;
+        long now = SystemClock.elapsedRealtime();
+        if (lastReviewRequest != 0 && now - lastReviewRequest < 3000) return false;
+        lastReviewRequest = now;
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addCategory(Intent.CATEGORY_BROWSABLE);
+            startActivity(intent);
+            return true;
+        } catch (ActivityNotFoundException error) {
+            Toast.makeText(this, "NO_DATA: no browser available. Nothing submitted.",
+                Toast.LENGTH_LONG).show();
+            return false;
         }
     }
 
-    /** No model files, memory, tools or grants are accessible to JavaScript. */
-    private final class OfflineModelBridge {
-        /** Android's installed package metadata, not a web release or model claim. */
-        @JavascriptInterface
-        public String version() {
-            if (!ownPageReady) return "NO_DATA(native_page_not_verified)";
-            return "v" + BuildConfig.VERSION_CODE + " · " + BuildConfig.VERSION_NAME;
+    /** The message port authenticates the frame before parsing or dispatch. */
+    private void installLocalBridge(WebView web) {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)
+                || !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) return;
+        String script;
+        try (InputStream in = getResources().openRawResource(R.raw.local_bridge)) {
+            String version = "v" + BuildConfig.VERSION_CODE + " · " + BuildConfig.VERSION_NAME;
+            script = "(" + readScript(in) + ")(" + JSONObject.quote(version) + ");";
+        } catch (IOException unavailable) {
+            return;
         }
-        @JavascriptInterface
-        public String generate(String prompt) {
-            if (!ownPageReady) return "NO_DATA(mini_page_not_verified)";
-            if (prompt == null || prompt.isEmpty() || prompt.length() > 600)
-                return "NO_DATA(mini_input_out_of_range)";
-            if (!MiniNative.available()) return "NO_DATA(mini_native_runtime_not_packaged)";
-            synchronized (miniModelLock) {
-                long now = SystemClock.elapsedRealtime();
-                if (lastMiniAsk > 0 && now - lastMiniAsk < 800)
-                    return "NO_DATA(mini_rate_limited)";
-                lastMiniAsk = now;
-                try {
-                    File model = installVerifiedMiniModel();
-                    if (model == null) return "NO_DATA(mini_model_asset_missing_or_invalid)";
-                    String result = MiniNative.generate(model.getAbsolutePath(), prompt);
-                    return result == null || result.isEmpty() ?
-                            "NO_DATA(mini_native_empty_result)" : result;
-                } catch (Exception error) {
-                    return "NO_DATA(mini_native_generation_failed)";
-                }
+        WebViewCompat.addWebMessageListener(web, "PreceptorLocalNative",
+                Collections.singleton(OwnerFrameAccess.ORIGIN), (view, message, origin, main, reply) -> {
+                    if (!OwnerFrameAccess.accepts(origin == null ? null : origin.toString(),
+                            main, ownPageVerified(), view.getUrl())) return;
+                    handleLocalMessage(message.getData(), reply);
+                });
+        WebViewCompat.addDocumentStartJavaScript(web, script,
+                Collections.singleton(OwnerFrameAccess.ORIGIN));
+    }
+
+    private void handleLocalMessage(String raw, JavaScriptReplyProxy reply) {
+        if (raw == null || raw.length() > 4096) return;
+        try {
+            JSONObject request = new JSONObject(raw);
+            int id = request.getInt("id");
+            String value = request.getString("value");
+            switch (request.getString("operation")) {
+                case "review":
+                    replyLocal(reply, id, openReview(value));
+                    break;
+                case "mini":
+                    if (value.isEmpty() || value.length() > 600) {
+                        replyLocal(reply, id, "NO_DATA(mini_input_out_of_range)");
+                    } else if (!miniBusy.compareAndSet(false, true)) {
+                        replyLocal(reply, id, "NO_DATA(mini_busy)");
+                    } else {
+                        new Thread(() -> {
+                            try {
+                                String result = generateMini(value);
+                                runOnUiThread(() -> replyLocal(reply, id, result));
+                            } finally {
+                                miniBusy.set(false);
+                            }
+                        }, "preceptor-local-mini").start();
+                    }
+                    break;
+                default:
+                    replyLocal(reply, id, "NO_DATA(local_operation_unknown)");
             }
+        } catch (JSONException invalid) {
+            // The caller's deadline applies to malformed requests without a usable id.
+        }
+    }
+
+    private static void replyLocal(JavaScriptReplyProxy reply, int id, Object value) {
+        try {
+            reply.postMessage(new JSONObject().put("id", id).put("value", value).toString());
+        } catch (JSONException | IllegalStateException expired) {
+            // The document may have gone away while generation was in flight.
+        }
+    }
+
+    /** Mini uses only the bundled model and explicit user input. */
+    private String generateMini(String prompt) {
+        if (!MiniNative.available()) return "NO_DATA(mini_native_runtime_not_packaged)";
+        long now = SystemClock.elapsedRealtime();
+        if (lastMiniAsk > 0 && now - lastMiniAsk < 800) return "NO_DATA(mini_rate_limited)";
+        lastMiniAsk = now;
+        try {
+            File model = installVerifiedMiniModel();
+            if (model == null) return "NO_DATA(mini_model_asset_missing_or_invalid)";
+            String result = MiniNative.generate(model.getAbsolutePath(), prompt);
+            return result == null || result.isEmpty() ? "NO_DATA(mini_native_empty_result)" : result;
+        } catch (Exception | LinkageError error) {
+            return "NO_DATA(mini_native_generation_failed)";
         }
     }
 
@@ -228,9 +279,8 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        web.addJavascriptInterface(new ReviewHandoff(), "PreceptorAndroidReview");
-        web.addJavascriptInterface(new OfflineModelBridge(), "PreceptorAndroidMiniModel");
-        // No addJavascriptInterface for network/identity: only origin/main-frame checked listener.
+        installLocalBridge(web);
+        // All native messages require a verified local main frame.
         final boolean joinAvailable = DeploymentJoinBridge.install(this, web);
         heartbeatBridge = HeartbeatOnceBridge.install(this,web);
         if ("OWNER".equals(BuildConfig.APP_DISTRIBUTION_PROFILE)) {
@@ -238,8 +288,13 @@ public class MainActivity extends Activity {
         }
         web.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                ownPageReady = false;
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
-                ownPageReady = START.equals(url);
+                ownPageReady = START.equals(url) && START.equals(view.getUrl());
                 if (ownPageReady) {
                     // The APK's JS is read as a local asset, not fetched through a
                     // service worker (which may be offline or have stale caches).

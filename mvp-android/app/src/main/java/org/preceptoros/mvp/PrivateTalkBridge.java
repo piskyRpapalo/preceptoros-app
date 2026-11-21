@@ -23,7 +23,7 @@ import javax.net.ssl.HttpsURLConnection;
 
 /** The installed OWNER app's link to the existing private Talk route. */
 final class PrivateTalkBridge {
-    private static final String APP_ORIGIN = "https://" + MainActivity.DOMAIN;
+    private static final String APP_ORIGIN = OwnerFrameAccess.ORIGIN;
     private static final String PREF_ORIGIN = "serve_origin";
     private static final int MAX_BYTES = 1023;
     private final MainActivity activity;
@@ -41,8 +41,8 @@ final class PrivateTalkBridge {
         PrivateTalkBridge bridge = new PrivateTalkBridge(activity);
         WebViewCompat.addWebMessageListener(web, "PreceptorPrivateTalkNative",
                 Collections.singleton(APP_ORIGIN), (view, message, origin, main, reply) -> {
-                    if (!main || origin == null || !APP_ORIGIN.equals(origin.toString())
-                            || !activity.ownPageVerified() || !MainActivity.START.equals(view.getUrl())) return;
+                    if (!OwnerFrameAccess.accepts(origin == null ? null : origin.toString(),
+                            main, activity.ownPageVerified(), view.getUrl())) return;
                     bridge.handle(message.getData(), reply);
                 });
     }
