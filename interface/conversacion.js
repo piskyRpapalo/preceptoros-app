@@ -154,6 +154,7 @@
   }
 
   async function send(para, texto) {
+    // A personal_mvp is not the private rack's shared preceptor thread.
     if (root.PreceptorProfile !== "private_rack") clearOwnerProjection();
     if (root.PreceptorProfile !== "private_rack") {
       return { ok: false, cause: "personal_profile_shared_thread_denied" };
