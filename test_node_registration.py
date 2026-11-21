@@ -192,13 +192,13 @@ const adapter = flow.doorOneAdapter((url, options) => {
         sw = (ROOT / "interface" / "sw.js").read_text(encoding="utf-8")
         html = (ROOT / "interface" / "app.html").read_text(encoding="utf-8")
         self.assertIn('"/node_registration.js": ("node_registration.js"', PWA_PATH.read_text())
-        self.assertIn('/node_registration.js?v=2', html)
-        self.assertIn('"/node_registration.js?v=2"', sw)
+        self.assertIn('/node_registration.js?v=3', html)
+        self.assertIn('"/node_registration.js?v=3"', sw)
         self.assertGreaterEqual(int(re.search(r'preceptoros-armazon-v(\d+)', sw).group(1)), 120)
         self.assertIn("interface/node_registration.js", version.ARMAZON)
         self.assertIn('"/node_building.js": ("node_building.js"', PWA_PATH.read_text())
-        self.assertIn('/node_building.js?v=1', html)
-        self.assertIn('"/node_building.js?v=1"', sw)
+        self.assertIn('/node_building.js?v=2', html)
+        self.assertIn('"/node_building.js?v=2"', sw)
         self.assertIn("interface/node_building.js", version.ARMAZON)
 
 
@@ -233,8 +233,19 @@ const adapter = flow.doorOneAdapter((url, options) => {
     def test_preliminary_ui_stays_fail_closed_from_browser_network(self):
         source = (ROOT / "interface/node_registration.js").read_text(encoding="utf-8")
         mounted = source.split("  function mount(document)", 1)[1]
-        self.assertIn("requestDeploymentReview(draft, true, root.PreceptorAndroidJoin)", mounted)
-        self.assertNotIn("root.fetch(", mounted)
+        # Android keeps its native bridge; only a plain-http loopback APP page gets the Beelink intake adapter
+        # (odd/tasks/online3-pwa-intake.md). The mounted form itself never calls fetch.
+        self.assertIn("intake = root.PreceptorAndroidJoin || loopbackIntake(win);", mounted)
+        self.assertIn("requestDeploymentReview(draft, true, intake)", mounted)
+        self.assertNotIn("fetch(", mounted)
+        # The loopback intake and reads live in node_building.js, which public builds never ship.
+        self.assertNotIn("/api/nodo/", source)
+        building = (ROOT / "interface/node_building.js").read_text(encoding="utf-8")
+        adapter = building.split("  function loopbackIntake(win) {", 1)[1].split("  // Reads only.", 1)[0]
+        self.assertIn("if (!isLoopbackApp(win)", adapter)
+        self.assertIn("win.fetch('/api/nodo/identity'", adapter)
+        self.assertEqual(adapter.count("fetch("), 1)
+        self.assertIn("loc.protocol === 'http:'", building)
         self.assertNotIn("doorOneAdapter(", mounted)
         self.assertNotIn("private_rack", mounted)
         html = (ROOT / "interface/app.html").read_text(encoding="utf-8")
