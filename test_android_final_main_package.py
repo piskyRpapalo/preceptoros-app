@@ -92,6 +92,49 @@ class PreceptorOSRound2Contract(unittest.TestCase):
             fake.write_bytes(b"synthetic-tool-not-executed")
             with patch.dict(os.environ, {"ANDROID_SDK_ROOT": temp}):
                 self.assertEqual(android_build_tool("aapt2"), fake)
+    def _probe_synthetic_archive(self, profile, *, corrupt_sw=False):
+        # A fixture tests the actual archive-verifier, not an unsigned release.
+        with tempfile.TemporaryDirectory(prefix="apk-profile-fixture-") as temp:
+            root = Path(temp)
+            model = b"GGUF-fixture-not-model"
+            jni = b"\x7fELF-fixture-not-native-code"
+            if profile == "OWNER":
+                html = (ROOT / "interface/app.html").read_bytes()
+                sw = (ROOT / "interface/sw.js").read_bytes()
+            else:
+                target = root / "public-projection"
+                public_mini_builder().build(target)
+                html = (target / "app/index.html").read_bytes()
+                sw = (target / "app/sw.js").read_bytes()
+            if corrupt_sw:
+                sw += b"synthetic-mutant"
+            archive_path = root / "synthetic.apk"
+            with ZipFile(archive_path, "w") as z:
+                for rel in EXACT_ASSETS:
+                    if rel == "app.html":
+                        content = html
+                    elif rel == "sw.js":
+                        content = sw
+                    else:
+                        content = (ROOT / "interface" / rel).read_bytes()
+                    z.writestr("assets/" + rel, content)
+                z.writestr("assets/android_join_bridge.js", b"synthetic")
+                z.writestr("assets/offline-mini.gguf", model)
+                z.writestr("lib/arm64-v8a/libmini_llama.so", jni)
+                for rel in ("ATTRIBUTIONS.txt", "Apache-2.0.txt", "llama.cpp-MIT.txt"):
+                    z.writestr("assets/licenses/" + rel, b"synthetic")
+            with (patch.object(sys.modules[__name__], "GGUF", hashlib.sha256(model).hexdigest()),
+                  patch.object(sys.modules[__name__], "JNI", hashlib.sha256(jni).hexdigest())):
+                self.verify_packaged_assets(archive_path)
+
+    def test_synthetic_both_profiles_have_source_exact_assets(self):
+        self._probe_synthetic_archive("OWNER")
+        self._probe_synthetic_archive("PUBLIC")
+
+    def test_synthetic_public_service_worker_tamper_is_rejected(self):
+        with self.assertRaises(AssertionError):
+            self._probe_synthetic_archive("PUBLIC", corrupt_sw=True)
+
     def test_shell_has_exact_six_panels(self):
         shell = (ROOT / "interface/app.html").read_text(encoding="utf-8")
         for id_ in ("conversacion", "cuaderno", "lab", "ajustes", "modelos", "settings"):
@@ -134,9 +177,7 @@ class PreceptorOSRound2Contract(unittest.TestCase):
             apk, cert_sha=CERT, apksigner=android_build_tool("apksigner"),
             aapt2=android_build_tool("aapt2"))
 
-    @unittest.skipUnless(APK_PATH, "NO_DATA(no_sealed_apk_in_CI)")
-    def test_sealed_apk_assets_byte_exact_and_model(self):
-        apk = Path(APK_PATH)
+    def verify_packaged_assets(self, apk):
         with ZipFile(apk) as archive:
             profile = classify_packaged_shell(archive.read("assets/app.html"))
             # Shared source-backed components remain byte-exact. The two
@@ -166,6 +207,11 @@ class PreceptorOSRound2Contract(unittest.TestCase):
             self.assertIn("assets/licenses/ATTRIBUTIONS.txt", archive.namelist())
             self.assertIn("assets/licenses/Apache-2.0.txt", archive.namelist())
             self.assertIn("assets/licenses/llama.cpp-MIT.txt", archive.namelist())
+
+    @unittest.skipUnless(APK_PATH, "NO_DATA(no_sealed_apk_in_CI)")
+    def test_sealed_apk_assets_byte_exact_and_model(self):
+        self.verify_packaged_assets(Path(APK_PATH))
+
 
 if __name__ == "__main__":
     unittest.main()
