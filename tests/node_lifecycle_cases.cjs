@@ -134,3 +134,24 @@ test('the server request record survives a reload; refusal and revocation say ho
   assert.equal(v.stages[9].done, false); assert.equal(v.current, 9);
   assert.match(flow.lifecycleSentence(v), /^Done: Functional building published\. Stage 10 of 10 · Revoke · MEASURED \(revocation_available\)\. Next \(you\): You can revoke/);
 });
+
+test('EXPIRED and REFUSED stop the ladder wherever they appear, without ticking anything', () => {
+  const v = flow.lifecycle({ identity: ID, receipt: R, lifecycle: life({ approval: { state: 'EXPIRED', cause: 'request_expired' } }) });
+  assert.equal(v.current, 4); assert.equal(v.stages[3].done, false);
+  assert.match(flow.lifecycleSentence(v), /Stage 5 of 10 · Admission approved · EXPIRED \(request_expired\)\. Blocked \(request_expired\): Read the cause/);
+});
+
+test('Create building: blocked with the first missing requirement; allowed only when the backend reports it ready', () => {
+  const g = loop.buildingGate, ok = (c) => ({ state: 'MEASURED', cause: c });
+  assert.equal(g(null).cause, 'node_lifecycle_unverified');
+  assert.equal(g({ cause: 'node_lifecycle_api_missing' }).cause, 'node_lifecycle_api_missing');
+  assert.equal(g(life({})).cause, 'owner_identity_unverified');
+  assert.equal(g(life({ signature: ok('s') })).cause, 'node_not_admitted');
+  assert.equal(g(life({ signature: ok('s'), approval: { state: 'PENDING', cause: 'd1_awaiting_owner_review' } })).cause, 'node_not_admitted');
+  // Codex #402 today: building NO_DATA with its own cause → that cause explains the block.
+  const real = g(life({ signature: ok('s'), approval: ok('a'), building: { state: 'NO_DATA', cause: 'authorized_function_invocation_source_unavailable' } }));
+  assert.deepEqual([real.ok, real.cause], [false, 'authorized_function_invocation_source_unavailable']); assert.match(real.next, /function/);
+  assert.equal(g(life({ signature: ok('s'), approval: ok('a'), building: { state: 'PENDING', cause: 'function_tested_policy_accepted' }, revoke: { state: 'REVOKED', cause: 'x' } })).cause, 'node_revoked');
+  const ready = g(life({ signature: ok('s'), approval: ok('a'), building: { state: 'PENDING', cause: 'function_tested_policy_accepted' } }));
+  assert.equal(ready.ok, true, 'not blocked when every requirement is accredited');
+});

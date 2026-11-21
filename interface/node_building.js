@@ -24,7 +24,27 @@
     var buildingConsent = document.getElementById("node-building-consent");
     var buildingButton = document.getElementById("node-building-submit");
     var buildingStatus = document.getElementById("node-building-status");
-    var configured = false;
+    var configured = false, nodeReady = false;
+    var gate = { ok: false, state: "NO_DATA", cause: "node_lifecycle_unread", next: "" };
+    var win = document.defaultView || root;
+    function enableBuilding() {
+      buildingButton.disabled = !configured || !nodeReady || !gate.ok || !buildingConsent.checked;
+    }
+    function paintGate() {
+      buildingStatus.dataset.state = buildingStatus.dataset.acho = gate.state;
+      buildingStatus.dataset.cause = gate.cause;
+      if (!gate.ok && configured && nodeReady) {
+        var line = "NO_DATA(" + gate.cause + "). Next: " + gate.next;
+        if (buildingStatus.textContent !== line) buildingStatus.textContent = line;
+      }
+      enableBuilding();
+    }
+    function refreshGate() {
+      return readEvidence(win).then(function (ev) { gate = buildingGate(ev.lifecycle); paintGate(); },
+        function () { gate = buildingGate(null); paintGate(); });
+    }
+    var buildingToggle = document.getElementById("mynode-building-toggle");
+    if (buildingToggle) buildingToggle.addEventListener("click", refreshGate);
 
     function lockIdentity(nodeId) {
       configured = true;
@@ -34,8 +54,10 @@
       identityConsent.disabled = true;
       identityButton.disabled = true;
       identityRead.disabled = true;
-      buildingConsent.disabled = nodeId !== assignedNode;
-      buildingButton.disabled = nodeId !== assignedNode;
+      nodeReady = nodeId === assignedNode;
+      buildingConsent.disabled = !nodeReady;
+      buildingButton.disabled = true;
+      refreshGate();
       identityStatus.textContent = text("node_building_saved", { id: nodeId });
       if (nodeId !== assignedNode) {
         buildingStatus.textContent = text("node_building_no_assignment");
@@ -93,12 +115,12 @@
     });
 
     buildingConsent.addEventListener("change", function () {
-      buildingButton.disabled = !configured || !buildingConsent.checked;
+      enableBuilding();
     });
 
     buildingForm.addEventListener("submit", function (event) {
       event.preventDefault();
-      if (!configured || !buildingConsent.checked) return;
+      if (!configured || !nodeReady || !gate.ok || !buildingConsent.checked) return;
       buildingButton.disabled = true;
       buildingStatus.textContent = text("node_building_sending");
       post("/api/nodo/edificio", { esquema: actionSchema, confirmar: true })
@@ -111,10 +133,10 @@
           } else {
             buildingStatus.textContent = text("node_building_failed", { cause: data.causa || "declaracion_no_confirmada" });
           }
-          buildingButton.disabled = !buildingConsent.checked;
+          refreshGate();
         }).catch(function () {
           buildingStatus.textContent = text("node_building_not_confirmed");
-          buildingButton.disabled = !buildingConsent.checked;
+          refreshGate();
         });
     });
   }
@@ -175,7 +197,22 @@
         : life.status === 0 ? 'app_server_unreachable' : 'node_lifecycle_unverified' };
     return { identity: identity, lifecycle: lifecycle };
   }
-  var loopback = Object.freeze({ intake: loopbackIntake, read: readEvidence });
+  // Create building (Round 4): publish only when the backend lifecycle (preceptoros.node-lifecycle/1) confirms an
+  // owner-signed, admitted, unrevoked node AND reports the building stage ready (function tested, policy accepted).
+  // The first missing requirement is named; stages.building.cause explains the function/policy part. Pure.
+  function buildingGate(life) {
+    var st = life && life.stages, m = function (k) { return st && st[k] && st[k].state === "MEASURED"; };
+    var no = function (cause, next) { return { ok: false, state: "NO_DATA", cause: boundedCause(cause, "node_lifecycle_unverified"), next: next }; };
+    if (!st || typeof st !== "object") return no(life && life.cause, "Open My node on the Beelink APP so it can read your node's lifecycle.");
+    if (st.revoke && st.revoke.state === "REVOKED") return no("node_revoked", "Your node was revoked; request admission again first.");
+    if (!m("signature")) return no("owner_identity_unverified", "Finish stage 4 in «Getting started»: the owner's SSH signature.");
+    if (!m("approval")) return no("node_not_admitted", "Wait for Aduana to admit the node (stage 5).");
+    var b = st.building || {};
+    if (b.state === "PENDING" || b.state === "MEASURED") return { ok: true, state: b.state, cause: boundedCause(b.cause, "building_ready"), next: "Tick the confirmation and declare the building." };
+    return no(b.cause || "building_requirements_unverified", "Install and test the building's function and accept its policy on this node; this APP cannot do that for you.");
+  }
+
+  var loopback = Object.freeze({ intake: loopbackIntake, read: readEvidence, buildingGate: buildingGate });
 
   if (typeof module === "object" && module.exports) {
     module.exports = Object.freeze({ mount: mount, identitySchema: identitySchema, actionSchema: actionSchema,

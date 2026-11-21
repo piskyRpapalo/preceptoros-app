@@ -43,7 +43,7 @@ class LisbonTableOperator(unittest.TestCase):
         self.assertIn("At the table, prepare a docs-only Companion HITL PR",js)
         self.assertIn("LISBON_TABLE_APP_ONEPAGE_20261119.md",old)
         self.assertNotIn("Only **after the room**",old)
-        self.assertIn("const Cache = \"preceptoros-armazon-v241\"",sw)
+        self.assertIn("const Cache = \"preceptoros-armazon-v242\"",sw)
         self.assertIn('src="/companion_onboarding.js?v=5"',html)
         self.assertIn('"/companion_onboarding.js?v=5"',sw)
 
