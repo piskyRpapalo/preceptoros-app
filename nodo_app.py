@@ -56,10 +56,14 @@ def cuerpo_firmado(cedula):
 
 def autenticidad(cedula, signers=None):
     """('OK'|'NO_DATA'|'RECHAZADA', texto). Verifica por subproceso; nunca lanza."""
+    return verificar_ssh(cedula.get("firma_ssh"), cuerpo_firmado(cedula), NS_CEDULA, signers)
+
+
+def verificar_ssh(sig, payload, namespace, signers=None):
+    """Verify a node document through the existing local Sovereign trust anchor."""
     import shutil
     import subprocess
     import tempfile
-    sig = cedula.get("firma_ssh")
     if not sig:
         return "NO_DATA", "NO_DATA · declaracion del rack, sin firma (la cedula no va firmada)"
     ruta = Path(signers) if signers else None
@@ -76,10 +80,10 @@ def autenticidad(cedula, signers=None):
     with tempfile.TemporaryDirectory() as d:
         f = Path(d) / "firma.sig"
         f.write_text(str(sig))
-        r = subprocess.run(["ssh-keygen", "-Y", "verify", "-f", str(ruta), "-I", "soberano", "-n", NS_CEDULA, "-s", str(f)],
-                           input=cuerpo_firmado(cedula), capture_output=True, timeout=20)
+        r = subprocess.run(["ssh-keygen", "-Y", "verify", "-f", str(ruta), "-I", "soberano", "-n", namespace, "-s", str(f)],
+                           input=payload, capture_output=True, timeout=20)
     if r.returncode == 0:
-        return "OK", f"OK · firmada por el Soberano (ssh-ed25519, {NS_CEDULA})"
+        return "OK", f"OK · firmada por el Soberano (ssh-ed25519, {namespace})"
     return "RECHAZADA", "la firma de la cedula no verifica contra el allowed_signers de este aparato"
 
 

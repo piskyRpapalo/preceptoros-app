@@ -61,7 +61,9 @@ class PwaSignedExport(unittest.TestCase):
         handler.rfile = io.BytesIO(body)
         observed = {}
         handler._json = lambda code, body: observed.update(code=code, body=body)
-        handler.do_POST()
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as root, patch.object(app._casa, "raiz", return_value=root):
+            handler.do_POST()
         return observed, handler.rfile.tell()
 
     def test_visitor_and_proxy_rejected_before_body_or_export(self):

@@ -12,6 +12,7 @@ import stat
 import tempfile
 
 import node_building
+import node_lifecycle
 
 SCHEMA = "preceptoros.node-registration-request/1"
 NODE = re.compile(r"^nodo\.[0-9]{1,6}\.[a-z0-9][a-z0-9-]{0,30}$")
@@ -141,6 +142,8 @@ def submit_preliminary(home, data, *, post=None):
             raise ValueError("mismatched_receipt")
     except (TypeError, ValueError, UnicodeError, RecursionError):
         return refused(502, "intake_receipt_unverified")
+    recorded = node_lifecycle.record_intake(home, json.loads(body), receipt)
     return status, {"state": "PENDING", "contractVerified": True,
                     "preliminaryReceiptValidated": True, "trackingId": tracking,
-                    "node": node, "approved": False, "live": False}
+                    "node": node, "approved": False, "live": False,
+                    "lifecycle_recorded": recorded}

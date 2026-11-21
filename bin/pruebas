@@ -252,7 +252,7 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           test_descarga_firmada
           # test_node_registration: unsigned phone preview, explicit consent,
           # loopback-only stub receiver, and no persistence or real signer.
-          test_node_registration
+          test_node_registration test_node_lifecycle
           # Isolated Linux APP install/runtime/reinstall smoke; platform limits stay explicit.
           tests.test_distribution_smoke
           # Linux uninstaller: removes only what the installer made; data kept; your changes never deleted.
