@@ -5,7 +5,6 @@
   const kinds = { person: "person", private: "private", "rack-cli": "rack CLI", sensor: "sensor (not a model)",
     external: "external", door: "door (not a model)", unknown: "unknown voice" };
   let seen = 0, routes = {}, names = {}, busy = false, timer = null, readGeneration = 0, pendingSend = null, sendBusy = false;
-
   function paintInterlocutor() {
     const container = doc.getElementById("conv-interlocutor");
     const glyph = doc.getElementById("conv-interlocutor-glyph");
@@ -19,7 +18,6 @@
     container.dataset.acho = "NO_DATA";
     container.dataset.cause = "model_reply_not_verified";
   }
-
   function clearOwnerProjection() {
     ++readGeneration;
     pendingSend = null;
@@ -27,21 +25,18 @@
     const list = doc.getElementById("hilo");
     if (list) [...list.querySelectorAll('li[data-owner-thread="true"]')].forEach((row) => row.remove());
   }
-
   function chip(m) {
     const span = doc.createElement("span");
     span.className = "quien quien-" + (kinds[m.kind] ? m.kind : "unknown");
     span.textContent = m.name + " · " + (kinds[m.kind] || kinds.unknown) + (m.to ? " → " + (names[m.to] || m.to) : "");
     return span;
   }
-
   function provenance(m) {
     if (!m || m.kind === "person") return "";
     if (typeof m.model === "string" && m.model) return "model · " + m.model;
     if (m.kind === "door" || m.kind === "sensor") return "not a model";
     return "model not recorded";
   }
-
   function row(m) {
     const li = doc.createElement("li");
     li.dataset.n = String(m.n);
@@ -68,9 +63,7 @@
     });
     return li;
   }
-
   function say(el, text) { if (el && el.textContent !== text) el.textContent = text; }
-
   function paintDestinations(list) {
     const out = doc.getElementById("conv-destinos");
     if (!out || !Array.isArray(list)) return;
@@ -84,7 +77,6 @@
     if (detail) detail.textContent = list.some((d) => !d.addressable) ? "NO_DATA(destination_transport_unavailable)" : "MEASURED(thread_destinations_read)";
     out.title = list.map((d) => "@" + d.id + ": " + d.transport).join("\n");
   }
-
   async function sync(opts) {
     if (root.PreceptorProfile !== "private_rack") {
       clearOwnerProjection();
@@ -152,7 +144,6 @@
       busy = false;
     }
   }
-
   async function send(para, texto) {
     // A personal_mvp is not the private rack's shared preceptor thread.
     if (root.PreceptorProfile !== "private_rack") clearOwnerProjection();
@@ -184,29 +175,32 @@
         pendingSend = null;
         return { ok: true, n: d.n };
       }
-      const uncertain = r.ok || r.status === 409 || r.status >= 500;
-      if (!uncertain) pendingSend = null;
-      return { ok: false, cause: d && d.cause || "receipt_unverified", uncertain };
+      const conflict=r.status===409&&d?.cause==="request_id_conflict";
+      const denied=r.status===409&&["no_transport","use_station_door"].includes(d?.cause);
+      const uncertain=r.ok||r.status>=500||(r.status===409&&!denied);
+      if(conflict||denied||!uncertain) pendingSend=null;
+      return {ok:false,cause:d?.cause||"receipt_unverified",uncertain,conflict};
     } catch {
-      return { ok: false, cause: "conversation_transport_unavailable", uncertain: true };
+      if (generation!==readGeneration || root.PreceptorProfile!=="private_rack") {
+        clearOwnerProjection();
+        return {ok:false,cause:"owner_thread_view_invalidated",uncertain:true};
+      }
+      return {ok:false,cause:"conversation_transport_unavailable",uncertain:true};
     } finally {
       sendBusy = false;
     }
   }
-
   function watch(panel) {
     if (timer) return;
     timer = root.setInterval(() => {
       if (!doc.hidden && panel && !panel.hidden) sync();
     }, 20000);
   }
-
   if (doc && doc.readyState === "loading") {
     doc.addEventListener("DOMContentLoaded", paintInterlocutor);
   } else if (doc) {
     paintInterlocutor();
   }
-
   root.PreceptorConversacion = Object.freeze({ sync, send, watch, routes: () => Object.assign({}, routes),
     name: (id) => names[id] || id, provenance, paintInterlocutor });
   if (typeof module === "object" && module.exports) module.exports = { provenance };
