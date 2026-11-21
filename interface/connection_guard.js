@@ -70,7 +70,7 @@
     button.setAttribute("aria-pressed", String(paused));
     button.setAttribute("aria-label", paused
       ? "Reconnect My node and Open World"
-      : "Pause My node and Open World");
+      : "Kill switch · Pause My node and Open World");
     button.title = "Browser-level pause. It does not turn off devices or revoke access.";
     button.textContent = paused ? "Reconnect" : "Kill switch";
   }
