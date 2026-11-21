@@ -70,3 +70,49 @@ test("replacing addressed owner drafts preserves a local MINI row",async()=>{
  a(c.el("hilo").children.includes(local),"local MINI must survive OWNER sync");
  a.deepEqual(rows(c),["1"]);
 });
+
+test("same secure request id after lost acknowledgment and explicit retry",async()=>{
+ const posts=[],c=client(async(_p,o)=>{const q=JSON.parse(o.body);posts.push(q);
+  if(posts.length===1)throw Error("lost_ack");return {ok:true,status:200,json:async()=>({state:"DELIVERED_TO_THREAD",request_id:q.request_id,n:7})};
+ });c.root.crypto={getRandomValues(b){b.fill(9);return b}};
+ a.equal((await c.api.send("codex","a turn")).uncertain,true);
+ a.equal((await c.api.send("codex","a turn")).n,7);
+ a.equal(posts.length,2);a.equal(posts[0].request_id,posts[1].request_id);
+ a.match(posts[0].request_id,/^app-[0-9a-f]{32}$/);
+});
+test("new accepted message does not recycle the old id",async()=>{
+ const posts=[],c=client(async(_p,o)=>{const q=JSON.parse(o.body);posts.push(q);return {ok:true,status:200,json:async()=>({state:"DELIVERED_TO_THREAD",request_id:q.request_id,n:posts.length})}});
+ let i=1;c.root.crypto={getRandomValues(b){b.fill(i++);return b}};
+ a.equal((await c.api.send("codex","same")).ok,true);
+ a.equal((await c.api.send("codex","same")).ok,true);
+ a.notEqual(posts[0].request_id,posts[1].request_id);
+});
+test("503 preserves id and different payload is held pending",async()=>{
+ const posts=[],c=client(async(_p,o)=>{const q=JSON.parse(o.body);posts.push(q);
+  return posts.length===1?{ok:false,status:503,json:async()=>({cause:"thread_append_refused"})}:{ok:true,status:200,json:async()=>({state:"DELIVERED_TO_THREAD",request_id:q.request_id,n:1})};
+ });c.root.crypto={getRandomValues(b){b.fill(8);return b}};
+ a.equal((await c.api.send("codex","first")).uncertain,true);
+ a.equal((await c.api.send("codex","second")).cause,"owner_request_unresolved");
+ a.equal(posts.length,1);a.equal((await c.api.send("codex","first")).ok,true);
+ a.equal(posts[0].request_id,posts[1].request_id);
+});
+test("unverified receipt cannot mark delivery, retry retains id",async()=>{
+ const posts=[],c=client(async(_p,o)=>{const q=JSON.parse(o.body);posts.push(q);return {ok:true,status:200,json:async()=>({state:"DELIVERED_TO_THREAD",request_id:posts.length===1?"app-"+("0".repeat(32)):q.request_id,n:3})}});
+ c.root.crypto={getRandomValues(b){b.fill(7);return b}};
+ a.equal((await c.api.send("codex","check")).uncertain,true);
+ a.equal((await c.api.send("codex","check")).ok,true);
+ a.equal(posts[0].request_id,posts[1].request_id);
+});
+test("missing cryptography never submits or uses weak randomness",async()=>{
+ let n=0;const c=client(async()=>{n++;throw Error("forbidden")});
+ a.equal((await c.api.send("codex","test")).cause,"secure_random_unavailable");a.equal(n,0);
+});
+test("downgrade invalidates a delayed reply without granting owner",async()=>{
+ let complete;const c=client(()=>new Promise(resolve=>complete=resolve));
+ c.root.crypto={getRandomValues(b){b.fill(3);return b}};
+ const pending=c.api.send("codex","secret");
+ c.root.PreceptorProfile="personal_mvp";await c.api.sync();
+ complete({ok:true,status:200,json:async()=>({state:"DELIVERED_TO_THREAD",request_id:"app-"+("03".repeat(16)),n:9})});
+ a.equal((await pending).cause,"owner_thread_view_invalidated");
+ a.equal((await c.api.send("codex","secret")).cause,"personal_profile_shared_thread_denied");
+});
