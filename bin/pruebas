@@ -208,6 +208,8 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           test_android_asset_allowlist
           test_android_gradle_copy
           test_android_public_profile
+          # OWNER grants regression suite added by PR #376; negative contracts only.
+          test_owner_talk_cross_contract
           # APP-1.1 source-observed version, canonical Node 0 and Talk crab.
           test_app11_ui_p0
           test_faro

@@ -69,6 +69,14 @@ jobs:
       # Tests of Android asset isolation use Gradle --offline on purpose.
       # A fresh GitHub runner has no AGP/Gradle cache: bootstrap build tooling
       # first without weakening offline/negative tests or Python's stdlib gate.
+      # Gradle 8.11.1 / AGP must not execute against the runner's moving
+      # default JDK (currently JDK 25, class major 69).
+      - name: Select Java 17 for Android gates
+        run: |
+          test -n "$JAVA_HOME_17_X64" && test -x "$JAVA_HOME_17_X64/bin/java"
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+
       - name: Prime Android Gradle build-tool cache
         run: |
           java -version
