@@ -86,7 +86,7 @@ def _installation_digest(home):
                 handle.flush()
                 os.fsync(handle.fileno())
             try:
-                os.link(temp, seed_path, follow_symlinks=False)
+                node_building.publish_exclusive(temp, seed_path)
             except FileExistsError:
                 pass
             dir_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
