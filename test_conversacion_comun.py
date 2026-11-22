@@ -304,7 +304,7 @@ class Shell(unittest.TestCase):
         server = (ROOT / "bin/preceptoros-pwa").read_text(encoding="utf-8")
         self.assertIn('<script src="/conversacion.js?v=8"></script>', html)
         self.assertLess(html.index("/insertor.js?v=2"), html.index("/conversacion.js?v=8"))
-        self.assertLess(html.index("/conversacion.js?v=8"), html.index("/app.js?v=57"))
+        self.assertLess(html.index("/conversacion.js?v=8"), html.index("/app.js?v=58"))
         self.assertIn('"/conversacion.js?v=8"', sw)
         self.assertIn('"/conversacion.js": ("conversacion.js",', server)
         self.assertIn('"interface/conversacion.js"', (ROOT / "version.py").read_text(encoding="utf-8"))
