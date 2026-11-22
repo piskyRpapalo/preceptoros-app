@@ -330,22 +330,34 @@ class PwaDeploymentIntake(unittest.TestCase):
     def test_wrong_origin_cannot_trigger_aduana(self):
         from unittest.mock import patch
         body = self.payload()
-        with patch.object(NR, "submit_preliminary", return_value=(202, {"state": "PENDING"})) as send:
+        with (
+            patch.object(NR, "submit_preliminary", return_value=(202, {"state": "PENDING"})) as send,
+            patch.object(PWA._node_building, "leer_identidad") as identity,
+        ):
             local = "http://127.0.0.1:8740"
-            for client, origin, proxy_headers, expected in (
-                    ("192.0.2.1", local, {}, 403),
-                    ("127.0.0.1", "https://visitor.example.test", {}, 403),
-                    ("127.0.0.1", local, {"X-Forwarded-Proto": "https"}, 403),
-                    ("127.0.0.1", local, {}, 202)):
-                handler = Handler(body, client=client)
-                handler.server.server_port = 8740
-                handler.path = "/api/nodo/identity"
-                handler.headers.update({"Origin": origin, "Host": "127.0.0.1:8740",
-                                        "Content-Type": "application/json"})
-                handler.headers.update(proxy_headers)
-                PWA.PWA._despachar_post(handler)
-                self.assertEqual(handler.code, expected)
-            self.assertEqual(send.call_count, 1)
+            selected = {"estado": "configurada", "node_id": body["node"]}
+            for client, origin, proxy_headers, prepared, expected, cause in (
+                    ("192.0.2.1", local, {}, selected, 403, None),
+                    ("127.0.0.1", "https://visitor.example.test", {}, selected, 403, None),
+                    ("127.0.0.1", local, {"X-Forwarded-Proto": "https"}, selected, 403, None),
+                    ("127.0.0.1", local, {}, {"estado": "NO_DATA"}, 409, "local_identity_unavailable"),
+                    ("127.0.0.1", local, {}, {**selected, "node_id": "nodo.999.other"}, 409,
+                     "local_identity_mismatch"),
+                    ("127.0.0.1", local, {}, selected, 202, None)):
+                with self.subTest(client=client, origin=origin, prepared=prepared):
+                    identity.return_value = prepared
+                    sent_before = send.call_count
+                    handler = Handler(body, client=client)
+                    handler.server.server_port = 8740
+                    handler.path = "/api/nodo/identity"
+                    handler.headers.update({"Origin": origin, "Host": "127.0.0.1:8740",
+                                            "Content-Type": "application/json"})
+                    handler.headers.update(proxy_headers)
+                    PWA.PWA._despachar_post(handler)
+                    self.assertEqual(handler.code, expected)
+                    self.assertEqual(send.call_count - sent_before, int(expected == 202))
+                    if cause:
+                        self.assertEqual(handler.body, {"state": "NO_DATA", "cause": cause})
 
     def test_open_seed_permissions_never_replaced(self):
         from unittest.mock import Mock
