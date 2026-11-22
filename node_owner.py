@@ -264,6 +264,15 @@ def heartbeat_once(home, *, post=None, get=None, now=None):
         return {"state": "NO_DATA", "cause": "heartbeat_key_expired", "node": alias}
     last = _read_json(folder / HEARTBEAT_STATE) or {}
     previous = last.get("secuencia") if last.get("nodo") == alias and isinstance(last.get("secuencia"), int) else -1
+    # HEX-NODE3-08 guard: Aduana keeps one increasing sequence per alias. If another emitter already keeps this alias
+    # alive (e.g. the rack's f1-heartbeat for primer-ancla, at a small counter), our clock-based first sequence would
+    # make every one of its later heartbeats `secuencia_atrasada` and silence it. So a FIRST heartbeat from this device
+    # goes out only when the public map does not list the alias; an unreadable map refuses too (fail closed).
+    if previous < 0 or not isinstance(last.get("recibo_sha256"), str):
+        listing = _public_listing(alias, get)
+        if listing != "NOT_LISTED":
+            return {"state": "NO_DATA", "node": alias, "cause": "alias_kept_alive_elsewhere"
+                    if listing == "LISTED" else "public_map_unreadable"}
     body = {"esquema": HEARTBEAT_SCHEMA, "nodo": alias, "secuencia": max(previous + 1, int(now.timestamp())),
             "medido_en": now.strftime(_FMT)}
     sent = node_building._canonical(body)

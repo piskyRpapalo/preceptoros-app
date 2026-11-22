@@ -177,6 +177,8 @@
     heartbeat_key_record_invalid: ['fence', 'The heartbeat key on this device does not match its record. Create a new key.'],
     aduana_unavailable: [null, 'Connection lost: Aduana did not answer. Nothing was recorded; try again later.'],
     secuencia_atrasada: ['uncertain', 'Aduana already has a newer heartbeat from this node. Wait a second and send again.'],
+    alias_kept_alive_elsewhere: ['fence', 'Another emitter already keeps this name alive on the public map. This device will not send under it, so that emitter is not silenced.'],
+    public_map_unreadable: [null, 'The public map could not be read, so this device will not send its first heartbeat yet. Try again later.'],
     receipt_mismatch: ['fence', 'Aduana answered, but the receipt does not match what this device sent. Not counted.'],
     consent_or_identity_required: ['needs_you', 'Create your node identity first.'],
     local_owner_origin_required: ['fence', 'Only this computer\'s own APP page may do this.']

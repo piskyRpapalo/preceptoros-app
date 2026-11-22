@@ -213,7 +213,8 @@ class Heartbeat(TestCase):
 
     def test_one_heartbeat_with_the_device_key_and_a_verified_receipt(self):
         post, seen = self.aduana()
-        out = node_owner.heartbeat_once(self.home, post=post, get=self.listing(["fixture-v2"]), now=self.now)
+        reads = iter([[], ["fixture-v2"]])  # before the first beat: not listed; after it: listed
+        out = node_owner.heartbeat_once(self.home, post=post, get=lambda url: self.listing(next(reads))(url), now=self.now)
         self.assertEqual((out["state"], out["cause"], out["public_map"]),
                          ("MEASURED", "heartbeat_receipt_verified", "LISTED"))
         url, body, headers = seen[0]
@@ -265,5 +266,22 @@ class Heartbeat(TestCase):
     def test_disconnection_is_named(self):
         def down(*_args):
             raise OSError("network down")
-        out = node_owner.heartbeat_once(self.home, post=down, now=self.now)
+        out = node_owner.heartbeat_once(self.home, post=down, get=self.listing([]), now=self.now)
         self.assertEqual((out["state"], out["cause"]), ("NO_DATA", "aduana_unavailable"))
+
+
+    def test_never_takes_over_an_alias_another_emitter_keeps_alive(self):
+        """HEX-NODE3-08: primer-ancla's f1-heartbeat is at a small counter; our first beat must not silence it."""
+        post, seen = self.aduana()
+        out = node_owner.heartbeat_once(self.home, post=post, get=self.listing(["fixture-v2"]), now=self.now)
+        self.assertEqual((out["state"], out["cause"]), ("NO_DATA", "alias_kept_alive_elsewhere"))
+
+        def unreadable(url):
+            raise OSError("down")
+        out = node_owner.heartbeat_once(self.home, post=post, get=unreadable, now=self.now)
+        self.assertEqual(out["cause"], "public_map_unreadable")
+        self.assertEqual(seen, [], "nothing may be sent under an alias this device does not already keep")
+        # Once this device holds a verified receipt for the alias, the listing is its own beat: it continues.
+        node_owner.heartbeat_once(self.home, post=post, get=self.listing([]), now=self.now)
+        again = node_owner.heartbeat_once(self.home, post=post, get=self.listing(["fixture-v2"]), now=self.now)
+        self.assertEqual(again["cause"], "heartbeat_receipt_verified")
