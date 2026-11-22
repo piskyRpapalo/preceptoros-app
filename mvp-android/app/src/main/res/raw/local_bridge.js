@@ -36,4 +36,7 @@ function installLocalBridge(version) {
   window.PreceptorAndroidReview = Object.freeze({
     openReview: url => ask('review', url, 5000, false)
   });
+  window.PreceptorAndroidOpenWorld = Object.freeze({
+    open: url => ask('openworld', url, 5000, false)
+  });
 }

@@ -223,7 +223,8 @@ def shell(source: str) -> str:
 <section class="panel" id="panel-modelos" role="tabpanel" aria-labelledby="tab-modelos" tabindex="0" hidden>
   <header class="panel-cabecera"><h2>Open World</h2></header>
   <p>Explore as a visitor without registering your Companion. Nothing from this device is published here automatically.</p>
-  <a href="https://preceptoros.org/" target="_blank" rel="noopener noreferrer">Explore public Open World (requires your action and connection)</a>
+  <a id="openworld-visit" href="https://preceptoros.org/openworld/" target="_blank" rel="noopener noreferrer">Explore public Open World (requires your action and connection)</a>
+  <p id="openworld-visit-status" role="status" aria-live="polite" data-state="READY" data-acho="READY">OpenWorld visitor access starts only after you select the link. No account or node is created.</p>
   <p role="status" data-state="NO_DATA" data-acho="NO_DATA" data-cause="admission_not_verified">NO_DATA(signed_companion_admission_not_verified). Your Companion is not LIVE.</p>
 </section>
 <section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>

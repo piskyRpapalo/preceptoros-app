@@ -193,6 +193,7 @@ tasks.register('copyPanelsBridges', Copy) {
     dependsOn 'prepareAssets'
     // Android-only capability: bridge scripts evaluated by MainActivity.
     from(rootProject.file('android_review_bridge.js'))
+    from(rootProject.file('android_openworld_bridge.js'))
     from(rootProject.file('offline_mini.js'))
     from(rootProject.file('android_join_bridge.js'))
     from(rootProject.file('android_heartbeat_bridge.js'))

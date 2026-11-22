@@ -96,6 +96,7 @@ assets/icono-512-maskable.png
 
 # === Android bridge scripts (evaluated by MainActivity) ===
 mvp-android/android_review_bridge.js
+mvp-android/android_openworld_bridge.js
 mvp-android/offline_mini.js
 mvp-android/android_join_bridge.js
 mvp-android/android_heartbeat_bridge.js
