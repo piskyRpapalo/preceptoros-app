@@ -15,6 +15,10 @@ class NativeReading(unittest.TestCase):
         with patch.object(V.subprocess, 'run') as run:
             for request in ({}, {'text':'test','engine':'other'},
                             {'text':'test','engine':'host-espeak-ng','extra':1},
+                            {'text':'test','engine':'host-espeak-ng','language':'fr'},
+                            {'text':'test','engine':'host-espeak-ng','language':'es-ES'},
+                            {'text':'test','engine':'host-espeak-ng','language':'es;rm'},
+                            {'text':'test','engine':'host-espeak-ng','language':None},
                             {'text':'x'*961,'engine':'host-espeak-ng'},
                             {'text':'\x00','engine':'host-espeak-ng'}):
                 with self.assertRaises(V.ReadingUnavailable): V.synthesize(request)
@@ -40,6 +44,30 @@ class NativeReading(unittest.TestCase):
             audio,receipt=V.synthesize({'text':text,'engine':'host-espeak-ng'})
         self.assertEqual(receipt['text_sha256'],hashlib.sha256(text.encode()).hexdigest())
         self.assertEqual(receipt['audio_sha256'],hashlib.sha256(audio).hexdigest())
+
+
+    def test_spanish_voice_is_strictly_local_and_receipted(self):
+        seen = []
+        def fixture(args, **kwargs):
+            seen.append(args)
+            self.assertEqual(args[args.index('-v')+1], 'es')
+            self.assertNotIn('shell', kwargs)
+            with wave.open(args[-1], 'wb') as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(22050)
+                w.writeframes(b'\0' * 4410)
+            return subprocess.CompletedProcess(args, 0)
+        with patch.object(V.silencio, 'apagado', return_value=False), \
+             patch.object(V.shutil, 'which', return_value='fixture-espeak'), \
+             patch.object(V.subprocess, 'run', side_effect=fixture):
+            wav, receipt = V.synthesize({
+                'text': 'Hola, estado local.', 'engine': 'host-espeak-ng', 'language': 'es'
+            })
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(receipt['state'], 'ok')
+        self.assertEqual(receipt['engine'], 'host-espeak-ng')
+        self.assertEqual(receipt['language'], 'es')
+        self.assertEqual(receipt['audio_sha256'], hashlib.sha256(wav).hexdigest())
+        self.assertGreaterEqual(receipt['synthesis_wall_ms'], 0)
 
     def test_timeout_denies_and_releases_the_synthesis_lock(self):
         with patch.object(V.silencio,'apagado',return_value=False),patch.object(V.shutil,'which',return_value='fixture-espeak'),patch.object(V.subprocess,'run',side_effect=subprocess.TimeoutExpired('fixture',15)):
