@@ -70,6 +70,8 @@
   const button = (id, label) => {
     const el = doc.createElement('button'); el.type = 'button'; el.id = id;
     el.textContent = label; el.setAttribute('aria-label', label);
+    // Meet the existing APP touch target contract without changing shared CSS.
+    el.style.minHeight = '44px'; el.style.minWidth = '44px';
     return el;
   };
   const listen = button('hex-avatar-listen', 'Hablar y enviar · solo STT local');
