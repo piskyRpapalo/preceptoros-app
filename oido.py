@@ -34,16 +34,26 @@ def oido_disponible() -> bool:
     return os.path.isfile(WHISPER_CLI) and os.path.isfile(WHISPER_MODEL)
 
 
-def transcribir(ruta_wav: str, idioma: str = "es") -> Optional[str]:
+def transcribir(ruta_wav: str, idioma: str = "es", *,
+               cpu_only: bool = False, threads: int | None = None,
+               timeout_sec: int = 60) -> Optional[str]:
     """Transcribe un WAV a texto. Devuelve None si falla."""
     if not oido_disponible():
         return None
+    if threads is not None and (type(threads) is not int or not 1 <= threads <= 4):
+        return None
+    if type(timeout_sec) is not int or not 1 <= timeout_sec <= 60:
+        return None
+    args = [WHISPER_CLI, "-m", WHISPER_MODEL, "-f", ruta_wav,
+            "--language", idioma, "--no-timestamps"]
+    if cpu_only:
+        args.append("--no-gpu")
+        if threads is None:
+            threads = 2
+    if threads is not None:
+        args.extend(["--threads", str(threads)])
     try:
-        r = subprocess.run(
-            [WHISPER_CLI, "-m", WHISPER_MODEL, "-f", ruta_wav,
-             "--language", idioma, "--no-timestamps"],
-            capture_output=True, text=True, timeout=60
-        )
+        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout_sec)
         if r.returncode != 0:
             return None
         # Extraer solo el texto (whisper-cli imprime líneas con timestamps)
