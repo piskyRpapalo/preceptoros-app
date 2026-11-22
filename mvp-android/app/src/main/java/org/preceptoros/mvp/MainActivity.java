@@ -47,6 +47,7 @@ public class MainActivity extends Activity {
     private volatile boolean ownPageReady = false;
     boolean ownPageVerified() { return ownPageReady; }
     private long lastReviewRequest;
+    private long lastOpenWorldRequest;
     private final AtomicBoolean miniBusy = new AtomicBoolean();
     private long lastMiniAsk = 0L;
     // Owner-selected JSON through Android's system SAF picker. Never broad storage access.
@@ -107,6 +108,22 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** User initiated handoff to the existing public visitor game only. */
+    private boolean openWorld(String url) {
+        if (!OpenWorldVisitorPolicy.accepts(url) || !ownPageReady) return false;
+        long now = SystemClock.elapsedRealtime();
+        if (lastOpenWorldRequest != 0 && now - lastOpenWorldRequest < 3000) return false;
+        lastOpenWorldRequest = now;
+        try {
+            Intent intent = new Intent(this, OpenWorldActivity.class);
+            startActivity(intent);
+            return true;
+        } catch (RuntimeException error) {
+            Toast.makeText(this, "NO_DATA(openworld_viewer_unavailable)", Toast.LENGTH_LONG).show();
+            return false;
+        }
+    }
+
     /** The message port authenticates the frame before parsing or dispatch. */
     private void installLocalBridge(WebView web) {
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)
@@ -137,6 +154,9 @@ public class MainActivity extends Activity {
             switch (request.getString("operation")) {
                 case "review":
                     replyLocal(reply, id, openReview(value));
+                    break;
+                case "openworld":
+                    replyLocal(reply, id, openWorld(value));
                     break;
                 case "mini":
                     if (value.isEmpty() || value.length() > 600) {
@@ -300,6 +320,7 @@ public class MainActivity extends Activity {
                     // service worker (which may be offline or have stale caches).
                     try {
                         evaluateBundledScript(view, "android_review_bridge.js");
+                        evaluateBundledScript(view, "android_openworld_bridge.js");
                         evaluateBundledScript(view, "offline_mini.js");
                         if (joinAvailable) evaluateBundledScript(view, "android_join_bridge.js");
                         if (heartbeatBridge != null) evaluateBundledScript(view, "android_heartbeat_bridge.js");
