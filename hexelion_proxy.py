@@ -4,6 +4,7 @@ from __future__ import annotations
 import ipaddress
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -124,9 +125,15 @@ def ask(text, *, endpoint=None, opener=None, clock=time.monotonic, output_format
         if not isinstance(probe_elapsed, (int, float)) or probe_elapsed < 0 or probe_elapsed > PROBE_TIMEOUT_S:
             return {"estado": "NO_DATA", "causa": "station_probe_timeout"}
         models = tags.get("models") if isinstance(tags, dict) else None
-        if not isinstance(models, list) or not any(
-                isinstance(item, dict) and item.get("name") == MODEL for item in models):
+        matches = [item for item in models if isinstance(item, dict) and item.get("name") == MODEL
+                   ] if isinstance(models, list) else []
+        if not matches:
             return {"estado": "NO_DATA", "causa": "station_model_unavailable"}
+        digest = matches[0].get("digest") if len(matches) == 1 else None
+        digest = digest.removeprefix("sha256:") if isinstance(digest, str) else ""
+        evidence = {"state": "NO_DATA", "cause": "station_model_digest_unavailable"}
+        if re.fullmatch(r"[a-f0-9]{64}", digest):
+            evidence = {"state": "REPORTED", "source": "station_tags", "sha256": digest}
 
         request_body = {"model": MODEL, "prompt": text, "stream": False,
                         "think": "low", "options": {"num_predict": 512}}
@@ -151,6 +158,7 @@ def ask(text, *, endpoint=None, opener=None, clock=time.monotonic, output_format
         if len(response.encode("utf-8")) > 640:
             return {"estado": "NO_DATA", "causa": "station_response_exceeds_receipt_budget"}
         return {"estado": "MEASURED", "texto": response.strip(),
-                "modelo": MODEL, "ms": generation_ms, "medida": medida(answer)}
+                "modelo": MODEL, "ms": generation_ms, "medida": medida(answer),
+                "model_evidence": evidence}
     except Exception as exc:
         return {"estado": "NO_DATA", "causa": _failure(exc)}
