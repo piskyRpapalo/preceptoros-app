@@ -13,7 +13,13 @@ from urllib.parse import urlsplit, urlunsplit
 import hexelion_book as _hexelion_book
 
 ENDPOINT_ENV = "PRECEPTOROS_HEXELION_ENDPOINT"
-MODEL = "hexelion:latest"
+DEFAULT_MODEL = "hexelion:latest"
+MODEL_ENV = "PRECEPTOROS_HEXELION_MODEL"
+MODEL_SHA256_ENV = "PRECEPTOROS_HEXELION_MODEL_SHA256"
+ALLOWED_MODELS = frozenset((DEFAULT_MODEL, "gpt-oss:120b", "qwen3-coder:30b"))
+# Host-owned process startup config; never accepted from a browser request.
+MODEL = os.environ.get(MODEL_ENV, DEFAULT_MODEL).strip()
+MODEL_SHA256_PIN = os.environ.get(MODEL_SHA256_ENV, "").strip()
 PROBE_TIMEOUT_S = 3
 GENERATE_TIMEOUT_S = 120
 MAX_RESPONSE_B = 65536
@@ -101,6 +107,12 @@ def ask(text, *, endpoint=None, opener=None, clock=time.monotonic, output_format
     base, cause = _base(os.environ.get(ENDPOINT_ENV) if endpoint is None else endpoint)
     if cause:
         return {"estado": "NO_DATA", "causa": cause}
+    if MODEL not in ALLOWED_MODELS:
+        return {"estado": "NO_DATA", "causa": "station_model_selection_invalid"}
+    if MODEL_SHA256_PIN and re.fullmatch(r"[0-9a-f]{64}", MODEL_SHA256_PIN) is None:
+        return {"estado": "NO_DATA", "causa": "station_model_digest_pin_invalid"}
+    if MODEL != DEFAULT_MODEL and not MODEL_SHA256_PIN:
+        return {"estado": "NO_DATA", "causa": "station_model_digest_pin_missing"}
     if type(text) is not str or not text.strip():
         return {"estado": "NO_DATA", "causa": "message_invalid"}
     try:
@@ -134,8 +146,12 @@ def ask(text, *, endpoint=None, opener=None, clock=time.monotonic, output_format
         digest = matches[0].get("digest") if len(matches) == 1 else None
         digest = digest.removeprefix("sha256:") if isinstance(digest, str) else ""
         evidence = {"state": "NO_DATA", "cause": "station_model_digest_unavailable"}
+        if MODEL_SHA256_PIN and digest != MODEL_SHA256_PIN:
+            return {"estado": "NO_DATA", "causa": "station_model_digest_mismatch"}
         if re.fullmatch(r"[a-f0-9]{64}", digest):
             evidence = {"state": "REPORTED", "source": "station_tags", "sha256": digest}
+            if MODEL_SHA256_PIN:
+                evidence["pin_state"] = "CATALOG_MATCH_NOT_OWNER_AUTH"
 
         request_body = {"model": MODEL, "prompt": text, "stream": False,
                         "think": "low", "options": {"num_predict": 512}}
