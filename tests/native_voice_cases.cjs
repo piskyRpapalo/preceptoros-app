@@ -106,7 +106,7 @@ test('loopback Spanish without browser voices uses only the existing host reader
   assert.equal(requests[0].options.redirect,'error');
   assert.deepEqual(requests[0].body,{text:'Hola, estado local.',engine:'host-espeak-ng',language:'es'});
   assert.equal(plays,1,'software playback requested; physical speaker not proved');
-  assert.match(notices.join(' '),/NO_DATA.*audibility/);
+  assert.match(notices.join(' '),/physical audibility NO_DATA/);
 });
 
 test('non-loopback Spanish without local voices never asks host to read',()=>{
