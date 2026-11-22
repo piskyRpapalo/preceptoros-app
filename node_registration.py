@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import subprocess
 import stat
 import tempfile
 
@@ -53,6 +54,12 @@ def receive_preview(envelope):
 # Same preliminary contract as DeploymentRequestPolicy.java. The API never
 # treats this installation claim as an authenticated device or a signed node.
 PWA_INTAKE_SCHEMA = "preceptoros.pwa-node-deployment-request/1"
+# HEX-NODE3 v2: the same consented request plus the alias asked for and the roles offered. The owner
+# key is created on this device by node_owner; only its public half enters the request.
+PWA_INTAKE_SCHEMA_V2 = "preceptoros.pwa-node-deployment-request/2"
+INTAKE_SCHEMA_V2 = "preceptoros.deployment-request/2"
+ROLES = ("APP_CLIENT", "SENSOR", "LOCAL_AI", "MODEL_SERVER", "BENCH_WORKER")
+ALIAS = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 INTAKE_SCHEMA = "preceptoros.deployment-request/1"
 INTAKE_RECEIPT = "preceptoros.deployment-request-receipt/1"
 INTAKE_URL = "https://api.preceptoros.org/api/v1/deployment-requests"
@@ -100,10 +107,19 @@ def submit_preliminary(home, data, *, post=None):
     def refused(code, cause):
         return code, {"state": "NO_DATA", "cause": cause}
 
-    if not isinstance(data, dict) or set(data) != {"esquema", "node", "nonce", "consent"}:
+    v2 = isinstance(data, dict) and data.get("esquema") == PWA_INTAKE_SCHEMA_V2
+    keys = {"esquema", "node", "nonce", "consent"} | ({"alias", "roles"} if v2 else set())
+    if not isinstance(data, dict) or set(data) != keys:
         return refused(422, "invalid_deployment_request")
-    if data["esquema"] != PWA_INTAKE_SCHEMA or data["consent"] is not True:
+    if data["esquema"] not in (PWA_INTAKE_SCHEMA, PWA_INTAKE_SCHEMA_V2) or data["consent"] is not True:
         return refused(422, "explicit_consent_required")
+    if v2:
+        alias, roles = data["alias"], data["roles"]
+        if (alias is not None and (not isinstance(alias, str) or not ALIAS.fullmatch(alias)
+                                   or NODE.fullmatch(alias))) \
+                or not isinstance(roles, list) or not roles or len(set(roles)) != len(roles) \
+                or any(r not in ROLES for r in roles):
+            return refused(422, "invalid_alias_or_roles")
     node, nonce = data["node"], data["nonce"]
     if (not isinstance(node, str) or not NODE.fullmatch(node)
             or not isinstance(nonce, str) or not NONCE.fullmatch(nonce)):
@@ -112,8 +128,16 @@ def submit_preliminary(home, data, *, post=None):
         fingerprint = _installation_digest(home)
     except OSError:
         return refused(503, "installation_seed_unavailable")
-    body = node_building._canonical({"schema": INTAKE_SCHEMA, "node": node, "nonce": nonce,
-                                    "device_sha256": fingerprint, "consent": True})
+    request = {"schema": INTAKE_SCHEMA, "node": node, "nonce": nonce,
+               "device_sha256": fingerprint, "consent": True}
+    if v2:
+        import node_owner  # local import: v1 keeps working without an owner key
+        try:
+            public = node_owner.public_key(home)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return refused(503, "owner_key_unavailable")
+        request.update(schema=INTAKE_SCHEMA_V2, owner_public_key=public, alias=alias, offer={"roles": roles})
+    body = node_building._canonical(request)
     tracking = hashlib.sha256(body).hexdigest()
     try:
         status, raw, url = (post or node_building._http_post)(

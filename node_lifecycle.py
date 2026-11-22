@@ -128,8 +128,11 @@ def _intake(data, node):
     if not isinstance(request, dict) or not isinstance(receipt, dict):
         raise ValueError("intake_evidence_invalid")
     ref = _digest(request)
-    if (set(request) != {"schema", "node", "consent", "device_sha256", "nonce"} or
-            request["schema"] != "preceptoros.deployment-request/1" or request["node"] != node or
+    v1 = {"schema", "node", "consent", "device_sha256", "nonce"}
+    v2 = v1 | {"owner_public_key", "alias", "offer"}
+    if (not ((set(request) == v1 and request["schema"] == "preceptoros.deployment-request/1") or
+             (set(request) == v2 and request["schema"] == "preceptoros.deployment-request/2")) or
+            request["node"] != node or
             request["consent"] is not True or not _hex(request["device_sha256"]) or
             not isinstance(request["nonce"], str) or not re.fullmatch(r"[0-9a-f]{32}", request["nonce"]) or
             receipt.get("schema") != "preceptoros.deployment-request-receipt/1" or

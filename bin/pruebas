@@ -257,6 +257,8 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           test_node_three_identities
           # HEX-NODE3-04: the device signs its own plan and cédula; only public material leaves.
           test_node_owner
+          # HEX-NODE3-05: deployment-request/2 from the APP (owner key, admission, heartbeat key).
+          test_node_owner_v2
           # Isolated Linux APP install/runtime/reinstall smoke; platform limits stay explicit.
           tests.test_distribution_smoke
           # Linux uninstaller: removes only what the installer made; data kept; your changes never deleted.

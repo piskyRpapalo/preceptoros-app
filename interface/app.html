@@ -623,6 +623,17 @@
         <input id="node-registration-name" name="node" required maxlength="48" pattern="nodo\.[0-9]{1,6}\.[a-z0-9][a-z0-9-]{0,30}" autocomplete="off">
         <label for="node-registration-purpose">Purpose of your node</label>
         <textarea id="node-registration-purpose" name="purpose" required maxlength="512" rows="3" autocomplete="off"></textarea>
+        <label id="node-registration-alias-label" for="node-registration-alias">Public map name (optional)</label>
+        <input id="node-registration-alias" name="alias" maxlength="64" pattern="[a-z0-9][a-z0-9._\-]{0,63}" autocomplete="off" aria-describedby="node-registration-alias-help">
+        <p class="pie" id="node-registration-alias-help">Lowercase letters, digits, dot, dash. The Sovereign chooses whether and where it appears on the map.</p>
+        <fieldset id="node-registration-roles">
+          <legend id="node-registration-roles-legend">What your node offers</legend>
+          <label class="fila-switch"><input type="checkbox" name="role" value="APP_CLIENT" checked> App client</label>
+          <label class="fila-switch"><input type="checkbox" name="role" value="SENSOR"> Sensor</label>
+          <label class="fila-switch"><input type="checkbox" name="role" value="LOCAL_AI"> Local AI (on this device only)</label>
+          <label class="fila-switch"><input type="checkbox" name="role" value="MODEL_SERVER"> Model server for others</label>
+          <label class="fila-switch"><input type="checkbox" name="role" value="BENCH_WORKER"> Benchmark worker</label>
+        </fieldset>
         <button type="submit" class="probar" data-i18n="node_registration_preview">Preview deployment request</button>
         <label class="fila-switch" for="node-registration-consent">
           <input type="checkbox" id="node-registration-consent" disabled>
@@ -633,6 +644,13 @@
       <p id="node-registration-signer" role="status" aria-live="polite" data-i18n="node_registration_signer_pending">The phone creates a review request; only the Sovereign may sign the final admission.</p>
       <p id="node-registration-status" role="status" aria-live="polite" data-i18n="node_registration_draft">Draft only. Nothing has been sent.</p>
       <pre id="node-registration-preview" data-i18n-aria="node_registration_preview_aria" aria-label="Canonical pending credential preview"></pre>
+      <h4 id="node-admission-title">After the Sovereign approves</h4>
+      <p class="pie" id="node-admission-help">Your device creates and keeps its own keys. Only public, signed material is sent. Approval never gives rack or admin access.</p>
+      <button type="button" class="probar" id="node-admission-finish">Finish admission on this device</button>
+      <button type="button" class="probar" id="node-heartbeat-start">Create my heartbeat key</button>
+      <button type="button" class="probar" id="node-heartbeat-send">Send one heartbeat now</button>
+      <p id="node-admission-status" role="status" aria-live="polite"><span id="node-admission-acho" class="acho-estado" aria-hidden="true"></span><span id="node-admission-sentence">Nothing sent yet.</span></p>
+      <pre id="node-admission-json" aria-label="Aduana answer as JSON"></pre>
     </section>
     </details>
     <section class="tarjeta" lang="en" aria-labelledby="companion-onboard-title" hidden>

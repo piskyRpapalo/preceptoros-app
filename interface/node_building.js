@@ -152,6 +152,90 @@
     return !!loc && loc.protocol === 'http:' && /^(127\.0\.0\.1|localhost|\[::1\])$/.test(loc.hostname) &&
       typeof win.fetch === 'function';
   }
+  // HEX-NODE3 v2: with the alias and roles the owner chose, the APP creates the owner key on this device and
+  // sends deployment-request/2. Without the form (older pages) it keeps the v1 request.
+  var pwaIntakeSchemaV2 = 'preceptoros.pwa-node-deployment-request/2';
+  function intakeBody(win, node, nonce) {
+    var doc = win.document, roles = [];
+    var box = doc && doc.getElementById('node-registration-roles');
+    if (!box) return { esquema: pwaIntakeSchema, node: node, nonce: nonce, consent: true };
+    box.querySelectorAll('input[name="role"]').forEach(function (i) { if (i.checked) roles.push(i.value); });
+    var alias = String((doc.getElementById('node-registration-alias') || {}).value || '').trim();
+    return { esquema: pwaIntakeSchemaV2, node: node, nonce: nonce, consent: true,
+      alias: alias || null, roles: roles.length ? roles : ['APP_CLIENT'] };
+  }
+  // HEX-NODE3-07: one pure reading of the backend answer feeds the three outputs (Acho, sentence, JSON),
+  // so the picture, the screen reader and a machine always say the same thing. Causes come from Aduana.
+  var causeView = {
+    awaiting_sovereign_approval: ['needs_you', 'The Sovereign has not signed your admission yet. Nothing to do until then.'],
+    prior_human_approval_required: ['needs_you', 'The Sovereign has not signed your admission yet. Nothing to do until then.'],
+    human_admission_not_verified: ['needs_you', 'Aduana has no signed admission for this node yet. Finish admission first.'],
+    plan_firmado_rechazado: ['fence', 'Aduana rejected the signed plan: it does not match the approved request.'],
+    emisor_no_autorizado: ['fence', 'Aduana refused this heartbeat key: it was revoked, expired or never registered. Create a new key; if your node was revoked, ask the Sovereign.'],
+    heartbeat_key_expired: ['needs_you', 'Your heartbeat key expired on this device. Press «Create my heartbeat key» to renew it.'],
+    no_heartbeat_key: ['needs_you', 'There is no heartbeat key on this device yet. Press «Create my heartbeat key» first.'],
+    heartbeat_key_record_invalid: ['fence', 'The heartbeat key on this device does not match its record. Create a new key.'],
+    aduana_unavailable: [null, 'Connection lost: Aduana did not answer. Nothing was recorded; try again later.'],
+    secuencia_atrasada: ['uncertain', 'Aduana already has a newer heartbeat from this node. Wait a second and send again.'],
+    receipt_mismatch: ['fence', 'Aduana answered, but the receipt does not match what this device sent. Not counted.'],
+    consent_or_identity_required: ['needs_you', 'Create your node identity first.'],
+    local_owner_origin_required: ['fence', 'Only this computer\'s own APP page may do this.']
+  };
+  function explain(result, done) {
+    var r = result && typeof result === 'object' ? result : {};
+    var cause = boundedCause(r.cause, 'no_answer'), known = causeView[cause];
+    var cls = r.state === 'MEASURED' ? 'ok' : known ? known[0] : r.state === 'PENDING' ? 'needs_you' : null;
+    var sentence = r.state === 'MEASURED' ? done
+      : known ? known[1] : (r.state === 'PENDING' ? 'Waiting: ' : 'Not done yet: ') + cause.replace(/_/g, ' ') + '.';
+    if (r.state === 'MEASURED' && r.public_map) sentence += r.public_map === 'LISTED'
+      ? ' The public map lists ' + r.node + '.' : r.public_map === 'NOT_LISTED'
+      ? ' The public map does not list ' + r.node + ' yet.' : ' The public map could not be read.';
+    return { state: r.state === 'MEASURED' || r.state === 'PENDING' ? r.state : 'NO_DATA', cause: cause,
+      acho: cls, sentence: sentence };
+  }
+  function mountAdmission(win) {
+    var doc = win.document;
+    var status = doc && doc.getElementById('node-admission-status');
+    if (!status) return;
+    var sentenceNode = doc.getElementById('node-admission-sentence') || status;
+    var jsonNode = doc.getElementById('node-admission-json'), achoNode = doc.getElementById('node-admission-acho');
+    function show(result, done) {
+      var view = explain(result, done);
+      sentenceNode.textContent = view.sentence;
+      if (jsonNode) jsonNode.textContent = JSON.stringify(result, null, 1);
+      if (achoNode && win.AchoMotion) win.AchoMotion.express(achoNode, view.acho, view.acho === 'ok' ? 'DONE_CHECKED' : view.state);
+    }
+    function say(message) { sentenceNode.textContent = message; }
+    async function call(path, body, done) {
+      if (!isLoopbackApp(win)) return show({ state: 'NO_DATA', cause: 'app_server_not_on_this_device' }, done);
+      try {
+        var r = await win.fetch(path, { method: 'POST', cache: 'no-store', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        var b; try { b = await r.json(); } catch (_e) { b = {}; }
+        if (!b || typeof b !== 'object' || !b.cause) b = { state: 'NO_DATA', cause: 'http_' + r.status };
+        show(b, done);
+      } catch (_e) { show({ state: 'NO_DATA', cause: 'app_server_unreachable' }, done); }
+    }
+    var send = doc.getElementById('node-heartbeat-send');
+    if (send) send.addEventListener('click', function () {
+      say('Sending one heartbeat from this device…');
+      call('/api/nodo/heartbeat', { esquema: 'preceptoros.pwa-node-heartbeat/1', confirm: true },
+        'Aduana received your heartbeat and its receipt checks out.');
+    });
+    var finish = doc.getElementById('node-admission-finish'), beat = doc.getElementById('node-heartbeat-start');
+    if (finish) finish.addEventListener('click', function () {
+      say('Signing on this device and sending…');
+      call('/api/nodo/admission', { esquema: 'preceptoros.pwa-node-admission/1', confirm: true },
+        'Admission recorded: your cédula is verified.');
+    });
+    if (beat) beat.addEventListener('click', function () {
+      var alias = String((doc.getElementById('node-registration-alias') || {}).value || '').trim();
+      if (!alias) return say('Write the public map name first.');
+      say('Creating your heartbeat key on this device…');
+      call('/api/nodo/heartbeat-key', { esquema: 'preceptoros.pwa-node-heartbeat-key/1', alias: alias },
+        'Heartbeat key registered. It stays on this device; renew it daily.');
+    });
+  }
   function loopbackIntake(win) {
     if (!isLoopbackApp(win) || !win.crypto || typeof win.crypto.getRandomValues !== 'function') return null;
     var nonce = null; // one per consented attempt; a retry of that same attempt reuses it
@@ -165,7 +249,7 @@
       try {
         response = await win.fetch('/api/nodo/identity', { method: 'POST', cache: 'no-store',
           credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ esquema: pwaIntakeSchema, node: request.node, nonce: nonce, consent: true }) });
+          body: JSON.stringify(intakeBody(win, request.node, nonce)) });
       } catch (_error) { throw new Error('app_server_unreachable'); }
       var body; try { body = await response.json(); } catch (_error) { body = {}; }
       if (!response.ok) throw new Error(boundedCause(body.cause || body.causa, 'intake_http_' + response.status));
@@ -212,7 +296,8 @@
     return no(b.cause || "building_requirements_unverified", "Install and test the building's function and accept its policy on this node; this APP cannot do that for you.");
   }
 
-  var loopback = Object.freeze({ intake: loopbackIntake, read: readEvidence, buildingGate: buildingGate });
+  var loopback = Object.freeze({ intake: loopbackIntake, read: readEvidence, buildingGate: buildingGate,
+    intakeBody: intakeBody, mountAdmission: mountAdmission, explain: explain });
 
   if (typeof module === "object" && module.exports) {
     module.exports = Object.freeze({ mount: mount, identitySchema: identitySchema, actionSchema: actionSchema,
@@ -220,5 +305,6 @@
   } else if (root.document) {
     root.PreceptorNodeLoopback = loopback;
     mount(root.document, root.fetch.bind(root));
+    mountAdmission(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this);

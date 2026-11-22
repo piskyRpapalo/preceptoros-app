@@ -299,7 +299,7 @@
     ['prepare', 'Prepare node identity', 'you', 'Open «Node identity» and save your node name on this computer.'],
     ['consent', 'Owner consent', 'you', 'In «Node identity», press «Prepare admission request», fill the node name and purpose, preview, then tick the consent box.'],
     ['request', 'Request admission', 'you', 'Press «Sign deployment · request review». A pending request is not a node.'],
-    ['signature', 'Owner signature (SSH)', 'signature', 'The owner signs the admission decision with SSH at the rack. This APP never signs.'],
+    ['signature', 'Owner signature (SSH)', 'signature', 'After the Sovereign approves, press «Finish admission on this device»: your own key signs on your device and never leaves it. This APP never signs for the Sovereign.'],
     ['approval', 'Admission approved', 'aduana', 'Aduana checks the signed plan and admits or refuses it.'],
     ['heartbeat', 'Heartbeat verified', 'you', 'Start the node heartbeat after approval.'],
     ['live', 'LIVE in Open World', 'aduana', 'Aduana lists the node as LIVE once its heartbeat is fresh.'],
