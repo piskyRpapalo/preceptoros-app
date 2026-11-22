@@ -196,3 +196,10 @@ test('HEX-NODE3-07: one reading drives Acho, the spoken sentence and the JSON; e
   assert.equal(odd.cause, 'no_answer');
   assert.equal(ex({ state: 'LIVE', cause: 'self_declared' }, 'x').state, 'NO_DATA', 'a self-declared LIVE is not a state');
 });
+
+test('HEX-NODE3-08: refusing to take over a living alias is said, not hidden', () => {
+  const ex = require('../interface/node_building.js').loopback.explain;
+  const v = ex({ state: 'NO_DATA', cause: 'alias_kept_alive_elsewhere', node: 'primer-ancla' }, 'x');
+  assert.equal(v.acho, 'fence'); assert.match(v.sentence, /not silenced/);
+  assert.match(ex({ state: 'NO_DATA', cause: 'public_map_unreadable' }, 'x').sentence, /could not be read/);
+});
