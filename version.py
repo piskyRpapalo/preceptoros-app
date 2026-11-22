@@ -46,6 +46,8 @@ ARMAZON = (
     # 2026-11-09: everything app.html loads counts in the fingerprint (HITL edits did not change it).
     "interface/hitl.js", "interface/hitl.css", "interface/team.js", "interface/zonas.js",
     "interface/acho_motion.js", "interface/creation_voice.js",
+    "interface/avatar_voice.js", "interface/native_voice.js",
+    "interface/audio_accessibility.js", "assets/avatar-github.png",
     "interface/companion_onboarding.js",
 )
 

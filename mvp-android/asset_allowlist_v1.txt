@@ -23,6 +23,7 @@ interface/sw.js
 
 # === Talk panel dependencies ===
 interface/conversacion.js
+interface/avatar_voice.js
 interface/superbot_talk.js
 interface/cabin_brain.js
 interface/modelos_web.js
@@ -82,6 +83,7 @@ interface/keep_device.js
 # === Compass (Operations Data) ===
 interface/compass.js
 assets/compass.svg
+assets/avatar-github.png
 
 # === PWA icons ===
 assets/icono-192.png

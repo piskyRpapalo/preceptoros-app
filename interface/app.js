@@ -1286,6 +1286,8 @@ $("form-chat").addEventListener("submit", async (e) => {
       localDraft.remove(); // not delivered: never leave a fake sent bubble
       $("estado").dataset.state = "NO_DATA";
       $("estado").dataset.acho = "NO_DATA";
+      // Preserve the server-independent typed cause for Acho/avatar; this never grants access.
+      $("estado").dataset.cause = "personal_profile_private_route_denied";
       $("estado").textContent = "NO_DATA(personal_profile_private_route_denied) · No message was sent.";
       if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), null, "silent");
       modelosWeb.setActiveModel(null, null, "personal_profile_private_route_denied");
