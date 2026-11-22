@@ -1,4 +1,4 @@
-/* HEX-AVATAR-VOICE-WEB-02 · reuse the existing PreceptorOS Talk panel and its illustration.
+/* Hexelion conversational avatar · 02 · reuse the existing PreceptorOS Talk panel and its illustration.
  * No new app, router, model, server, credential, or permission.
  * On-device speech recognition only. Never calls SpeechRecognition.install().
  */
