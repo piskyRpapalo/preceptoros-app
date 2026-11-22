@@ -207,11 +207,16 @@
   const talkStatus = doc.getElementById('estado');
   if (talkStatus && typeof root.MutationObserver === 'function') {
     new root.MutationObserver(() => {
-      if (muted || state.state === 'speaking' || state.state === 'interrupted') return;
       const cause = talkStatus.dataset.cause;
+      if (cause !== 'personal_profile_private_route_denied' && cause !== 'owner_approval_required') return;
+      // A later, typed denial always supersedes a prior interrupted/muted/
+      // speaking presentation state, but never grants a permission.
+      speechRun++;
+      if (mic) { try { mic.abort(); } catch (_) {} mic = null; }
+      if (voice) { try { voice.stop(); } catch (_) {} }
       if (cause === 'personal_profile_private_route_denied') {
         project('awaiting_authorization', 'owner_profile_required', 'Talk_existing');
-      } else if (cause === 'owner_approval_required') {
+      } else {
         project('awaiting_authorization', 'owner_approval_pending', 'Talk_existing');
       }
     }).observe(talkStatus, { attributes: true, attributeFilter: ['data-state', 'data-cause'] });
