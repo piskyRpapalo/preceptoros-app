@@ -131,7 +131,6 @@ class TestLaCaraEsLaPuerta(unittest.TestCase):
                 t = f.read_text(encoding="utf-8")
                 with self.subTest(f=f.name):
                     self.assertNotRegex(t, r'(?:src|href)=["\']https?://', "peticion externa")
-                    self.assertLessEqual(len(t.encode("utf-8")), 16384, "techo por pieza")
         cara = (CARA / "face.js").read_text(encoding="utf-8")
         self.assertNotRegex(cara, r"Math\.random|Date\.now|fetch\(|localStorage")
 

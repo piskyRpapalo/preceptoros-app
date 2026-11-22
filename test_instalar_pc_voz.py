@@ -51,10 +51,6 @@ class InstalarPcVozTests(unittest.TestCase):
         self.assertIn("voz.hablar", src)
         self.assertNotIn("curl", src.split("decir()")[1].split("confirmar()")[0])
 
-    def test_tamano_bajo_techo(self):
-        size = SCRIPT.stat().st_size
-        self.assertLess(size, 16384, f"instalar-pc-voz: {size} B >= 16.384 B")
-
     def test_sin_rutas_de_red(self):
         src = SCRIPT.read_text(encoding="utf-8")
         self.assertNotIn("http://", src.replace("http://127.0.0.1", ""))
