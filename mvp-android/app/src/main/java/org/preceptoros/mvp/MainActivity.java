@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
     private static final int MINI_RECOVERY_PICKER = 3114;
     private ValueCallback<Uri[]> pendingMiniRecoveryFile;
     private HeartbeatOnceBridge heartbeatBridge;
+    private NodeOwnerBridge nodeBridge;
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -303,6 +304,7 @@ public class MainActivity extends Activity {
         // All native messages require a verified local main frame.
         final boolean joinAvailable = DeploymentJoinBridge.install(this, web);
         heartbeatBridge = HeartbeatOnceBridge.install(this,web);
+        nodeBridge = NodeOwnerBridge.install(this, web);
         if ("OWNER".equals(BuildConfig.APP_DISTRIBUTION_PROFILE)) {
             PrivateTalkBridge.install(this, web);
         }
@@ -324,6 +326,7 @@ public class MainActivity extends Activity {
                         evaluateBundledScript(view, "offline_mini.js");
                         if (joinAvailable) evaluateBundledScript(view, "android_join_bridge.js");
                         if (heartbeatBridge != null) evaluateBundledScript(view, "android_heartbeat_bridge.js");
+                        if (nodeBridge != null) evaluateBundledScript(view, "android_node_bridge.js");
                     } catch (IOException unavailable) {
                         ownPageReady = false;
                         Toast.makeText(MainActivity.this,
@@ -351,5 +354,11 @@ public class MainActivity extends Activity {
         });
         setContentView(web);
         web.loadUrl(START);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (nodeBridge != null) nodeBridge.close();
+        super.onDestroy();
     }
 }

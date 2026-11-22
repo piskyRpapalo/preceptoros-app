@@ -100,6 +100,7 @@ mvp-android/android_openworld_bridge.js
 mvp-android/offline_mini.js
 mvp-android/android_join_bridge.js
 mvp-android/android_heartbeat_bridge.js
+mvp-android/android_node_bridge.js
 
 # === Licenses (copied into assets/licenses/) ===
 mvp-android/legal/ATTRIBUTIONS.txt
