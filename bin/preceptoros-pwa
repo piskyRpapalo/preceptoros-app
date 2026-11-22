@@ -352,6 +352,7 @@ def _cerebro_paquete(modelo, talk_mode=None):
 ESTATICOS = {
     "/install.js": ("install.js", "application/javascript; charset=utf-8"),
     "/native_voice.js": ("native_voice.js", "application/javascript; charset=utf-8"),
+    "/avatar_voice.js": ("avatar_voice.js", "application/javascript; charset=utf-8"),
     "/hexelion.css": ("hexelion.css", "text/css; charset=utf-8"),
     "/hexelion.js": ("hexelion.js", "application/javascript; charset=utf-8"),
     # The single app trunk is served from its existing canonical document.
