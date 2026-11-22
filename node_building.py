@@ -90,6 +90,28 @@ def leer_identidad(base: os.PathLike | str) -> dict:
     return {"estado": "configurada", "node_id": node_id}
 
 
+
+def publish_exclusive(temp_name, path):
+    """Publish a finished temp file at path, failing with FileExistsError if path already exists.
+    A hard link is atomic; Android (Termux) has no os.link, so there the bytes go to an O_EXCL file instead."""
+    link = getattr(os, "link", None)
+    if link is not None:
+        try:
+            link(temp_name, path, follow_symlinks=False)
+            return
+        except FileExistsError:
+            raise
+        except PermissionError:
+            pass  # SELinux on Android may refuse hard links even when os.link exists
+    with open(temp_name, "rb") as source:
+        data = source.read()
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try:
+        os.write(fd, data)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
 def provisionar_identidad(base: os.PathLike | str, node_id: object) -> dict:
     """Create the public node-ID config once; never overwrite a different ID."""
     if not isinstance(node_id, str) or not NODE_ID.fullmatch(node_id):
@@ -114,7 +136,7 @@ def provisionar_identidad(base: os.PathLike | str, node_id: object) -> dict:
                 stream.flush()
                 os.fsync(stream.fileno())
             # Hard-link creation is atomic and fails if another identity won.
-            os.link(temp_name, path, follow_symlinks=False)
+            publish_exclusive(temp_name, path)
             os.chmod(path, 0o600, follow_symlinks=False)
             dir_fd = os.open(root, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
             try:

@@ -2,6 +2,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+from unittest.mock import patch
 import hashlib
 import json
 import stat
@@ -285,3 +286,18 @@ class Heartbeat(TestCase):
         node_owner.heartbeat_once(self.home, post=post, get=self.listing([]), now=self.now)
         again = node_owner.heartbeat_once(self.home, post=post, get=self.listing(["fixture-v2"]), now=self.now)
         self.assertEqual(again["cause"], "heartbeat_receipt_verified")
+
+
+class AndroidWithoutHardLinks(TestCase):
+    """Termux's Python has no os.link: the identity and the seed must still be born, once, private."""
+
+    def test_identity_and_seed_without_os_link(self):
+        with TemporaryDirectory() as tmp, patch.object(node_building.os, "link", None):
+            home = Path(tmp) / "casa"
+            self.assertEqual(node_building.provisionar_identidad(home, "nodo.2.doggee-s110")["estado"], "provisionada")
+            again = node_building.provisionar_identidad(home, "nodo.2.doggee-s110")
+            self.assertTrue(again.get("repetida"))
+            other = node_building.provisionar_identidad(home, "nodo.3.tank-3")
+            self.assertEqual(other["estado"], "NO_DATA")
+            ident = home / "node-identity.json"
+            self.assertEqual(stat.S_IMODE(ident.stat().st_mode), 0o600)
