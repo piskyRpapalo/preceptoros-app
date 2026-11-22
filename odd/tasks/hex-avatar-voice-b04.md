@@ -23,8 +23,8 @@ No inicia micrófono en el servidor. **El navegador** deberá solicitar el micr�
 
 ## Pruebas
 
-- `test_voz_stt_local.py` 13/13 **×2 PASS** en Beelink con `PRECEPTOROS_SIN_HARDWARE=1`, todas simuladas, 0 micro real, 0 modelo/Whisper y 0 red.
-- `test_oido_b04.py` 3/3 **×2 PASS**: sin GPU con 2 hilos y timeout estricto, opciones inválidas niegan antes de proceso y flujo histórico intacto.
+- **`test_voz_lectura.py` ya registrada en `bin/pruebas`** incorpora los 13 casos de `LocalSTT` y 3 casos `STTConstraints` (antes pruebas temporales separadas). Total real **22/22 ×2 PASS** en Beelink con `PRECEPTOROS_SIN_HARDWARE=1`: 6 casos TTS existentes, 13 negativos+positivos STT y 3 sobre límites CPU/compatibilidad. No se crea suite sin registrar, no se modifica `bin/pruebas`.
+- CI de rama rebasada después del merge APP #415 requiere comprobar HEAD final; el CI #1966 falló por el antiguo caché v246 heredado y dos suites no inscritas. Ninguna aserción de seguridad se eliminó.
 - B-03 TTS ya servida; ninguna afirmación de E2E voz o de servicio B04.
 
 ## Integración posterior con propietario de rutas
