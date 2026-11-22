@@ -163,7 +163,8 @@
     "/api/team",
     "/api/team/lab",
     "/api/voz",
-    "/api/voz/lectura"
+    "/api/voz/lectura",
+    "/api/voz/stt"
   ],
   "commands": [
     "crear-acceso-directo-android",

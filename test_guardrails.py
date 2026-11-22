@@ -578,6 +578,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         INTRINSECOS |= {"APP_CLIENT", "SENSOR", "LOCAL_AI", "MODEL_SERVER", "BENCH_WORKER"}
         # HEX-NODE3-07: what an independent read of the public map says about this alias; not LIVE, not a policy.
         INTRINSECOS |= {"LISTED", "NOT_LISTED"}
+        # B-05 WAV RIFF is an audio container marker, not a redaction policy.
+        INTRINSECOS |= {"RIFF", "WAVE", "POST", "LOCAL_TRANSCRIPT_ONLY", "MEASURED"}
         for fichero in self.ficheros():
             contenido = fichero.read_text(encoding="utf-8")
             for nombrada in re.findall(r"\b[A-Z][A-Z_]{3,}\b", contenido):
