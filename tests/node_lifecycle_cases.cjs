@@ -155,3 +155,13 @@ test('Create building: blocked with the first missing requirement; allowed only 
   const ready = g(life({ signature: ok('s'), approval: ok('a'), building: { state: 'PENDING', cause: 'function_tested_policy_accepted' } }));
   assert.equal(ready.ok, true, 'not blocked when every requirement is accredited');
 });
+
+test('a local public alias does not advance cédula admission', () => {
+  const result = flow.lifecycle({
+    identity: { state: 'MEASURED', node: 'public-fixture' },
+    lifecycle: life({ prepare: { state: 'NO_DATA', cause: 'local_identity_not_cedula_namespace' } }, null)
+  });
+  assert.equal(result.current, 0);
+  assert.equal(result.stages[0].cause, 'local_identity_not_cedula_namespace');
+  assert.equal(result.live, false);
+});

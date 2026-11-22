@@ -200,6 +200,17 @@ def _seen_live(world, node):
     return len(matches) == 1 and matches[0].get("seal") == "LIVE" and matches[0].get("alive") is True
 
 
+def admission_identity(home):
+    """Read the local identity without treating a public alias as a cédula ID."""
+    identity = node_building.leer_identidad(home)
+    if identity.get("estado") != "configurada":
+        return None, "local_identity_unavailable"
+    node = identity["node_id"]
+    if not NODE.fullmatch(node):
+        return None, "local_identity_not_cedula_namespace"
+    return node, None
+
+
 def read(home, *, review_key_file=None, signers=None, fetch=_get, now=None):
     """Project one selected identity. Missing proof never upgrades another stage."""
     now = now or datetime.now(timezone.utc)
@@ -224,9 +235,9 @@ def read(home, *, review_key_file=None, signers=None, fetch=_get, now=None):
         if ref is not None:
             stages[name]["receipt_ref"] = ref
 
-    identity = node_building.leer_identidad(home)
-    node = identity.get("node_id")
-    if not isinstance(node, str) or not NODE.fullmatch(node):
+    node, cause = admission_identity(home)
+    if cause:
+        mark("prepare", "NO_DATA", cause)
         return out
     out["node"] = node
     mark("prepare", "MEASURED", "local_identity_configured")

@@ -328,7 +328,8 @@
     var rows = lifecycleStages.map(function (def, index) {
       var key = def[0], state, cause, reading = serverReading(server, key);
       if (key === 'prepare') { state = e.identity && e.identity.state === 'MEASURED' ? 'MEASURED' : 'NO_DATA';
-        cause = state === 'MEASURED' ? 'local_identity_configured' : boundedCause(e.identity && e.identity.cause, 'local_identity_unread'); }
+        cause = state === 'MEASURED' ? 'local_identity_configured' : boundedCause(e.identity && e.identity.cause, 'local_identity_unread');
+        if (reading && reading.cause === 'local_identity_not_cedula_namespace') { state = reading.state; cause = reading.cause; } }
       else if (key === 'consent') {
         var sent = (e.receipt && e.receipt.state === 'PENDING') || (reading = serverReading(server, 'request'), reading && /^(PENDING|MEASURED)$/.test(reading.state));
         state = e.consented === true || sent ? 'MEASURED' : 'NO_DATA';
@@ -348,6 +349,7 @@
       if (open && done) { state = 'NO_DATA'; cause = 'earlier_stage_unverified'; done = false; }
       if (!done && !open && key !== 'revoke') { open = true; current = index; }
       var next = def[3];
+      if (cause === 'local_identity_not_cedula_namespace') next = 'Keep the existing local identity. Ask the owner to resolve its cédula identity before admission.';
       if (state === 'REFUSED' || state === 'EXPIRED') next = 'Read the cause, then send a new request from «Prepare admission request».';
       if (key === 'request' && revoked) next = 'Your node was revoked. Send a new request when you want to take part again.';
       return { key: key, label: def[1], actor: def[2], next: next, state: state, cause: cause, done: done };
