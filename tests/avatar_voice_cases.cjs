@@ -99,5 +99,73 @@ const wait=()=>new Promise(r=>setTimeout(r,5));
  yes(voice.state().cause==='owner_approval_pending','approval cause keeps its source after STOP');
  yes(el('hex-avatar-face').getAttribute('aria-label')===el('hex-avatar-state').textContent,'approval visual accessible parity after STOP');
  yes(voice.state().authority==='none','approval status never grants authority');
- console.log('PASS',n,'of',n,'tests (synthetic browser DOM, no actual mic/audio)');
+
+ const crypto = require('node:crypto');
+ const hash = v => crypto.createHash('sha256').update(Buffer.from(v)).digest('hex');
+ let proc, micStops=0, sentLocal=0, thermalHold=false;
+ const fakeStream=()=>({getTracks:()=>[{stop:()=>micStops++}]});
+ root.SpeechRecognition=undefined;
+ root.webkitSpeechRecognition=undefined;
+ root.location={protocol:'http:',hostname:'127.0.0.1'};
+ root.navigator={mediaDevices:{getUserMedia:async()=>fakeStream()}};
+ root.AudioContext=class {
+  constructor(){this.sampleRate=16000;}
+  createMediaStreamSource(){return {connect(){},disconnect(){}};}
+  createScriptProcessor(){proc={onaudioprocess:null,connect(){},disconnect(){}};return proc;}
+  get destination(){return {};}
+  close(){return Promise.resolve();}
+ };
+ root.crypto={subtle:{digest:async (_,b)=>Uint8Array.from(
+  crypto.createHash('sha256').update(Buffer.from(b)).digest()).buffer}};
+ root.AbortController=AbortController;
+ root.TextEncoder=TextEncoder;
+ root.setTimeout=cb=>setTimeout(()=>{
+  if(proc && proc.onaudioprocess)for(let i=0;i<14;i++)proc.onaudioprocess({
+   inputBuffer:{getChannelData:()=>new Float32Array(4096).fill(.05)}});
+  cb();
+ },5);
+ root.clearTimeout=clearTimeout;
+ root.fetch=async (url,opts)=>{
+  sentLocal++;
+  assert.equal(url,'/api/voz/stt');
+  assert.equal(opts.credentials,'same-origin');
+  assert.equal(opts.headers['Content-Type'],'audio/wav');
+  const wav=Buffer.from(opts.body);
+  assert.equal(wav.toString('ascii',0,4),'RIFF');
+  assert.equal(wav.readUInt32LE(24),16000);
+  if(thermalHold)return {ok:false,json:async()=>({cause:'beelink_cpu_thermal_hold'})};
+  const text='hola de whisper local';
+  return {ok:true,json:async()=>({
+   state:'LOCAL_TRANSCRIPT_ONLY',source:'beelink_existing_oido_py_whisper_cpp',
+   language:'es',text,duration_ms:3584,inference_ms:1090,model_sha256:'fixture-model-digest',audio_sha256:hash(wav),text_sha256:hash(Buffer.from(text))
+  })};
+ };
+ const baseSends=sends;
+ el('hex-avatar-listen').click();
+ await new Promise(r=>setTimeout(r,40));
+ yes(sentLocal===1,'WAV sent only to local STT path');
+ yes(sends===baseSends+1,'STT submitted through existing Talk');
+ yes(el('dicho').value==='hola de whisper local','local transcript fills Talk');
+ yes(micStops>0,'browser microphone tracks stopped');
+ yes(voice.lastSTT().state==='MEASURED' && voice.lastSTT().inference_ms===1090,
+     'local STT metrics exported through machine-readable receipt');
+ yes(el('hex-avatar-face').getAttribute('aria-label')===el('hex-avatar-state').textContent &&
+     el('hex-avatar-state').textContent.includes('STT: 1090'),
+     'visual and accessible metrics project from the same receipt');
+ yes(voice.state().authority==='none','STT grants no authorization');
+ thermalHold=true;
+ el('hex-avatar-listen').click();
+ await new Promise(r=>setTimeout(r,40));
+ yes(voice.state().cause==='local_stt_thermal_hold','thermal HOLD shown');
+ yes(sends===baseSends+1,'thermal HOLD never submits Talk');
+ const requestCount=sentLocal;
+ let resumeMic;
+ root.navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>{resumeMic=resolve});
+ el('hex-avatar-listen').click();el('hex-avatar-stop').click();
+ resumeMic(fakeStream());
+ await new Promise(r=>setTimeout(r,15));
+ yes(sentLocal===requestCount,'STOP during permission cancels STT request');
+ yes(voice.state().state==='interrupted','STOP survives late mic permission');
+
+ console.log('PASS',n,'of',n,'tests (synthetic browser DOM, mocked mic/audio only)');
 })().catch(e=>{console.error('FAIL',e.stack);process.exitCode=1});
