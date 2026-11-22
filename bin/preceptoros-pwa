@@ -1735,11 +1735,22 @@ class PWA(BaseHTTPRequestHandler):
             _estado_compacto.serializar_objeto(response)
         except (TypeError, ValueError, UnicodeError):
             return no_data("station_reply_exceeds_receipt_budget")
+        # Station tags are runtime metadata. They cannot attest loaded bytes or authority.
+        evidence = result.get("model_evidence") or {
+            "state": "NO_DATA", "cause": "station_model_digest_unavailable"}
+        evidence = dict(evidence, epoch=None, epoch_cause="host_epoch_unavailable")
+        machine = response["respuesta"]["maquina"]
+        machine["model_evidence"] = evidence
+        try:
+            _estado_compacto.serializar_objeto(response)
+        except (TypeError, ValueError, UnicodeError):
+            # Preserve the verified answer and sources at the existing wire ceiling.
+            machine.pop("model_evidence")
         try:
             _canales.di(turno["hilo"], "hexelion", answer.strip(), sello="DECLARADO",
                         rol="Hexelion local station",
                         maquina={**pregunta, "modelo": model, "ms": duration, "via": "loopback station",
-                                 "fuentes": citations},
+                                 "fuentes": citations, "model_evidence": evidence},
                         base=_casa.raiz())
         except _canales.CanalRechazado:
             return no_data("thread_append_refused")

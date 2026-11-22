@@ -1384,13 +1384,28 @@ class HexelionStationContract(unittest.TestCase):
                                     opener=opener, clock=lambda: next(ticks))
         self.assertEqual(result, {"estado": "MEASURED", "texto": "respuesta medida",
                                   "modelo": "hexelion:latest", "ms": 23.0,
-                                  "medida": {}})  # APP-LIVE-07: the fixture reports no token counters, so no rate
+                                  "medida": {}, "model_evidence": {"state": "NO_DATA",
+                                      "cause": "station_model_digest_unavailable"}})  # APP-LIVE-07: the fixture reports no token counters, so no rate
         self.assertEqual([call.kwargs["timeout"] for call in opener.call_args_list], [3, 120])
         sent = json.loads(opener.call_args_list[1].args[0].data)
         self.assertEqual(sent["think"], "low")
         self.assertIs(sent["stream"], False)
         self.assertEqual(sent["model"], "hexelion:latest")
         self.assertEqual(sent["options"]["num_predict"], 512)
+
+    def test_runtime_digest_is_reported_only_for_unique_valid_tag(self):
+        import hexelion_proxy as proxy
+        tag = {"name": proxy.MODEL, "digest": "sha256:" + "a" * 64}
+        expected = {"state": "REPORTED", "source": "station_tags", "sha256": "a" * 64}
+        for tags in ([tag], [tag, tag], [dict(tag, digest="untrusted metadata")]):
+            with self.subTest(tags=tags), mock.patch.object(proxy, "_read_json", side_effect=[
+                {"models": tags},
+                {"model": proxy.MODEL, "response": "fixture", "total_duration": 1},
+            ]):
+                result = proxy.ask("fixture", endpoint="http://127.0.0.1:11434", opener=mock.Mock())
+                self.assertEqual(result["estado"], "MEASURED")
+                self.assertEqual(result["model_evidence"], expected if tags == [tag] else
+                                 {"state": "NO_DATA", "cause": "station_model_digest_unavailable"})
 
     def test_structured_format_only_on_explicit_call(self):
         import hexelion_proxy
@@ -1462,6 +1477,9 @@ class HexelionStationContract(unittest.TestCase):
         self.assertEqual(args[:3], ("orquesta", "hexelion", "measured seed 17"))
         self.assertEqual(kwargs["maquina"]["modelo"], "hexelion:latest")
         self.assertEqual(kwargs["maquina"]["fuentes"][0]["sha256"], source["sha256"])
+        self.assertEqual(kwargs["maquina"]["model_evidence"]["epoch_cause"], "host_epoch_unavailable")
+        self.assertEqual(captured["body"]["respuesta"]["maquina"]["model_evidence"],
+                         kwargs["maquina"]["model_evidence"])
         self.assertEqual(captured["code"], 200)
         self.assertEqual(captured["body"]["respuesta"]["voz"], "hexelion")
         self.assertEqual(captured["body"]["respuesta"]["fuentes"][0]["id"], 9)
