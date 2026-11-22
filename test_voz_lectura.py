@@ -229,3 +229,88 @@ class STTConstraints(unittest.TestCase):
         self.assertNotIn("--no-gpu",args)
         self.assertNotIn("--threads",args)
         self.assertEqual(fake.call_args.kwargs["timeout"],60)
+
+# B-05 route tests inspect the actual handler method without opening sockets,
+# recording any microphone, importing inference into a fake web server, or
+# contacting a remote speech provider.
+import ast
+from email.message import Message
+from types import SimpleNamespace
+
+class B05HTTPSTT(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        source = Path(__file__).resolve().parent / "bin" / "preceptoros-pwa"
+        tree = ast.parse(source.read_text())
+        clsdef = next(x for x in tree.body if isinstance(x, ast.ClassDef) and any(
+            isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)) and f.name == "_stt_local_wav"
+            for f in x.body))
+        f = next(f for f in clsdef.body if isinstance(f, ast.FunctionDef) and f.name == "_stt_local_wav")
+        code = compile(ast.fix_missing_locations(ast.Module(body=[f], type_ignores=[])),
+                       str(source), "exec")
+        space = {"_voz_stt_local": S}
+        exec(code, space)
+        cls.route = staticmethod(space["_stt_local_wav"])
+
+    def handler(self, *, origin=True, pairs=None, raw=None, proxy=False):
+        headers = Message()
+        if pairs is None:
+            pairs = [("Host", "127.0.0.1:8742"), ("Origin", "http://127.0.0.1:8742"),
+                     ("Sec-Fetch-Site", "same-origin"), ("Content-Type", "audio/wav"),
+                     ("X-Hexelion-STT-Command", S.COMMAND),
+                     ("Content-Length", str(len(self.wav)))]
+        for k, v in pairs: headers.add_header(k, v)
+        h = SimpleNamespace(headers=headers, rfile=io.BytesIO(self.wav if raw is None else raw),
+                            close_connection=False)
+        h._nodo_local_autorizado = lambda: origin
+        h._tailnet_proxy_request = lambda: proxy
+        h._json = lambda status, data: (status, data)
+        return h
+
+    def setUp(self): self.wav = fixture_wav()
+
+    def test_route_validates_origin_before_transcription(self):
+        for kwargs in ({"origin":False}, {"proxy":True},
+                       {"pairs":[("Host","127.0.0.1:8742"),
+                                 ("Origin","http://127.0.0.1:8742"),
+                                 ("Host","localhost:8742"), ("Content-Type","audio/wav"),
+                                 ("Content-Length",str(len(self.wav))),
+                                 ("X-Hexelion-STT-Command",S.COMMAND)]}):
+            with self.subTest(kwargs=kwargs), patch.object(S,"transcribe_once") as infer:
+                h=self.handler(**kwargs)
+                status,data=self.route(h)
+                self.assertEqual((status,data["cause"]),(403,"local_origin_required"))
+                self.assertTrue(h.close_connection)
+                infer.assert_not_called()
+
+    def test_route_rejects_wrong_command_type_and_payload(self):
+        good=[("Host","127.0.0.1:8742"),("Origin","http://127.0.0.1:8742"),
+              ("Sec-Fetch-Site","same-origin"),("Content-Type","audio/wav"),
+              ("X-Hexelion-STT-Command",S.COMMAND),("Content-Length",str(len(self.wav)))]
+        variants=[
+            [(k,"browser-recognize" if k=="X-Hexelion-STT-Command" else v) for k,v in good],
+            [(k,"application/json" if k=="Content-Type" else v) for k,v in good],
+            [(k,str(S.MAX_WAV_BYTES+1) if k=="Content-Length" else v) for k,v in good],
+            good+[("Transfer-Encoding","chunked")],
+            good+[("X-Forwarded-For","127.0.0.1")],
+        ]
+        with patch.object(S,"transcribe_once") as infer:
+            for pairs in variants:
+                with self.subTest(headers=pairs):
+                    status,_=self.route(self.handler(pairs=pairs))
+                    self.assertIn(status,(400,403,415))
+            infer.assert_not_called()
+
+    def test_route_passes_one_valid_wav_to_existing_engine(self):
+        expected={"state":"LOCAL_TRANSCRIPT_ONLY","text":"hola","cause":"not_authenticated_brain_reply"}
+        with patch.object(S,"transcribe_once",return_value=expected) as infer:
+            status,resp=self.route(self.handler())
+            self.assertEqual(status,200)
+            self.assertEqual(resp,expected)
+            infer.assert_called_once_with({"command":S.COMMAND},self.wav,local_origin_verified=True)
+
+    def test_route_thermal_hold_is_no_data_not_text(self):
+        with patch.object(S,"transcribe_once",side_effect=S.STTUnavailable("beelink_cpu_thermal_hold")) as infer:
+            status,resp=self.route(self.handler())
+            self.assertEqual((status,resp),(503,{"state":"NO_DATA","cause":"beelink_cpu_thermal_hold"}))
+            infer.assert_called_once()

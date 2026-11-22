@@ -22,7 +22,7 @@ class TouchTargets(unittest.TestCase):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf8")
         self.assertIn('href="/app.css?v=57"', html)
         self.assertIn('"/app.css?v=57"', sw)
-        self.assertIn('const Cache = "preceptoros-armazon-v247"', sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v248"', sw)
 
 
 if __name__ == "__main__":

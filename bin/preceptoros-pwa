@@ -72,6 +72,7 @@ import cara as _cara                                        # noqa: E402
 import casa as _casa
 import version as _version
 import voz_lectura as _voz_lectura
+import voz_stt_local as _voz_stt_local
 import voz as _voz                                        # noqa: E402
 import consola as _consola                                  # noqa: E402
 import decisor as _decisor                                  # noqa: E402
@@ -817,6 +818,8 @@ class PWA(BaseHTTPRequestHandler):
             return self._plan_store_post()
         if ruta == "/api/voz/lectura":
             return self._lectura_nativa()
+        if ruta == "/api/voz/stt":
+            return self._stt_local_wav()
         if ruta in ("/api/nodo/identity", "/api/nodo/edificio", "/api/nodo/admission", "/api/nodo/heartbeat-key",
                 "/api/nodo/heartbeat"):
             try:
@@ -996,6 +999,50 @@ class PWA(BaseHTTPRequestHandler):
         self.send_header("X-Voice-Receipt", json.dumps(receipt, separators=(",", ":")))
         self.end_headers()
         self.wfile.write(audio)
+
+    def _stt_local_wav(self):
+        """One explicit browser WAV → existing CPU-only Whisper, never a Talk grant.
+
+        No JSON/audio envelope, no proxy or remote origin, no device mic on server.
+        Request: POST /api/voz/stt, audio/wav, header X-Hexelion-STT-Command.
+        """
+        if (not self._nodo_local_autorizado()
+                or self._tailnet_proxy_request()
+                or self.headers.get("Sec-Fetch-Site") not in (None, "same-origin", "none")
+                or self.headers.get("X-Forwarded-For") is not None
+                or self.headers.get("X-Forwarded-Host") is not None
+                or self.headers.get("X-Forwarded-Proto") is not None
+                or any(len(self.headers.get_all(key, [])) != 1 for key in
+                       ("Host", "Origin", "Content-Type", "Content-Length",
+                        "X-Hexelion-STT-Command"))):
+            self.close_connection = True
+            return self._json(403, {"state": "NO_DATA", "cause": "local_origin_required"})
+        if self.headers.get("X-Hexelion-STT-Command") != _voz_stt_local.COMMAND:
+            self.close_connection = True
+            return self._json(400, {"state": "NO_DATA",
+                                    "cause": "explicit_es_transcription_required"})
+        if (self.headers.get("Content-Type", "").strip().lower() != "audio/wav"
+                or self.headers.get("Transfer-Encoding") is not None
+                or self.headers.get("Content-Encoding") is not None):
+            self.close_connection = True
+            return self._json(415, {"state": "NO_DATA", "cause": "local_wav_required"})
+        try:
+            size = int(self.headers["Content-Length"])
+            if not 44 <= size <= _voz_stt_local.MAX_WAV_BYTES:
+                raise ValueError()
+            data = self.rfile.read(size)
+            if len(data) != size:
+                raise ValueError()
+        except (TypeError, ValueError, OSError):
+            self.close_connection = True
+            return self._json(400, {"state": "NO_DATA",
+                                    "cause": "local_wav_bytes_out_of_range"})
+        try:
+            receipt = _voz_stt_local.transcribe_once(
+                {"command": _voz_stt_local.COMMAND}, data, local_origin_verified=True)
+        except _voz_stt_local.STTUnavailable as exc:
+            return self._json(503, {"state": "NO_DATA", "cause": str(exc)})
+        return self._json(200, receipt)
 
     def _memoria_local(self):
         """GET guard for the memory state: loopback, a local Host, and same-origin when the browser says where from."""
