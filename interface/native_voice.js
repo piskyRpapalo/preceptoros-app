@@ -26,7 +26,26 @@
   function read(text, language, notify, engine) {
     stop(); var run = serial, parts;
     try { parts = chunks(text); } catch (_) { notify('NO_DATA · text is outside the reading budget.'); return; }
+
     var synth = root.speechSynthesis, selected;
+    var baseLanguage = String(language).split(/[-_]/)[0].toLowerCase();
+    // The browser may use no local Spanish voice. Only on loopback, and only
+    // after the user presses Read, offer the APP's *existing* host synthesizer.
+    // No remote recognizer, no model inference, no new voice HTTP endpoint.
+    var hostIsLocal = !!(root.location && root.location.protocol === 'http:' &&
+      ['127.0.0.1', 'localhost', '::1'].includes(root.location.hostname) &&
+      typeof root.fetch === 'function' && typeof root.Audio === 'function' &&
+      root.crypto && root.crypto.subtle);
+    if (engine === 'browser' && baseLanguage === 'es' && hostIsLocal) {
+      var browserVoices = [];
+      try { browserVoices = synth && synth.getVoices ? synth.getVoices() || [] : []; } catch (_) {}
+      var hasSpanishLocal = browserVoices.some(v => v.localService === true &&
+        String(v.lang).split(/[-_]/)[0].toLowerCase() === 'es');
+      if (!hasSpanishLocal) {
+        engine = 'host-espeak-ng';
+        notify('LOCAL · explicit Spanish reading uses the existing Beelink host voice; physical audibility NO_DATA.');
+      }
+    }
     if (engine !== 'host-espeak-ng') {
       if (!synth || !root.SpeechSynthesisUtterance) { notify('NO_DATA · this browser has no speech synthesis.'); return; }
       var pick = function (all) {
@@ -69,22 +88,25 @@
         notify('Reading visible text · local browser voice · part ' + (i + 1) + '/' + parts.length + '.');
         synth.speak(utterance); return;
       }
-      if (language.split(/[-_]/)[0].toLowerCase() !== 'en') { notify('NO_DATA · host reader currently supports English only.'); return; }
+      if (!['en', 'es'].includes(baseLanguage)) { notify('NO_DATA · host reader supports only en and es.'); return; }
       try {
         abort = new AbortController();
-        var response = await root.fetch('/api/voz/lectura', {method:'POST',cache:'no-store',redirect:'error',signal:abort.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({text:parts[i],engine:'host-espeak-ng'})});
+        var response = await root.fetch('/api/voz/lectura', {method:'POST',cache:'no-store',redirect:'error',signal:abort.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({text:parts[i],engine:'host-espeak-ng',language:baseLanguage})});
         if (serial !== run) return;
         if (!response.ok) throw new Error('host unavailable');
         var receipt = JSON.parse(response.headers.get('X-Voice-Receipt')), bytes = await response.arrayBuffer();
         var textHash = await sha(encoder.encode(parts[i])), audioHash = await sha(bytes);
         if (serial !== run) return;
-        if (receipt.text_sha256 !== textHash || receipt.audio_sha256 !== audioHash || receipt.bytes !== bytes.byteLength) throw new Error('voice digest mismatch');
+        if (receipt.state !== 'ok' || receipt.engine !== 'host-espeak-ng' ||
+            receipt.language !== baseLanguage || receipt.text_sha256 !== textHash ||
+            receipt.audio_sha256 !== audioHash || receipt.bytes !== bytes.byteLength)
+          throw new Error('voice receipt or digest mismatch');
         if (objectURL) root.URL.revokeObjectURL(objectURL);
         objectURL = root.URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));
         player = new root.Audio(objectURL);
         player.onended = function () { if (serial === run) next(i + 1); };
         player.onerror = function () { if (serial === run) notify('NO_DATA · native audio playback failed.'); };
-        notify('Reading visible text · app host espeak-ng · part ' + (i+1) + '/' + parts.length + ' · text SHA-256 ' + textHash + '.');
+        notify('Reading visible text · app host espeak-ng (' + baseLanguage + ') · part ' + (i+1) + '/' + parts.length + ' · text SHA-256 ' + textHash + '.');
         await player.play();
       } catch (_) { if (serial === run) notify('NO_DATA · host native reading failed.'); }
     }
