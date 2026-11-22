@@ -209,7 +209,7 @@ const adapter = flow.doorOneAdapter((url, options) => {
             cwd=ROOT, capture_output=True, text=True, timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("pass 13", result.stdout)
+        self.assertIn("pass 14", result.stdout)
         self.assertIn("fail 0", result.stdout)
 
     def test_aduana_client_join_contract(self):

@@ -178,3 +178,21 @@ test('HEX-NODE3 v2: the owner-chosen alias and roles go in the request; without 
   assert.equal(nb.loopback.intakeBody({ document: { getElementById: () => null } }, 'n', 'b').esquema,
     'preceptoros.pwa-node-deployment-request/1');
 });
+
+test('HEX-NODE3-07: one reading drives Acho, the spoken sentence and the JSON; every asked cause is named', () => {
+  const ex = require('../interface/node_building.js').loopback.explain;
+  const ok = ex({ state: 'MEASURED', cause: 'heartbeat_receipt_verified', node: 'fixture-v2', public_map: 'LISTED' }, 'Received.');
+  assert.deepEqual([ok.state, ok.acho], ['MEASURED', 'ok']);
+  assert.match(ok.sentence, /^Received\. The public map lists fixture-v2\.$/);
+  assert.doesNotMatch(ok.sentence, /LIVE/);
+  const asked = { emisor_no_autorizado: [/revoked/, 'fence'], heartbeat_key_expired: [/expired/, 'needs_you'],
+    human_admission_not_verified: [/signed admission/, 'needs_you'], plan_firmado_rechazado: [/rejected/, 'fence'],
+    aduana_unavailable: [/Connection lost/, null], awaiting_sovereign_approval: [/not signed/, 'needs_you'] };
+  for (const [cause, [text, acho]] of Object.entries(asked)) {
+    const v = ex({ state: 'NO_DATA', cause }, 'x');
+    assert.equal(v.state, 'NO_DATA'); assert.equal(v.acho, acho, cause); assert.match(v.sentence, text, cause);
+  }
+  const odd = ex({ state: 'NO_DATA', cause: '<img onerror=x>' }, 'x');
+  assert.equal(odd.cause, 'no_answer');
+  assert.equal(ex({ state: 'LIVE', cause: 'self_declared' }, 'x').state, 'NO_DATA', 'a self-declared LIVE is not a state');
+});

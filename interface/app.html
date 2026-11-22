@@ -648,7 +648,9 @@
       <p class="pie" id="node-admission-help">Your device creates and keeps its own keys. Only public, signed material is sent. Approval never gives rack or admin access.</p>
       <button type="button" class="probar" id="node-admission-finish">Finish admission on this device</button>
       <button type="button" class="probar" id="node-heartbeat-start">Create my heartbeat key</button>
-      <p id="node-admission-status" role="status" aria-live="polite">Nothing sent yet.</p>
+      <button type="button" class="probar" id="node-heartbeat-send">Send one heartbeat now</button>
+      <p id="node-admission-status" role="status" aria-live="polite"><span id="node-admission-acho" class="acho-estado" aria-hidden="true"></span><span id="node-admission-sentence">Nothing sent yet.</span></p>
+      <pre id="node-admission-json" aria-label="Aduana answer as JSON"></pre>
     </section>
     </details>
     <section class="tarjeta" lang="en" aria-labelledby="companion-onboard-title" hidden>

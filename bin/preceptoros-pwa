@@ -817,7 +817,8 @@ class PWA(BaseHTTPRequestHandler):
             return self._plan_store_post()
         if ruta == "/api/voz/lectura":
             return self._lectura_nativa()
-        if ruta in ("/api/nodo/identity", "/api/nodo/edificio", "/api/nodo/admission", "/api/nodo/heartbeat-key"):
+        if ruta in ("/api/nodo/identity", "/api/nodo/edificio", "/api/nodo/admission", "/api/nodo/heartbeat-key",
+                "/api/nodo/heartbeat"):
             try:
                 tamano = int(self.headers.get("Content-Length") or 0)
             except (TypeError, ValueError):
@@ -845,7 +846,8 @@ class PWA(BaseHTTPRequestHandler):
         if datos is None:
             return self._json(400, {"estado": "bloqueado",
                                     "motivo": "cuerpo ilegible o fuera de rango"})
-        if (ruta in ("/api/nodo/identity", "/api/nodo/edificio", "/api/nodo/admission", "/api/nodo/heartbeat-key")
+        if (ruta in ("/api/nodo/identity", "/api/nodo/edificio", "/api/nodo/admission", "/api/nodo/heartbeat-key",
+                "/api/nodo/heartbeat")
                 and self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json"):
             return self._json(415, {"estado": "NO_DATA", "causa": "tipo_de_contenido_invalido"})
         if ruta == "/api/frontera":
@@ -895,7 +897,8 @@ class PWA(BaseHTTPRequestHandler):
                 return self._json(422, {"estado": "NO_DATA", "causa": "identidad_local_invalida"})
             resultado = _node_building.provisionar_identidad(_casa.raiz(), datos.get("node_id"))
             return self._json(200 if resultado.get("estado") == "provisionada" else 409, resultado)
-        if ruta in ("/api/nodo/admission", "/api/nodo/heartbeat-key"):
+        if ruta in ("/api/nodo/admission", "/api/nodo/heartbeat-key",
+                "/api/nodo/heartbeat"):
             # HEX-NODE3 v2: the owner's device signs its admission and its heartbeat key; only public material leaves.
             if not self._nodo_local_autorizado():
                 return self._json(403, {"state": "NO_DATA", "cause": "local_owner_origin_required"})
@@ -909,6 +912,11 @@ class PWA(BaseHTTPRequestHandler):
                     if datos != {"esquema": "preceptoros.pwa-node-admission/1", "confirm": True} or not node:
                         return self._json(422, {"state": "NO_DATA", "cause": "consent_or_identity_required"})
                     result = _node_owner.submit_admission(_casa.raiz(), node)
+                elif ruta == "/api/nodo/heartbeat":
+                    # One heartbeat per explicit press; the key never leaves node-owner/ except in the header.
+                    if datos != {"esquema": "preceptoros.pwa-node-heartbeat/1", "confirm": True}:
+                        return self._json(422, {"state": "NO_DATA", "cause": "consent_required"})
+                    result = _node_owner.heartbeat_once(_casa.raiz())
                 else:
                     if (not isinstance(datos, dict) or set(datos) != {"esquema", "alias"}
                             or datos.get("esquema") != "preceptoros.pwa-node-heartbeat-key/1"):

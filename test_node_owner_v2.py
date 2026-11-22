@@ -145,9 +145,10 @@ class Routes(TestCase):
         h._tailnet_proxy_request = lambda: False
         with mock.patch.object(pwa._casa, "raiz", return_value=home), \
              mock.patch.object(node_owner, "submit_admission", return_value={"state": "PENDING", "cause": "x"}) as sub, \
-             mock.patch.object(node_owner, "heartbeat_key", return_value={"state": "MEASURED", "cause": "y"}) as hk:
+             mock.patch.object(node_owner, "heartbeat_key", return_value={"state": "MEASURED", "cause": "y"}) as hk, \
+             mock.patch.object(node_owner, "heartbeat_once", return_value={"state": "NO_DATA", "cause": "z"}) as once:
             code, body = h._despachar_post()
-        return code, body, sub.call_count + hk.call_count
+        return code, body, sub.call_count + hk.call_count + once.call_count
 
     def test_routes_need_owner_origin_consent_and_identity(self):
         own = {"Origin": "http://127.0.0.1:8742"}
@@ -165,7 +166,104 @@ class Routes(TestCase):
                 ("/api/nodo/admission", ok_adm, own, 200, 1),
                 ("/api/nodo/heartbeat-key", {"esquema": "preceptoros.pwa-node-heartbeat-key/1"}, own, 422, 0),
                 ("/api/nodo/heartbeat-key", ok_key, own, 200, 1),
+                ("/api/nodo/heartbeat", {"esquema": "preceptoros.pwa-node-heartbeat/1"}, own, 422, 0),
+                ("/api/nodo/heartbeat", {"esquema": "preceptoros.pwa-node-heartbeat/1", "confirm": True},
+                 {"Origin": "https://preceptoros.org"}, 403, 0),
+                ("/api/nodo/heartbeat", {"esquema": "preceptoros.pwa-node-heartbeat/1", "confirm": True}, own, 409, 1),
             ):
                 with self.subTest(path=path, headers=headers, datos=datos):
                     code, _body, n = self.call(path, datos, headers, home)
                     self.assertEqual((code, n), (status, calls))
+
+
+class Heartbeat(TestCase):
+    """HEX-NODE3-07: the desktop APP's own heartbeat, once, same contract as Android."""
+
+    def setUp(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.home = Path(tmp.name) / "app"
+        self.home.mkdir(mode=0o700)
+        from datetime import datetime, timezone
+        self.now = datetime(2026, 11, 22, 22, 0, 0, tzinfo=timezone.utc)
+        wire = Wire()
+        wire.replies.append((202, {"estado": "registrada", "nodo": "fixture-v2"}))
+        node_owner.heartbeat_key(self.home, "fixture-v2", post=wire, now=self.now)
+        self.key = (self.home / "node-owner" / node_owner.HEARTBEAT_KEY).read_text().strip()
+
+    def aduana(self, status=202, tamper=None, codigo=None):
+        seen = []
+
+        def answer(url, body, headers, timeout):
+            seen.append((url, body, headers))
+            if codigo:
+                return status, json.dumps({"codigo": codigo}).encode(), url
+            b = json.loads(body)
+            recibo = {"esquema": "preceptoros.recibo-latido/1", "nodo": b["nodo"], "secuencia": b["secuencia"],
+                      "medido_en": b["medido_en"], "recibido": "2026-11-22T22:00:01Z",
+                      "payload_sha256": hashlib.sha256(body).hexdigest()}
+            recibo["recibo_sha256"] = hashlib.sha256(node_building._canonical(recibo)).hexdigest()
+            if tamper:
+                tamper(recibo)
+            return status, json.dumps({"estado": "recibido", "recibo": recibo}).encode(), url
+        return answer, seen
+
+    def listing(self, ids):
+        return lambda url: (200, json.dumps({"colonia": {"nodes": [{"id": i} for i in ids]}}).encode(), url)
+
+    def test_one_heartbeat_with_the_device_key_and_a_verified_receipt(self):
+        post, seen = self.aduana()
+        out = node_owner.heartbeat_once(self.home, post=post, get=self.listing(["fixture-v2"]), now=self.now)
+        self.assertEqual((out["state"], out["cause"], out["public_map"]),
+                         ("MEASURED", "heartbeat_receipt_verified", "LISTED"))
+        url, body, headers = seen[0]
+        self.assertEqual(url, node_owner.HEARTBEAT_URL)
+        self.assertEqual(headers[node_building.KEY_HEADER], self.key)
+        self.assertEqual(set(json.loads(body)), {"esquema", "nodo", "secuencia", "medido_en"})
+        self.assertNotIn(self.key, json.dumps(out) + body.decode())
+        self.assertNotIn("LIVE", json.dumps(out))
+        state = (self.home / "node-owner" / node_owner.HEARTBEAT_STATE).read_text()
+        self.assertNotIn(self.key, state)
+
+    def test_sequence_always_grows_even_in_the_same_second(self):
+        post, seen = self.aduana()
+        a = node_owner.heartbeat_once(self.home, post=post, get=self.listing([]), now=self.now)
+        b = node_owner.heartbeat_once(self.home, post=post, get=self.listing([]), now=self.now)
+        self.assertEqual(b["sequence"], a["sequence"] + 1)
+        self.assertEqual(a["public_map"], "NOT_LISTED")
+
+    def test_refusals_carry_aduana_cause_and_record_nothing(self):
+        for status, codigo in ((401, "emisor_no_autorizado"), (403, "human_admission_not_verified"),
+                               (409, "secuencia_atrasada"), (503, "registro_no_disponible")):
+            post, _ = self.aduana(status, codigo=codigo)
+            out = node_owner.heartbeat_once(self.home, post=post, get=self.listing([]), now=self.now)
+            self.assertEqual((out["state"], out["cause"], out["http"]), ("NO_DATA", codigo, status))
+        self.assertFalse((self.home / "node-owner" / node_owner.HEARTBEAT_STATE).exists())
+
+    def test_tampered_or_foreign_receipt_is_not_counted(self):
+        for tamper in (lambda r: r.update(secuencia=r["secuencia"] + 1),
+                       lambda r: r.update(payload_sha256="0" * 64),
+                       lambda r: r.update(recibido="2026-11-22T22:00:09Z"),
+                       lambda r: r.update(nodo="primer-ancla")):
+            post, _ = self.aduana(tamper=tamper)
+            out = node_owner.heartbeat_once(self.home, post=post, get=self.listing([]), now=self.now)
+            self.assertEqual((out["state"], out["cause"]), ("NO_DATA", "receipt_mismatch"))
+
+    def test_expired_missing_or_swapped_key_never_reaches_the_network(self):
+        from datetime import timedelta
+        post, seen = self.aduana()
+        late = node_owner.heartbeat_once(self.home, post=post, now=self.now + timedelta(hours=24))
+        self.assertEqual(late["cause"], "heartbeat_key_expired")
+        key_file = self.home / "node-owner" / node_owner.HEARTBEAT_KEY
+        key_file.write_text("ab" * 32 + "\n")
+        self.assertEqual(node_owner.heartbeat_once(self.home, post=post, now=self.now)["cause"],
+                         "heartbeat_key_record_invalid")
+        key_file.unlink()
+        self.assertEqual(node_owner.heartbeat_once(self.home, post=post, now=self.now)["cause"], "no_heartbeat_key")
+        self.assertEqual(seen, [])
+
+    def test_disconnection_is_named(self):
+        def down(*_args):
+            raise OSError("network down")
+        out = node_owner.heartbeat_once(self.home, post=down, now=self.now)
+        self.assertEqual((out["state"], out["cause"]), ("NO_DATA", "aduana_unavailable"))
