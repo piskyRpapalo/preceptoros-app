@@ -574,6 +574,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         INTRINSECOS |= {"PROPOSED", "AUTHORIZED", "DISPATCHED", "RESULT", "DENIED"}
         # "NEVER" appears in interface prose and comments (e.g. "never scrolls sideways"), not a policy.
         INTRINSECOS |= {"NEVER"}
+        # HEX-NODE3 v2: the roles a node offers in deployment-request/2 are contract values, not scrub policies.
+        INTRINSECOS |= {"APP_CLIENT", "SENSOR", "LOCAL_AI", "MODEL_SERVER", "BENCH_WORKER"}
         for fichero in self.ficheros():
             contenido = fichero.read_text(encoding="utf-8")
             for nombrada in re.findall(r"\b[A-Z][A-Z_]{3,}\b", contenido):

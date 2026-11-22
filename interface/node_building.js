@@ -152,6 +152,48 @@
     return !!loc && loc.protocol === 'http:' && /^(127\.0\.0\.1|localhost|\[::1\])$/.test(loc.hostname) &&
       typeof win.fetch === 'function';
   }
+  // HEX-NODE3 v2: with the alias and roles the owner chose, the APP creates the owner key on this device and
+  // sends deployment-request/2. Without the form (older pages) it keeps the v1 request.
+  var pwaIntakeSchemaV2 = 'preceptoros.pwa-node-deployment-request/2';
+  function intakeBody(win, node, nonce) {
+    var doc = win.document, roles = [];
+    var box = doc && doc.getElementById('node-registration-roles');
+    if (!box) return { esquema: pwaIntakeSchema, node: node, nonce: nonce, consent: true };
+    box.querySelectorAll('input[name="role"]').forEach(function (i) { if (i.checked) roles.push(i.value); });
+    var alias = String((doc.getElementById('node-registration-alias') || {}).value || '').trim();
+    return { esquema: pwaIntakeSchemaV2, node: node, nonce: nonce, consent: true,
+      alias: alias || null, roles: roles.length ? roles : ['APP_CLIENT'] };
+  }
+  function mountAdmission(win) {
+    var doc = win.document;
+    var status = doc && doc.getElementById('node-admission-status');
+    if (!status) return;
+    function say(message) { status.textContent = message; }
+    async function call(path, body, done) {
+      if (!isLoopbackApp(win)) return say('NO_DATA: open My node on the computer where this APP runs.');
+      try {
+        var r = await win.fetch(path, { method: 'POST', cache: 'no-store', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        var b; try { b = await r.json(); } catch (_e) { b = {}; }
+        var cause = boundedCause(b.cause, 'http_' + r.status);
+        say(b.state === 'MEASURED' ? done : b.state === 'PENDING' ? 'Waiting for the Sovereign: ' + cause.replace(/_/g, ' ') + '.'
+          : 'Not done yet: ' + cause.replace(/_/g, ' ') + '.');
+      } catch (_e) { say('NO_DATA: app server unreachable.'); }
+    }
+    var finish = doc.getElementById('node-admission-finish'), beat = doc.getElementById('node-heartbeat-start');
+    if (finish) finish.addEventListener('click', function () {
+      say('Signing on this device and sending…');
+      call('/api/nodo/admission', { esquema: 'preceptoros.pwa-node-admission/1', confirm: true },
+        'Admission recorded: your cédula is verified.');
+    });
+    if (beat) beat.addEventListener('click', function () {
+      var alias = String((doc.getElementById('node-registration-alias') || {}).value || '').trim();
+      if (!alias) return say('Write the public map name first.');
+      say('Creating your heartbeat key on this device…');
+      call('/api/nodo/heartbeat-key', { esquema: 'preceptoros.pwa-node-heartbeat-key/1', alias: alias },
+        'Heartbeat key registered. It stays on this device; renew it daily.');
+    });
+  }
   function loopbackIntake(win) {
     if (!isLoopbackApp(win) || !win.crypto || typeof win.crypto.getRandomValues !== 'function') return null;
     var nonce = null; // one per consented attempt; a retry of that same attempt reuses it
@@ -165,7 +207,7 @@
       try {
         response = await win.fetch('/api/nodo/identity', { method: 'POST', cache: 'no-store',
           credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ esquema: pwaIntakeSchema, node: request.node, nonce: nonce, consent: true }) });
+          body: JSON.stringify(intakeBody(win, request.node, nonce)) });
       } catch (_error) { throw new Error('app_server_unreachable'); }
       var body; try { body = await response.json(); } catch (_error) { body = {}; }
       if (!response.ok) throw new Error(boundedCause(body.cause || body.causa, 'intake_http_' + response.status));
@@ -212,7 +254,8 @@
     return no(b.cause || "building_requirements_unverified", "Install and test the building's function and accept its policy on this node; this APP cannot do that for you.");
   }
 
-  var loopback = Object.freeze({ intake: loopbackIntake, read: readEvidence, buildingGate: buildingGate });
+  var loopback = Object.freeze({ intake: loopbackIntake, read: readEvidence, buildingGate: buildingGate,
+    intakeBody: intakeBody, mountAdmission: mountAdmission });
 
   if (typeof module === "object" && module.exports) {
     module.exports = Object.freeze({ mount: mount, identitySchema: identitySchema, actionSchema: actionSchema,
@@ -220,5 +263,6 @@
   } else if (root.document) {
     root.PreceptorNodeLoopback = loopback;
     mount(root.document, root.fetch.bind(root));
+    mountAdmission(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this);

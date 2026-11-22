@@ -165,3 +165,16 @@ test('a local public alias does not advance cédula admission', () => {
   assert.equal(result.stages[0].cause, 'local_identity_not_cedula_namespace');
   assert.equal(result.live, false);
 });
+
+test('HEX-NODE3 v2: the owner-chosen alias and roles go in the request; without the form v1 stays', () => {
+  const nb = require('../interface/node_building.js');
+  const form = { 'node-registration-roles': { querySelectorAll: () => [{ checked: true, value: 'APP_CLIENT' },
+    { checked: false, value: 'MODEL_SERVER' }] }, 'node-registration-alias': { value: ' fixture-v2 ' } };
+  const v2 = nb.loopback.intakeBody({ document: { getElementById: (id) => form[id] || null } }, 'nodo.906.fixture-v2', 'a'.repeat(32));
+  assert.deepEqual(v2, { esquema: 'preceptoros.pwa-node-deployment-request/2', node: 'nodo.906.fixture-v2',
+    nonce: 'a'.repeat(32), consent: true, alias: 'fixture-v2', roles: ['APP_CLIENT'] });
+  const none = { 'node-registration-roles': { querySelectorAll: () => [] } };
+  assert.deepEqual(nb.loopback.intakeBody({ document: { getElementById: (id) => none[id] || null } }, 'n', 'b').roles, ['APP_CLIENT']);
+  assert.equal(nb.loopback.intakeBody({ document: { getElementById: () => null } }, 'n', 'b').esquema,
+    'preceptoros.pwa-node-deployment-request/1');
+});

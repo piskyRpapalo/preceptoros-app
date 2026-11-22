@@ -89,3 +89,81 @@ def sign_admission(home, node):
                           "dispositivos": [{"clave": request["device_sha256"], "estado": "solicitado"}]}, CEDULA_NS)
     cedula["sha256"] = node_lifecycle._digest(cedula)
     return {"cedula": cedula, "bundle": {node: {"public_key": public, "plan": plan}}}
+
+
+# --- HEX-NODE3 v2: finish admission and heartbeat from the device, with no SSH knowledge needed ---------
+import json
+import re
+import secrets
+from datetime import datetime, timedelta, timezone
+
+import nodo_export
+
+CEDULAS_URL = "https://api.preceptoros.org/api/v1/cedulas"
+KEYS_URL = "https://api.preceptoros.org/api/v1/latidos/llaves"
+KEY_NS = "preceptoros-latido-llave"
+HEARTBEAT_KEY = "heartbeat.key"
+WINDOW = timedelta(hours=23, minutes=50)
+ALIAS = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+
+
+def public_key(home):
+    """`ssh-ed25519 <base64>`: the exact public form Aduana's deployment-request/2 accepts."""
+    return " ".join(prepare(home).split()[:2])
+
+
+def _post(post, url, body):
+    status, raw, final = (post or node_building._http_post)(
+        url, node_building._canonical(body), {"Content-Type": "application/json", "Accept": "application/json"}, 8)
+    if final != url or len(raw) > 65536:
+        raise ValueError("unexpected_reply")
+    return status, json.loads(raw.decode("utf-8"), object_pairs_hook=node_building._unique_object)
+
+
+def submit_admission(home, node, *, post=None):
+    """Sign, send {cedula, plan} to Aduana, and keep the receipt only if it binds exactly what was sent."""
+    signed = sign_admission(home, node)
+    cedula = signed["cedula"]
+    plan = signed["bundle"][node]["plan"]
+    try:
+        status, reply = _post(post, CEDULAS_URL, {"cedula": cedula, "plan": plan})
+    except (OSError, ValueError, UnicodeError):
+        return {"state": "NO_DATA", "cause": "aduana_unavailable"}
+    if status == 409:
+        return {"state": "PENDING", "cause": "awaiting_sovereign_approval"}
+    if status not in (200, 202) or not nodo_export._recibo_corresponde(cedula, reply):
+        return {"state": "NO_DATA", "cause": reply.get("codigo") or "receipt_mismatch"}
+    receipt = reply["recibo"]
+    recorded = node_lifecycle.record_export(home, cedula, receipt)
+    return {"state": "MEASURED" if receipt.get("estado") == "verificado" else "PENDING",
+            "cause": receipt.get("causa") or "cedula_verified", "receipt": receipt.get("recibo_sha256"),
+            "lifecycle_recorded": recorded}
+
+
+def heartbeat_key(home, alias, *, post=None, now=None):
+    """Create the next heartbeat key HERE, register only its owner-signed hash, then switch to it."""
+    if not isinstance(alias, str) or not ALIAS.fullmatch(alias):
+        raise ValueError("invalid_alias")
+    prepare(home)
+    folder = _owner_dir(home)
+    now = (now or datetime.now(timezone.utc)).replace(microsecond=0)
+    key = secrets.token_hex(32)
+    pending = folder / (HEARTBEAT_KEY + ".siguiente")
+    fd = os.open(pending, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w", encoding="ascii") as handle:
+        handle.write(key + "\n")
+    fmt = "%Y-%m-%dT%H:%M:%SZ"
+    record = _sign(home, {"esquema": "preceptoros.latido-llave/1", "nodo": alias,
+                          "sha256": hashlib.sha256(key.encode("ascii")).hexdigest(),
+                          "desde": (now - timedelta(seconds=60)).strftime(fmt),
+                          "hasta": (now + WINDOW).strftime(fmt)}, KEY_NS)
+    try:
+        status, reply = _post(post, KEYS_URL, record)
+    except (OSError, ValueError, UnicodeError):
+        return {"state": "NO_DATA", "cause": "aduana_unavailable"}
+    if status != 202 or reply.get("estado") != "registrada" or reply.get("nodo") != alias:
+        pending.unlink(missing_ok=True)  # the current key, if any, stays in use
+        return {"state": "NO_DATA", "cause": reply.get("codigo") or "key_not_registered"}
+    os.replace(pending, folder / HEARTBEAT_KEY)
+    return {"state": "MEASURED", "cause": "owner_key_registered", "until": record["hasta"],
+            "key_file": HEARTBEAT_KEY}
