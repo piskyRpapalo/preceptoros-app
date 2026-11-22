@@ -171,6 +171,7 @@
     "detectar-termux-boot",
     "eco-remoto",
     "faro",
+    "firmar_decision.py",
     "firmas-scraper",
     "indice-rack",
     "instalar-android",
