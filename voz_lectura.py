@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import time
 import wave
 
 import silencio
@@ -21,11 +22,14 @@ class ReadingUnavailable(ValueError):
 
 
 def synthesize(request):
-    if (not isinstance(request, dict) or set(request) != {"text", "engine"}
+    if (not isinstance(request, dict) or set(request) not in (
+                {"text", "engine"}, {"text", "engine", "language"})
             or request.get("engine") != "host-espeak-ng"
+            or request.get("language", "en") not in ("en", "es")
             or not isinstance(request.get("text"), str)):
         raise ReadingUnavailable("invalid_reading_request")
     text = request["text"]
+    language = request.get("language", "en")
     try:
         raw = text.encode("utf-8")
     except UnicodeError:
@@ -42,8 +46,10 @@ def synthesize(request):
     try:
         with tempfile.TemporaryDirectory(prefix="app-reading-") as folder:
             output = Path(folder) / "reading.wav"
-            result = subprocess.run([binary, "--stdin", "-v", "en", "-s", "160", "-w", str(output)],
+            started = time.perf_counter()
+            result = subprocess.run([binary, "--stdin", "-v", language, "-s", "160", "-w", str(output)],
                                     input=raw, capture_output=True, timeout=15, check=True)
+            synthesis_wall_ms = round((time.perf_counter() - started) * 1000, 2)
             if result.returncode or not output.is_file() or not 44 < output.stat().st_size <= MAX_AUDIO:
                 raise ReadingUnavailable("host_native_voice_failed")
             audio = output.read_bytes()
@@ -55,10 +61,11 @@ def synthesize(request):
             frames, rate = wav.getnframes(), wav.getframerate()
             if len(wav.readframes(frames)) != frames * 2:
                 raise ReadingUnavailable("invalid_voice_audio")
-        receipt = dict(state="ok", engine="host-espeak-ng", language="en",
+        receipt = dict(state="ok", engine="host-espeak-ng", language=language,
                        text_sha256=hashlib.sha256(raw).hexdigest(),
                        audio_sha256=hashlib.sha256(audio).hexdigest(),
                        bytes=len(audio), duration_ms=round(1000 * frames / rate),
+                       synthesis_wall_ms=synthesis_wall_ms,
                        cause="native_synthesis_only_not_physical_audibility")
         assert len(json.dumps(receipt).encode()) < 1024
         return audio, receipt

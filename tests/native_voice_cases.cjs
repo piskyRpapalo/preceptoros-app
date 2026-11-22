@@ -80,3 +80,51 @@ test('an Android voice tag with an underscore (en_US) is the same language as en
   t.reader.read('Synthetic test text','en',s=>status=s,'browser');
   assert.equal(t.spoken.length,1);assert.equal(t.spoken[0].lang,'en_US');assert.match(status,/part 1\/1/);
 });
+
+
+test('loopback Spanish without browser voices uses only the existing host reader',async()=>{
+  const {reader,scope,spoken}=setup([]);
+  let requests=[],plays=0,notices=[];
+  scope.location={protocol:'http:',hostname:'127.0.0.1'};
+  const bytes=Uint8Array.from([82,73,70,70,0,0,0,0,87,65,86,69]);
+  const crypto0=require('node:crypto');
+  scope.Audio=function(){this.play=async()=>{plays++};this.pause=()=>{};this.removeAttribute=()=>{};this.load=()=>{};};
+  scope.fetch=async(url,options)=>{
+    const body=JSON.parse(options.body);requests.push({url,body,options});
+    const receipt={state:'ok',engine:'host-espeak-ng',language:'es',
+      text_sha256:crypto0.createHash('sha256').update(body.text).digest('hex'),
+      audio_sha256:crypto0.createHash('sha256').update(bytes).digest('hex'),
+      bytes:bytes.byteLength};
+    return {ok:true,headers:{get:()=>JSON.stringify(receipt)},arrayBuffer:async()=>bytes.buffer};
+  };
+  reader.read('Hola, estado local.','es-ES',s=>notices.push(s),'browser');
+  await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(spoken.length,0,'no hidden browser voice is used');
+  assert.equal(requests.length,1,'only one host read');
+  assert.equal(requests[0].url,'/api/voz/lectura');
+  assert.equal(requests[0].options.method,'POST');
+  assert.equal(requests[0].options.redirect,'error');
+  assert.deepEqual(requests[0].body,{text:'Hola, estado local.',engine:'host-espeak-ng',language:'es'});
+  assert.equal(plays,1,'software playback requested; physical speaker not proved');
+  assert.match(notices.join(' '),/physical audibility NO_DATA/);
+});
+
+test('non-loopback Spanish without local voices never asks host to read',()=>{
+  const {reader,scope,spoken}=setup([]);
+  let calls=0,note='';
+  scope.location={protocol:'https:',hostname:'example.test'};
+  scope.fetch=()=>{calls++;throw Error('must not call');};
+  scope.Audio=function(){};
+  reader.read('Hola','es-ES',s=>note=s,'browser');
+  assert.equal(calls,0);assert.equal(spoken.length,0);assert.match(note,/NO_DATA/);
+});
+
+test('Spanish local browser voice wins over host fallback',()=>{
+  const {reader,scope,spoken}=setup([{localService:true,lang:'es_ES'}]);
+  let calls=0;
+  scope.location={protocol:'http:',hostname:'127.0.0.1'};
+  scope.fetch=()=>{calls++;throw Error('host forbidden when local voice exists');};
+  scope.Audio=function(){};
+  reader.read('Hola','es-ES',()=>{},'browser');
+  assert.equal(spoken.length,1);assert.equal(calls,0);
+});

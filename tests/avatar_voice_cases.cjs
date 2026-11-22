@@ -92,5 +92,12 @@ const wait=()=>new Promise(r=>setTimeout(r,5));
  yes(el('hex-avatar-voice').dataset.state===voice.state().state,'final machine parity');
  yes(voice.state().authority==='none','still no auth');
  yes(root.HexelionAvatarVoice.state().render_effects==='none','zero effect claims after auth notice');
+ // A later authorization denial must not remain hidden behind Interrupted.
+ base['estado'].dataset.cause='owner_approval_required';
+ for(const observer of observers.filter(x=>x.node===base['estado']))observer.cb();
+ yes(voice.state().state==='awaiting_authorization','typed owner approval visible after STOP');
+ yes(voice.state().cause==='owner_approval_pending','approval cause keeps its source after STOP');
+ yes(el('hex-avatar-face').getAttribute('aria-label')===el('hex-avatar-state').textContent,'approval visual accessible parity after STOP');
+ yes(voice.state().authority==='none','approval status never grants authority');
  console.log('PASS',n,'of',n,'tests (synthetic browser DOM, no actual mic/audio)');
 })().catch(e=>{console.error('FAIL',e.stack);process.exitCode=1});
