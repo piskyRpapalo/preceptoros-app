@@ -19,6 +19,19 @@ TOKEN = "t" * 40
 
 
 class LifecycleDoor(TestCase):
+    def test_existing_public_identity_keeps_its_namespace(self):
+        with TemporaryDirectory() as home:
+            fetch = mock.Mock()
+            self.assertEqual(L.read(home)["stages"]["prepare"]["cause"], "local_identity_unavailable")
+            node_building.provisionar_identidad(home, node_building.ASSIGNED_NODE)
+            result = L.read(home, fetch=fetch)
+            self.assertIsNone(result["node"])
+            self.assertEqual(result["stages"]["prepare"]["cause"], "local_identity_not_cedula_namespace")
+            self.assertTrue(all(stage["state"] == "NO_DATA" for stage in result["stages"].values()))
+            node_building.provisionar_identidad(home, NODE)
+            self.assertEqual(node_building.leer_identidad(home)["node_id"], node_building.ASSIGNED_NODE)
+            fetch.assert_not_called()
+
     def test_owner_loopback_only_and_cross_site_denied_before_source_access(self):
         pwa = _load_pwa()
         for ip, overrides, status in (

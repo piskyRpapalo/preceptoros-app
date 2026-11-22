@@ -880,10 +880,10 @@ class PWA(BaseHTTPRequestHandler):
                        ("X-Forwarded-Host", "X-Forwarded-For", "X-Forwarded-Proto", "Tailscale-User-Login")):
                     return self._json(403, {"state": "NO_DATA", "cause": "local_owner_origin_required"})
                 home = _casa.raiz()
-                identity = _node_building.leer_identidad(home)
-                if identity.get("estado") != "configurada":
-                    return self._json(409, {"state": "NO_DATA", "cause": "local_identity_unavailable"})
-                if identity["node_id"] != datos.get("node"):
+                node, cause = _node_lifecycle.admission_identity(home)
+                if cause:
+                    return self._json(409, {"state": "NO_DATA", "cause": cause})
+                if node != datos.get("node"):
                     return self._json(409, {"state": "NO_DATA", "cause": "local_identity_mismatch"})
                 code, receipt = _node_registration.submit_preliminary(home, datos)
                 return self._json(code, receipt)

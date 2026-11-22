@@ -209,7 +209,7 @@ const adapter = flow.doorOneAdapter((url, options) => {
             cwd=ROOT, capture_output=True, text=True, timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("pass 11", result.stdout)
+        self.assertIn("pass 12", result.stdout)
         self.assertIn("fail 0", result.stdout)
 
     def test_aduana_client_join_contract(self):
@@ -341,6 +341,8 @@ class PwaDeploymentIntake(unittest.TestCase):
                     ("127.0.0.1", "https://visitor.example.test", {}, selected, 403, None),
                     ("127.0.0.1", local, {"X-Forwarded-Proto": "https"}, selected, 403, None),
                     ("127.0.0.1", local, {}, {"estado": "NO_DATA"}, 409, "local_identity_unavailable"),
+                    ("127.0.0.1", local, {}, {**selected, "node_id": "public-fixture"}, 409,
+                     "local_identity_not_cedula_namespace"),
                     ("127.0.0.1", local, {}, {**selected, "node_id": "nodo.999.other"}, 409,
                      "local_identity_mismatch"),
                     ("127.0.0.1", local, {}, selected, 202, None)):
