@@ -197,6 +197,7 @@ tasks.register('copyPanelsBridges', Copy) {
     from(rootProject.file('offline_mini.js'))
     from(rootProject.file('android_join_bridge.js'))
     from(rootProject.file('android_heartbeat_bridge.js'))
+    from(rootProject.file('android_node_bridge.js'))
     into assetsDir
 }
 

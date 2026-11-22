@@ -123,7 +123,8 @@ class ReleaseCandidateSyntheticTests(unittest.TestCase):
                     rel = asset.removeprefix("assets/")
                     base = "mvp-android/" if rel in (
                         "offline_mini.js", "android_join_bridge.js",
-                        "android_review_bridge.js", "android_heartbeat_bridge.js") else "interface/"
+                        "android_review_bridge.js", "android_heartbeat_bridge.js",
+                        "android_node_bridge.js") else "interface/"
                     src = root / (base + rel)
                     src.parent.mkdir(parents=True, exist_ok=True)
                     src.write_bytes(b"synthetic-owned-asset")
