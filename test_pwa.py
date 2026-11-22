@@ -1430,12 +1430,24 @@ class HexelionStationContract(unittest.TestCase):
         self.assertEqual(sent["think"], "low")
         self.assertEqual(sent["options"]["num_predict"], 512)
 
-    def test_estacion_caida_no_entrega_placeholder(self):
-        import hexelion_proxy
-        opener = mock.Mock(side_effect=TimeoutError())
-        result = hexelion_proxy.ask("hola", endpoint="http://127.0.0.1:11434", opener=opener)
-        self.assertEqual(result, {"estado": "NO_DATA", "causa": "station_timeout"})
-        self.assertEqual(opener.call_count, 1)
+    def test_timeout_reports_the_phase_for_direct_and_wrapped_errors(self):
+        import io
+        import urllib.error
+        import hexelion_proxy as proxy
+
+        for error in (TimeoutError(), urllib.error.URLError(TimeoutError())):
+            with self.subTest(error=type(error).__name__, phase="probe"):
+                opener = mock.Mock(side_effect=error)
+                result = proxy.ask("fixture", endpoint="http://127.0.0.1:11434", opener=opener)
+                self.assertEqual(result, {"estado": "NO_DATA", "causa": "station_probe_timeout"})
+                opener.assert_called_once()
+
+            with self.subTest(error=type(error).__name__, phase="generate"):
+                tags = io.BytesIO(json.dumps({"models": [{"name": proxy.MODEL}]}).encode())
+                opener = mock.Mock(side_effect=[tags, error])
+                result = proxy.ask("fixture", endpoint="http://127.0.0.1:11434", opener=opener)
+                self.assertEqual(result, {"estado": "NO_DATA", "causa": "station_timeout"})
+                self.assertEqual(opener.call_count, 2)
 
     def test_chat_endpoint_append_only_voz_hexelion_y_recibo_bajo_1k(self):
         import io

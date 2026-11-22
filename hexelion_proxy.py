@@ -53,9 +53,10 @@ def _read_json(response):
     return json.loads(raw.decode("utf-8", "strict"))
 
 
-def _failure(exc):
-    if isinstance(exc, TimeoutError):
-        return "station_timeout"
+def _failure(exc, *, probing=False):
+    if isinstance(exc, TimeoutError) or (
+            isinstance(exc, urllib.error.URLError) and isinstance(exc.reason, TimeoutError)):
+        return "station_probe_timeout" if probing else "station_timeout"
     if isinstance(exc, urllib.error.HTTPError):
         return "station_rejected_request"
     if isinstance(exc, urllib.error.URLError):
@@ -117,6 +118,7 @@ def ask(text, *, endpoint=None, opener=None, clock=time.monotonic, output_format
             return {"estado": "NO_DATA", "causa": "station_format_invalid"}
 
     open_url = opener or urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect()).open
+    probing = True
     try:
         probe_started = clock()
         tags_req = urllib.request.Request(base + "/api/tags", headers={"Accept": "application/json"})
@@ -145,6 +147,7 @@ def ask(text, *, endpoint=None, opener=None, clock=time.monotonic, output_format
         req = urllib.request.Request(base + "/api/generate", data=payload,
                                      headers={"Content-Type": "application/json",
                                               "Accept": "application/json"}, method="POST")
+        probing = False
         answer = _read_json(open_url(req, timeout=GENERATE_TIMEOUT_S))
         if not isinstance(answer, dict) or answer.get("model") != MODEL:
             return {"estado": "NO_DATA", "causa": "station_model_unconfirmed"}
@@ -161,4 +164,4 @@ def ask(text, *, endpoint=None, opener=None, clock=time.monotonic, output_format
                 "modelo": MODEL, "ms": generation_ms, "medida": medida(answer),
                 "model_evidence": evidence}
     except Exception as exc:
-        return {"estado": "NO_DATA", "causa": _failure(exc)}
+        return {"estado": "NO_DATA", "causa": _failure(exc, probing=probing)}
