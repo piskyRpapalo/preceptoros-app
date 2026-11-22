@@ -88,7 +88,9 @@ test('loopback Spanish without browser voices uses only the existing host reader
   scope.location={protocol:'http:',hostname:'127.0.0.1'};
   const bytes=Uint8Array.from([82,73,70,70,0,0,0,0,87,65,86,69]);
   const crypto0=require('node:crypto');
-  scope.Audio=function(){this.play=async()=>{plays++};this.pause=()=>{};this.removeAttribute=()=>{};this.load=()=>{};};
+  let signalPlayed;
+  const playbackObserved=new Promise(resolve=>{signalPlayed=resolve;});
+  scope.Audio=function(){this.play=async()=>{plays++;signalPlayed()};this.pause=()=>{};this.removeAttribute=()=>{};this.load=()=>{};};
   scope.fetch=async(url,options)=>{
     const body=JSON.parse(options.body);requests.push({url,body,options});
     const receipt={state:'ok',engine:'host-espeak-ng',language:'es',
@@ -98,7 +100,14 @@ test('loopback Spanish without browser voices uses only the existing host reader
     return {ok:true,headers:{get:()=>JSON.stringify(receipt)},arrayBuffer:async()=>bytes.buffer};
   };
   reader.read('Hola, estado local.','es-ES',s=>notices.push(s),'browser');
-  await new Promise(resolve=>setTimeout(resolve,20));
+  // Wait for the observable playback event, not a flaky 20ms runner race.
+  let timer;
+  try {
+    await Promise.race([
+      playbackObserved,
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('NO_DATA(host_audio_playback_event_timeout)')),2000)})
+    ]);
+  } finally {clearTimeout(timer);}
   assert.equal(spoken.length,0,'no hidden browser voice is used');
   assert.equal(requests.length,1,'only one host read');
   assert.equal(requests[0].url,'/api/voz/lectura');
