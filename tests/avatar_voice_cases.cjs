@@ -82,9 +82,16 @@ const wait=()=>new Promise(r=>setTimeout(r,5));
  const li=new El('li');li.textContent='respuesta visible';el('hilo').appendChild(li);
  el('hex-avatar-read').click();await wait();
  yes(readerText.text.includes('Último mensaje visible')&&readerText.text.includes('respuesta visible'),'last visible response with provenance caveat');
- yes(readerText.text.includes('Causa: local_speech_requested_audition_unverified'),'speech text shares state and cause');
+ yes(!readerText.text.startsWith('Hexelion:') &&
+     !readerText.text.includes('Causa: local_speech_requested_audition_unverified'),
+     'speech reads the reply once, not the changing Hexelion status preamble');
  yes(readerText.lang==='es-ES','Spanish locale');
  yes(voice.state().state==='speaking','speech request state');
+ const readsBeforeDoubleClick=readerStops;
+ const firstUtterance=readerText.text;
+ el('hex-avatar-read').click();
+ yes(readerStops===readsBeforeDoubleClick && readerText.text===firstUtterance,
+     'second Read click while speaking must not restart speech');
  yes(voice.state().cause==='local_speech_requested_audition_unverified','no faked sound proof');
  el('hex-avatar-stop').click();
  yes(readerStops>0&&voice.state().state==='interrupted','stop reading');

@@ -163,7 +163,7 @@ class PreceptorOSRound2Contract(unittest.TestCase):
         with (ROOT / "interface/face/bubble/openworld_crab_body.js").open("rb") as source:
             self.assertEqual(file_sha(source), BODY)
         sw = (ROOT / "interface/sw.js").read_text()
-        self.assertIn("preceptoros-armazon-v248", sw)
+        self.assertIn("preceptoros-armazon-v249", sw)
         self.assertIn('"/app.css?v=57"', sw)
         self.assertIn('"/mvp_first_run.js?v=2"', sw)
 

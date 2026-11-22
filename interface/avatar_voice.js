@@ -322,8 +322,11 @@
   }
   async function speakLast() {
     if (muted) return project('muted', 'operator_muted', 'operator_local_only');
+    // Do not requeue the same utterance while a local reader is already active.
+    // Repeated clicks previously replayed the spoken 'Hexelion' state preamble.
+    if (state.state === 'speaking') return;
     const phrase = latestMessage();
-    if (!phrase) project('no_data', 'no_visible_response', 'Talk_visible_thread');
+    if (!phrase) return project('no_data', 'no_visible_response', 'Talk_visible_thread');
     if (mic) { try { mic.abort(); } catch (_) {} mic = null; }
     const token = ++speechRun;
     try {
@@ -332,7 +335,9 @@
       voice = root.HexelionNativeVoice;
       if (!voice || typeof voice.read !== 'function') return project('no_data', 'no_voice_reader', 'native_voice.js');
       project('speaking', 'local_speech_requested_audition_unverified', 'native_voice.js');
-      const utterance = sentence() + (phrase ? ' Último mensaje visible, autoría no acreditada: ' + phrase : '');
+      // Read the actual visible reply once, not the changing state sentence:
+      // the state remains available in accessible labels and machine JSON without recursive narration.
+      const utterance = 'Último mensaje visible, autoría no acreditada: ' + phrase;
       voice.read(utterance.slice(0, 32768), 'es-ES', message => {
         if (token !== speechRun) return;
         if (/Reading visible text/.test(message)) project('speaking', 'local_speech_requested_audition_unverified', 'native_voice.js');
