@@ -140,6 +140,7 @@ class AndroidAdmissionPolicy(unittest.TestCase):
             "HeartbeatOnceBridge": "PreceptorHeartbeatNative",
             "PrivateTalkBridge": "PreceptorPrivateTalkNative",
             "NodeOwnerBridge": "PreceptorNodeNative",
+            "RackModelsBridge": "PreceptorModelsNative",
         }
         for source in SOURCE.parent.glob("*.java"):
             text = source.read_text(encoding="utf-8")

@@ -524,6 +524,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         # EMULADO es el sello honesto de lo heuristico (CLAUDE.md de la web):
         # la regla de crecimiento del cangrejo de la cara lo lleva escrito.
         INTRINSECOS |= {"EMULADO"}
+        # Talk crab (talk_crab_canvas.js): the engine states that make it move. States, not policies.
+        INTRINSECOS |= {"LOADING", "GENERATING", "SPEAKING"}
         # face_army.js lee la API canon de la gacha y del Army por sus nombres
         # (AtlasGacha.RAREZAS / TCS, AtlasArmy.TOPE): propiedades canon, no politicas.
         INTRINSECOS |= {"RAREZAS", "TCS", "TOPE"}

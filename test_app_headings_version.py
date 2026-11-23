@@ -28,9 +28,9 @@ class HeadingsAndVersion(unittest.TestCase):
 
     def test_served_versions_aligned(self):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf8")
-        self.assertIn('href="/app.css?v=57"', HTML)
-        self.assertIn('"/app.css?v=57"', sw)
-        self.assertIn('const Cache = "preceptoros-armazon-v249"', sw)
+        self.assertIn('href="/app.css?v=58"', HTML)
+        self.assertIn('"/app.css?v=58"', sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v250"', sw)
 
 
 if __name__ == "__main__":

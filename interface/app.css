@@ -1331,9 +1331,14 @@ html[data-reduce-motion="true"] *::after {
   display: block; position: absolute; left: 5px; top: 2px;
   width: 62px; height: 41px;
 }
-/* One uninterrupted linear crossing; alternate returns without teleporting. */
+/* One uninterrupted linear crossing; alternate returns without teleporting. It runs only while a real engine
+ * state says the model works (loading, generating, speaking); any other state freezes it where it stands. */
 #talk-processing .talk-processing-crab {
   animation: talk-crab-sidestep 9s linear infinite alternate;
+  animation-play-state: paused;
+}
+#talk-processing:is([data-state="PROCESSING"],[data-state="SIMULATED"],[data-state="LOADING"],[data-state="GENERATING"],[data-state="SPEAKING"]) .talk-processing-crab {
+  animation-play-state: running;
 }
 #talk-processing .talk-crab-canvas { display: block; width: 62px; height: 41px; }
 #talk-processing .talk-processing-copy {

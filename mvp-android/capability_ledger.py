@@ -45,6 +45,8 @@ SOURCE = {
         "mvp-android/android_review_bridge.js": (),
         "mvp-android/android_heartbeat_bridge.js": (),
         "mvp-android/android_node_bridge.js": (),
+        "mvp-android/android_models_bridge.js": (),
+        "mvp-android/app/src/main/java/org/preceptoros/mvp/RackModelsBridge.java": ("addWebMessageListener",),
         "mvp-android/app/src/main/java/org/preceptoros/mvp/NodeOwnerBridge.java": ("addWebMessageListener",),
         "mvp-android/app/src/main/java/org/preceptoros/mvp/DeploymentJoinBridge.java": ("addWebMessageListener",),
         "mvp-android/app/src/main/java/org/preceptoros/mvp/HeartbeatOnceBridge.java": (),
@@ -65,7 +67,7 @@ APK = {
                     "assets/mvp_first_run.js", "assets/superbot_talk.js",
                     "assets/talk_crab_canvas.js"),
     "node_consent": ("assets/android_join_bridge.js", "assets/android_review_bridge.js",
-                     "assets/android_heartbeat_bridge.js", "assets/android_node_bridge.js",
+                     "assets/android_heartbeat_bridge.js", "assets/android_node_bridge.js", "assets/android_models_bridge.js",
                      "assets/node_registration.js"),
     "documents_harness": ("assets/documents.js", "assets/notebook.js",
                           "assets/owner_model_slots.js"),
@@ -126,7 +128,8 @@ def source_parity(archive, source_root):
         source_path = Path(source_root) / (
             ("mvp-android/" if rel in
              ("offline_mini.js", "android_join_bridge.js", "android_review_bridge.js",
-              "android_heartbeat_bridge.js", "android_node_bridge.js")
+              "android_heartbeat_bridge.js", "android_node_bridge.js",
+              "android_models_bridge.js")
              else "interface/") + rel)
         if not source_path.is_file() or source_path.is_symlink() or name not in archive.namelist():
             mismatch.append(name)

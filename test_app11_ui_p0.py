@@ -40,8 +40,10 @@ class App11UIP0(unittest.TestCase):
     def test_crab_walks_one_direction_and_stays_bounded(self):
         self.assertIn('max-width: 780px;', self.css)
         self.assertRegex(self.css, r'#talk-processing \.talk-processing-crab\s*\{\s*animation: talk-crab-sidestep 9s linear infinite alternate')
-        self.assertIn("scene='walking'", self.crab)
-        self.assertIn("scene==='walking'", self.crab)
+        # Superseded 2026-11-23 by the Sovereign's Tank 3 order: the crossing stays bounded, but at rest the crab
+        # stands still and moves only on engine states (see test_talk_crab_rest.py).
+        self.assertIn("scene=active()?'processing':'rest'", self.crab)
+        self.assertIn("animation-play-state: paused", self.css)
         self.assertIn("@media (prefers-reduced-motion: reduce)", self.css)
         self.assertIn('animation: none !important',self.css)
 
