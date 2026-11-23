@@ -41,7 +41,14 @@ final class RackModelsBridge {
     private final MainActivity activity;
     private final SharedPreferences settings;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    private final ExecutorService talker = Executors.newSingleThreadExecutor();
+    private final java.util.concurrent.ScheduledExecutorService idle = Executors.newSingleThreadScheduledExecutor();
     private final AtomicReference<HttpsURLConnection> current = new AtomicReference<>();
+    private final AtomicReference<LocalModelRunner.Http> localCurrent = new AtomicReference<>();
+    private final java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean();
+    private final java.util.concurrent.atomic.AtomicBoolean talking = new java.util.concurrent.atomic.AtomicBoolean();
+    private final LocalModelRunner local;
+    private final LocalHarness harness;
     private TextToSpeech tts;
     private boolean ttsReady;
     private JavaScriptReplyProxy speechReply;
@@ -49,6 +56,20 @@ final class RackModelsBridge {
     private RackModelsBridge(MainActivity activity) {
         this.activity = activity;
         settings = activity.getSharedPreferences("preceptoros.private_talk", Context.MODE_PRIVATE);
+        local = new LocalModelRunner(activity);
+        harness = new LocalHarness(activity);
+        idle.scheduleWithFixedDelay(() -> {
+            if (local.running() && !talking.get() && local.idleMs() > LocalModelRunner.IDLE_UNLOAD_MS) local.stop("idle_unload");
+        }, 30, 30, java.util.concurrent.TimeUnit.SECONDS);
+    }
+
+    /** Android asks for memory back: the local model goes first, before any other app of the person's. */
+    void onTrimMemory(int level) {
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW && local.running()) {
+            LocalModelRunner.Http h = localCurrent.getAndSet(null);
+            if (h != null) h.close();
+            new Thread(() -> local.stop("memory_trim"), "preceptoros-local-trim").start();
+        }
     }
 
     static RackModelsBridge install(MainActivity activity, WebView web) {
@@ -67,6 +88,9 @@ final class RackModelsBridge {
 
     void close() {
         cancel();
+        idle.shutdownNow();
+        talker.shutdownNow();
+        local.stop("app_closed");
         worker.shutdownNow();
         if (tts != null) tts.shutdown();
     }
@@ -98,7 +122,12 @@ final class RackModelsBridge {
             final String rid = id;
             switch (m.optString("op")) {
                 case "status":
-                    post(reply, rid, obj("configured", PrivateTalkBridge.validOrigin(origin()), "tts", ttsState()));
+                    worker.execute(() -> {
+                        JSONObject st = obj("configured", PrivateTalkBridge.validOrigin(origin()), "tts", ttsState(),
+                            "local_runner", local.runner().canExecute() ? "PACKAGED" : "NO_DATA(runner_not_packaged)");
+                        try { st.put("harness", harness.status()); } catch (JSONException ignored) { }
+                        post(reply, rid, st);
+                    });
                     return;
                 case "configure": activity.runOnUiThread(() -> configure(reply, rid)); return;
                 case "list": worker.execute(() -> list(reply, rid)); return;
@@ -109,11 +138,15 @@ final class RackModelsBridge {
                         post(reply, rid, event("error", "cause", "request_invalid"));
                         return;
                     }
-                    byte[] body = obj("modelo", model, "mensajes", msgs).toString().getBytes(StandardCharsets.UTF_8);
-                    worker.execute(() -> chat(reply, rid, body));
+                    boolean rag = m.optBoolean("rag", false);
+                    cancelled.set(false);
+                    talker.execute(() -> turn(reply, rid, model, msgs, rag));
                     return;
                 }
                 case "cancel": cancel(); post(reply, rid, obj("cancel_requested", true)); return;
+                case "unload":
+                    worker.execute(() -> { local.stop("owner_unloaded"); post(reply, rid, obj("unloaded", true)); });
+                    return;
                 case "speak": activity.runOnUiThread(() -> speak(reply, rid, m.optString("texto"))); return;
                 case "stop_speech":
                     activity.runOnUiThread(() -> { if (tts != null) tts.stop(); post(reply, rid, event("speak_stopped")); });
@@ -154,8 +187,22 @@ final class RackModelsBridge {
     }
 
     private void list(JavaScriptReplyProxy reply, String id) {
+        JSONObject merged = obj("devices", new JSONArray(), "models", new JSONArray());
+        try {
+            JSONObject phone = local.catalog();
+            JSONArray models = phone.getJSONArray("models");
+            merged.getJSONArray("devices").put(obj("id", LocalModelRunner.DEVICE, "state", "ONLINE", "models", models.length(),
+                "last_stop", phone.optString("last_stop")));
+            for (int i = 0; i < models.length(); i++) merged.getJSONArray("models").put(models.get(i));
+            merged.put("harness", harness.status());
+        } catch (JSONException ignored) { }
         String base = origin();
-        if (!PrivateTalkBridge.validOrigin(base)) { post(reply, id, obj("ok", false, "cause", "serve_not_configured")); return; }
+        if (!PrivateTalkBridge.validOrigin(base)) {
+            try { merged.getJSONArray("devices").put(obj("id", "rack", "state", "NO_DATA", "cause", "serve_not_configured")); }
+            catch (JSONException ignored) { }
+            post(reply, id, obj("ok", true, "catalog", merged, "rack_cause", "serve_not_configured"));
+            return;
+        }
         HttpsURLConnection c = null;
         try {
             c = open(base, "/api/modelos", "GET");
@@ -174,13 +221,63 @@ final class RackModelsBridge {
             JSONObject body = new JSONObject(bytes.toString("UTF-8"));
             if (code != 200) {
                 String cause = body.optString("causa", "http_" + code);
-                post(reply, id, obj("ok", false, "cause", cause.matches("[a-z0-9_]{1,96}") ? cause : "http_" + code));
+                rackDown(reply, id, merged, cause.matches("[a-z0-9_]{1,96}") ? cause : "http_" + code);
                 return;
             }
-            post(reply, id, obj("ok", true, "catalog", body));
+            JSONArray dv = body.optJSONArray("devices"), md = body.optJSONArray("models");
+            for (int i = 0; dv != null && i < dv.length(); i++) merged.getJSONArray("devices").put(dv.get(i));
+            for (int i = 0; md != null && i < md.length(); i++) merged.getJSONArray("models").put(md.get(i));
+            post(reply, id, obj("ok", true, "catalog", merged));
         } catch (IOException | JSONException e) {
-            post(reply, id, obj("ok", false, "cause", "gateway_unreachable"));
+            rackDown(reply, id, merged, "gateway_unreachable");
         } finally { if (c != null) c.disconnect(); }
+    }
+
+    private void rackDown(JavaScriptReplyProxy reply, String id, JSONObject merged, String cause) {
+        try { merged.getJSONArray("devices").put(obj("id", "rack", "state", "OFFLINE", "cause", cause)); }
+        catch (JSONException ignored) { }
+        post(reply, id, obj("ok", true, "catalog", merged, "rack_cause", cause));
+    }
+
+    /** One turn: harness (sources) first, then the chosen model's own route. */
+    private void turn(JavaScriptReplyProxy reply, String id, String model, JSONArray msgs, boolean rag) {
+        talking.set(true);
+        try {
+            JSONArray sent = new JSONArray(msgs.toString());
+            JSONObject last = sent.getJSONObject(sent.length() - 1);
+            if (rag && "user".equals(last.optString("role"))) {
+                JSONArray sources = harness.retrieve(last.optString("content"), 4);
+                JSONArray shown = new JSONArray();
+                for (int i = 0; i < sources.length(); i++) {
+                    JSONObject s = sources.getJSONObject(i);
+                    String t = s.getString("text");
+                    shown.put(obj("n", s.getInt("n"), "file", s.getString("file"), "excerpt", t.length() > 160 ? t.substring(0, 160) + "…" : t));
+                }
+                post(reply, id, obj("ev", obj("e", "sources", "sources", shown)));
+                last.put("content", LocalHarness.withSources(last.optString("content"), sources));
+            }
+            if (model.startsWith(LocalModelRunner.DEVICE + "/")) { localTurn(reply, id, model, sent); return; }
+            chat(reply, id, obj("modelo", model, "mensajes", sent).toString().getBytes(StandardCharsets.UTF_8));
+        } catch (JSONException e) {
+            post(reply, id, event("error", "cause", "request_invalid"));
+        } finally { talking.set(false); }
+    }
+
+    private void localTurn(JavaScriptReplyProxy reply, String id, String model, JSONArray msgs) throws JSONException {
+        java.io.File f = local.resolve(model.substring(LocalModelRunner.DEVICE.length() + 1));
+        if (f == null) { post(reply, id, event("error", "cause", "local_model_not_found")); return; }
+        LocalModelRunner.Events ev = e -> {
+            if (cancelled.get()) return false;
+            if (!"loading_tick".equals(e.optString("e"))) post(reply, id, obj("ev", e));
+            return true;
+        };
+        post(reply, id, event("sent"));
+        String cause = local.ensure(f, ev);
+        if (cause != null) { if ("cancelled".equals(cause)) post(reply, id, event("cancelled")); return; }
+        JSONArray withSystem = new JSONArray().put(obj("role", "system", "content", harness.system()));
+        for (int i = 0; i < msgs.length(); i++) withSystem.put(msgs.get(i));
+        String text = local.stream(withSystem, ev, localCurrent);
+        if (text == null && cancelled.get()) post(reply, id, event("cancelled"));
     }
 
     private void chat(JavaScriptReplyProxy reply, String id, byte[] body) {
@@ -231,6 +328,9 @@ final class RackModelsBridge {
     }
 
     private void cancel() {
+        cancelled.set(true);
+        LocalModelRunner.Http h = localCurrent.getAndSet(null);
+        if (h != null) new Thread(h::close, "preceptoros-local-cancel").start();
         HttpsURLConnection c = current.getAndSet(null);
         if (c != null) new Thread(c::disconnect, "preceptoros-rack-cancel").start();
     }

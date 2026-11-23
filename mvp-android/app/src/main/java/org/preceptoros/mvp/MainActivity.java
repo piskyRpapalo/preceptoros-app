@@ -360,6 +360,12 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        if (modelsBridge != null) modelsBridge.onTrimMemory(level);
+    }
+
+    @Override
     protected void onDestroy() {
         if (nodeBridge != null) nodeBridge.close();
         if (modelsBridge != null) modelsBridge.close();

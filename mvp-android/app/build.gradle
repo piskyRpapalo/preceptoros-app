@@ -419,16 +419,37 @@ tasks.register('copyLauncherEmblem', Copy) {
     into file("$buildDir/generated/preceptor-launcher/drawable-nodpi")
     rename { 'preceptor_launcher.png' }
 }
+// On-phone inference runner (pinned llama.cpp fork, NDK arm64 build). It is a build INPUT, never committed:
+// -PlocalRunner=<path> -PlocalRunnerSha256=<sha>. Without both, the APK carries no runner and the APP says
+// NO_DATA(runner_not_packaged) for local models. A wrong hash fails the build.
+def localRunner = project.findProperty('localRunner')?.toString()
+def localRunnerSha = project.findProperty('localRunnerSha256')?.toString()
+def runnerOut = file("$buildDir/generated/local-runner/arm64-v8a/libllama_server.so")
+tasks.register('stageLocalRunner') {
+    doLast {
+        if (localRunner == null) return
+        if (!localRunnerSha || !(localRunnerSha ==~ /[0-9a-f]{64}/)) throw new GradleException('localRunner needs -PlocalRunnerSha256')
+        def src = new File(localRunner)
+        def actual = java.security.MessageDigest.getInstance('SHA-256').digest(src.bytes).encodeHex().toString()
+        if (actual != localRunnerSha) throw new GradleException("localRunner sha256 mismatch: ${actual}")
+        runnerOut.parentFile.mkdirs()
+        runnerOut.bytes = src.bytes
+    }
+}
+
 afterEvaluate {
-    tasks.named('preBuild') { dependsOn 'copyPanels', 'copyLauncherEmblem' }
+    tasks.named('preBuild') { dependsOn 'copyPanels', 'copyLauncherEmblem', 'stageLocalRunner' }
 }
 
 android {
     sourceSets {
         main {
             res.srcDir file("$buildDir/generated/preceptor-launcher")
+            jniLibs.srcDir file("$buildDir/generated/local-runner")
         }
     }
+    // The runner must exist as a file in nativeLibraryDir (the only place an app may execute from).
+    packaging { jniLibs { useLegacyPackaging = true } }
     namespace "org.preceptoros.mvp"
     compileSdk 36
     defaultConfig {
