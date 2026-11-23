@@ -144,6 +144,8 @@
     "/api/medidas",
     "/api/memoria/inicio",
     "/api/metricas",
+    "/api/modelos",
+    "/api/modelos/charla",
     "/api/nodo/",
     "/api/nodo/admission",
     "/api/nodo/door1/preview",

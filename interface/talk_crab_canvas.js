@@ -1,7 +1,8 @@
 /* Talk visual adapter. Body geometry + gait are exact, source-pinned Open World
  * public/game/crab_body.js. Only the rendering context (small canvas) differs.
  * Source SHA-256: e332c81bdee87a90a3aa76e7e34dea32c5f493879b64c1f97104510a6e3404b0
- * No network, no task inference, no model-success claim. Periodic idle greeting is visual only.
+ * No network, no task inference, no model-success claim. At rest the crab stands still: it moves only while a
+ * real engine event says a model is loading, generating or speaking (data-state), and stops on anything else.
  */
 (function (root) {
   'use strict';
@@ -43,7 +44,8 @@
   const label=root.document.getElementById('talk-processing-label');
   const details=root.document.getElementById('talk-crab-detail');
   let raf=0, nextGreet=0, origin=0, scene='rest';
-  const active=()=>!box.hidden && (box.dataset.state==='PROCESSING' || box.dataset.state==='SIMULATED');
+  const moving=new Set(['PROCESSING','SIMULATED','LOADING','GENERATING','SPEAKING']);
+  const active=()=>!box.hidden && moving.has(box.dataset.state);
   const visible=()=>!box.hidden && !root.document.hidden;
   function oval(ctx,x,y,rx,ry,angle,from,to) { ctx.ellipse(x,y,rx,ry,angle,from,to); }
   function paint(t) {
@@ -51,7 +53,7 @@
     g.clearRect(0,0,W,HEIGHT);
     const elapsed=Math.max(0,t-origin);
     let pose=B.pose(0,1,1);
-    if (!reduced() && (scene==='processing' || scene==='walking')) {
+    if (!reduced() && scene==='processing') {
       // Same tripod gait as Open World; the CSS moves its canvas side to side.
       const step=Math.floor(elapsed/B.GLIDE), progress=(elapsed%B.GLIDE)/B.GLIDE;
       pose=B.pose(step,progress,1);
@@ -69,24 +71,18 @@
     if (nextGreet) root.clearTimeout(nextGreet);
     raf=0; nextGreet=0;
   }
-  function planGreeting(delay=5600) {
-    if (!visible() || reduced() || active()) return;
-    nextGreet=root.setTimeout(()=>{ nextGreet=0; beginGreeting(); },delay);
-  }
   function frame(t) {
     raf=0;
     if (!visible() || reduced()) return;
     paint(t);
-    if ((scene==='processing' && active()) || (scene==='walking' && !active())) raf=root.requestAnimationFrame(frame);
+    if (scene==='processing' && active()) raf=root.requestAnimationFrame(frame);
     else if (scene==='greeting' && !active() && t-origin<B.GREET+480) raf=root.requestAnimationFrame(frame);
-    else if (!active()) {
-      scene='walking'; origin=t; paint(t); raf=root.requestAnimationFrame(frame);
-    }
+    else if (!active()) { scene='rest'; paint(t); }
   }
   function beginGreeting() {
     stop();
     if (!visible() || reduced() || active()) {
-      scene=active()?'processing':'walking';
+      scene=active()?'processing':'rest';
       paint(root.performance.now());
       return;
     }
@@ -96,11 +92,10 @@
   function sync() {
     stop();
     origin=root.performance.now();
-    scene=active()?'processing':'walking';
+    scene=active()?'processing':'rest';
     paint(origin);
     if (!visible() || reduced()) return;
     if (active()) raf=root.requestAnimationFrame(frame);
-    else planGreeting(850); // first greeting is visible without requiring a message
   }
   if (check) check.addEventListener('click',()=>{
     const state=box.dataset.state;
@@ -108,7 +103,7 @@
       ? 'Talk is processing a request. No reply has been verified yet.'
       : state==='SIMULATED'
         ? 'Animation preview only. No model request is running.'
-        : 'Talk has no request in progress. The crab is walking locally.';
+        : 'Talk has no request in progress. The crab is resting.';
     details.hidden=false;
     if (state==='IDLE') beginGreeting();
   });

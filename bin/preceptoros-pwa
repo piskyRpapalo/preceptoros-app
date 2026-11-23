@@ -89,6 +89,7 @@ import node_owner as _node_owner                            # noqa: E402
 import orquestador as _orquestador                          # noqa: E402
 import estado_compacto as _estado_compacto                   # noqa: E402
 import hexelion_proxy as _hexelion_proxy                     # noqa: E402
+import modelos_rack as _modelos_rack                         # noqa: E402
 import hexelion_book as _hexelion_book                       # noqa: E402
 import team as _team
 import pr_blockers as _pr_blockers
@@ -615,6 +616,11 @@ class PWA(BaseHTTPRequestHandler):
                 code = 503 if access == "private_talk_serve_unavailable" else 403
                 return self._json(code, {"estado": "NO_DATA", "causa": access,
                                          "stage": "connection" if code == 503 else "authentication"})
+        if ruta == "/api/modelos":
+            # The existing picker's rack catalog: owner via Serve identity (gated above) or the APP's own origin.
+            if not self._tailnet_proxy_request() and not self._nodo_local_autorizado():
+                return self._json(403, {"estado": "NO_DATA", "causa": "local_origin_required"})
+            return self._json(200, _modelos_rack.catalog())
         if ruta == "/api/plan/flow":
             if not self._plan_local_autorizado():
                 return self._json(403, {"state": "NO_DATA", "cause": "local_origin_required"})
@@ -798,7 +804,8 @@ class PWA(BaseHTTPRequestHandler):
 
     # --- api ---------------------------------------------------------------
     def do_POST(self):
-        if self.path.split("?")[0] != "/api/hexelion/chat" and self._tailnet_proxy_request():
+        if (self.path.split("?")[0] not in ("/api/hexelion/chat", "/api/modelos/charla")
+                and self._tailnet_proxy_request()):
             self.close_connection = True
             return self._json(403, {"estado": "NO_DATA", "causa": "private_talk_conversation_only",
                                     "stage": "authentication"})
@@ -835,6 +842,8 @@ class PWA(BaseHTTPRequestHandler):
             return self._creacion_voz()
         if ruta == "/api/hexelion/chat":
             return self._hexelion_chat()
+        if ruta == "/api/modelos/charla":
+            return self._modelos_charla()
         if ruta == "/api/conversacion":
             return self._conversacion_enviar()
         if ruta in ("/api/hexelion/search", "/api/hexelion/decision"):
@@ -1614,6 +1623,54 @@ class PWA(BaseHTTPRequestHandler):
         return self._json(200, {"state": "DELIVERED_TO_THREAD", "n": m["n"], "request_id": request_id, "to": para,
                                 "delivery": _conversacion.BY_ID[para]["transport"],
                                 "reply": "PENDING: no authenticated process receipt is available"})
+
+    def _modelos_charla(self):
+        """One streamed turn with the model the person picked (NDJSON). Same doors as /api/hexelion/chat:
+        the owner's Serve identity or the APP's own origin; a request never grants itself OWNER."""
+        serve = self._hexelion_serve_access()
+        if serve not in (None, "authorized"):
+            code = 503 if serve == "private_talk_serve_unavailable" else 403
+            self.close_connection = True
+            return self._json(code, {"estado": "NO_DATA", "causa": serve,
+                                     "stage": "connection" if code == 503 else "authentication"})
+        if serve != "authorized" and not self._nodo_local_autorizado():
+            return self._json(403, {"estado": "NO_DATA", "causa": "local_origin_required", "stage": "authentication"})
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+            return self._json(415, {"estado": "NO_DATA", "causa": "json_required", "stage": "request"})
+        try:
+            size = int(self.headers.get("Content-Length") or 0)
+            if not 0 < size <= 65536:
+                raise ValueError()
+            datos = json.loads(self.rfile.read(size).decode("utf-8"))
+        except (ValueError, UnicodeError):
+            return self._json(400, {"estado": "NO_DATA", "causa": "request_invalid", "stage": "request"})
+        msgs = _modelos_rack.messages(datos.get("mensajes") if isinstance(datos, dict) else None)
+        base, name = _modelos_rack.resolve(datos.get("modelo") if isinstance(datos, dict) else None)
+        if msgs is None or base is None:
+            return self._json(400, {"estado": "NO_DATA", "causa": name if base is None else "messages_invalid",
+                                    "stage": "request"})
+        self.close_connection = True
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Connection", "close")
+        self.end_headers()
+
+        def emit(event):
+            try:
+                self.wfile.write(json.dumps(event, ensure_ascii=False).encode("utf-8") + b"\n")
+                self.wfile.flush()
+                return True
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                return False
+        result = _modelos_rack.stream(base, name, msgs, emit)
+        if result.get("state") == "MEASURED":
+            try:
+                _modelos_rack.record_e2e(datos["modelo"], {k: result[k] for k in
+                                         ("at", "first_token_ms", "total_ms", "tokens") if k in result})
+            except OSError:
+                pass
 
     def _hexelion_chat(self):
         """Append the person's turn, then proxy one bounded local station call."""

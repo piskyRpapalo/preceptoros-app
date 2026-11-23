@@ -150,7 +150,7 @@ class TalkNeverWordsAResultItself(unittest.TestCase):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf-8")
         for asset in ('"/notebook.js?v=24"', '"/app.js?v=58"'):
             self.assertIn(asset, sw)
-        self.assertIn('const Cache = "preceptoros-armazon-v249";', sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v250";', sw)
 
 
 if __name__ == "__main__":
