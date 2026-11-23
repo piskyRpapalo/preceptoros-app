@@ -183,7 +183,7 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           test_agent_voice test_cerebro_frame
           # Superbot F1: cards declare, only host-verified task grants gate eligibility.
           # Atomic journal: append-only SQLite consumption/revocation ledger for agent-grant/1.
-          test_agentes_contrato test_grant_journal test_talk_local
+          test_agentes_contrato test_grant_journal test_superbot_relevo test_talk_local
           # Day D · personal_mvp must never inherit a rack chat or shared thread.
           test_dayd_personal_no_rack_contract test_lisbon_table_operator
           # SYSTEM CHECK: native offline diagnosis, independent of model/provider.
