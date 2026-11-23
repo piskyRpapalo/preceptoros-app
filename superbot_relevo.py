@@ -55,18 +55,30 @@ def _iso(t: dt.datetime) -> str:
 
 
 # ── the relay (private rack only) ───────────────────────────────────────────
-def load_relay():
+RELAY_NEEDS = ("goal_covers", "goal_send", "claim", "read_events", "settle", "SECRET", "FIRMA")
+
+
+def relay_probe():
+    """(module or None, cause). `settle` is the ACK/RESULT receipt writer (p0x #143, read_events calls it):
+    a relay without it never produces a result, so it is refused with its own cause, not loaded half-working."""
     base = Path(os.environ.get("PRECEPTOROS_RELEVO_BIN") or Path.home() / ".local/share/preceptoros-web-mcp/bin")
     path = base / "cli_relevo.py"
     if not path.is_file():
-        return None
+        return None, "relay_unavailable"
     spec = importlib.util.spec_from_file_location("cli_relevo", path)
     mod = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(mod)
     except Exception:
-        return None
-    return mod if all(hasattr(mod, n) for n in ("goal_covers", "goal_send", "claim", "read_events", "settle")) else None
+        return None, "relay_unloadable"
+    missing = [n for n in RELAY_NEEDS if not hasattr(mod, n)]
+    if missing:
+        return None, "relay_older_than_p0x_143_missing_" + "_".join(missing)
+    return mod, "ok"
+
+
+def load_relay():
+    return relay_probe()[0]
 
 
 # ── bytes that get signed ───────────────────────────────────────────────────
@@ -179,9 +191,13 @@ def dispatch(home: Path, *, run_id: str, task_raw: bytes, session_id: str, goal_
     blocked = _unresolved(home)
     if blocked:
         return _r("REJECTED", "outcome_unknown_blocks_new_runs", unresolved=blocked)  # A12
-    relay = relay or load_relay()
     if relay is None:
-        return _r("NO_DATA", "relay_unavailable")
+        relay, why = relay_probe()
+        if relay is None:
+            return _r("NO_DATA", why)
+    if any(rx is not None and rx.search(task["instruction"]) for rx in (getattr(relay, "SECRET", None),
+                                                                        getattr(relay, "FIRMA", None))):
+        return _r("REJECTED", "instruction_secret_or_signature_like")      # before any grant is consumed
     cause = relay.goal_covers(goal_id, VOICE, session_id)                       # boundary 1: the owner's goal
     if cause:
         return _r("REJECTED", cause)

@@ -191,6 +191,21 @@ class SuperbotRelay(unittest.TestCase):
             self.assertEqual(S.resolve(self.home, "sb-run-1", "terminal died; checked by hand")["state"], "RESOLVED")
         self.assertEqual(S._unresolved(self.home), [])
 
+    def test_a_secret_like_instruction_is_refused_before_the_grant_is_consumed(self):
+        task = self._task("Read README; token=abcdefghijklmnop0123")
+        out = self._dispatch(task_raw=task, grant_raw=self._grant(task))
+        self.assertEqual(out["cause"], "instruction_secret_or_signature_like")
+        self.assertEqual(GJ.get_consumed_grant_ids(self.journal), set())
+        self.assertEqual(S.runs(self.home), [])
+
+    def test_a_relay_without_ack_result_has_its_own_cause(self):
+        old = self.root / "old"
+        old.mkdir()
+        (old / "cli_relevo.py").write_text("def goal_covers(*a): pass\ndef goal_send(*a): pass\n"
+                                           "def claim(*a): pass\ndef read_events(*a): pass\nSECRET = FIRMA = None\n")
+        with mock.patch.dict(os.environ, {"PRECEPTOROS_RELEVO_BIN": str(old)}):
+            self.assertEqual(S.relay_probe(), (None, "relay_older_than_p0x_143_missing_settle"))
+
     def test_without_the_relay_everything_is_no_data(self):
         with mock.patch.dict(os.environ, {"PRECEPTOROS_RELEVO_BIN": str(self.root / "nowhere")}):
             self.assertIsNone(S.load_relay())
