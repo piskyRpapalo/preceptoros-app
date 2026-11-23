@@ -57,6 +57,25 @@ def extract(source: str, tag: str, element_id: str) -> str:
             depth += 1
     raise ValueError(f"unbalanced_APP_element:{element_id}")
 
+def extract_class(source: str, tag: str, class_name: str) -> str:
+    """Extract one balanced element from the canonical APP by CSS class."""
+    start_re = re.compile(r"<" + tag + r"\b[^>]*>", re.I | re.S)
+    matches = [m for m in start_re.finditer(source)
+               if class_name in re.findall(r"\bclass=[\"']([^\"']*)[\"']", m.group(), re.I)]
+    if len(matches) != 1:
+        raise ValueError(f"missing_or_duplicate_APP_element:{tag}:class:{class_name}:{len(matches)}")
+    start = matches[0].start()
+    tokens = re.compile(r"</?" + tag + r"\b[^>]*>", re.I)
+    depth = 0
+    for token in tokens.finditer(source, start):
+        if token.group().startswith("</"):
+            depth -= 1
+            if depth == 0:
+                return source[start:token.end()]
+        else:
+            depth += 1
+    raise ValueError(f"unbalanced_APP_element:{tag}:class:{class_name}")
+
 def node_section(source: str) -> str:
     anchor = source.index('id="node-registration-title"')
     starts = list(re.finditer(r"<section\b[^>]*>", source[:anchor], re.I))
@@ -81,6 +100,7 @@ def shell(source: str) -> str:
     # Pull from the real HTML rather than maintaining a second documents editor.
     docs = extract(source, "section", "notebook-document-editor")
     docs = re.sub(r'(<section\b[^>]*\bid="notebook-document-editor"[^>]*?)\s+hidden(?=[\s>])', r'\1', docs, count=1)
+    app_header = extract_class(source, "header", "barra")
     intro = extract(source, "section", "mvp-first-run")
     agent_disclosure = extract(source, "details", "superbot-agent-disclosure")
     node_template = extract(source, "section", "node-public-template")
@@ -88,6 +108,9 @@ def shell(source: str) -> str:
     node_identity_form = extract(source, "form", "node-identity-form")
     crab = extract(source, "div", "talk-processing")
     talk_input = extract(source, "form", "form-chat")
+    installed_version = extract(source, "output", "app-installed-version")
+    # A browser projection must not masquerade as an installed Android build.
+    talk_input = talk_input.replace(installed_version, "")
     talk_input = talk_input.replace("Use an @panel tag to route a question, @ayuda for local temporary help, or @name to address a preceptor in the shared thread.",
         "Ask the deterministic MINI about these four zones. No downloaded language model or rack connection is required.")
     talk_input = talk_input.replace("Lo que dices", "Your message").replace("Escribe tu respuesta…", "Ask MINI locally…").replace(">Dilo</button>", ">Send</button>")
@@ -104,38 +127,26 @@ def shell(source: str) -> str:
     if len(re.findall(r'id="tab-(?:conversacion|cuaderno|lab|ajustes|modelos|settings)"',source)) != 6:
         raise ValueError("APP_six_panel_count_changed")
     return """<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#152c38">
-<meta name="description" content="PreceptorOS APP · six-panel public-safe deterministic projection; not a native Android APK.">
+<meta name="theme-color" content="#171526">
+<meta name="description" content="PreceptorOS · six-panel APP">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./app.css">
 <link rel="stylesheet" href="./public-mini.css">
-<title>PreceptorOS APP · local projection</title>
+<title>PreceptorOS</title>
 </head>
 <body class="public-mini">
-<header class="mini-head">
-  <h1>PreceptorOS APP</h1>
-  <p>This public-safe view of the approved six-panel APP uses the shared deterministic Mini Orchestrator.
-  It is not the Android APK or a running Companion; owner data stays in this browser until explicit action.</p>
-  <p id="mini-offline-badge" role="status" aria-live="polite" data-state="DETERMINISTIC_ONLY" data-acho="DETERMINISTIC_ONLY">DETERMINISTIC_ONLY · local guide ready</p>
-  <nav class="pestanas" role="tablist" aria-label="Six PreceptorOS panels">
-    <button id="tab-conversacion" type="button" role="tab" aria-controls="panel-conversacion" aria-selected="true">Talk</button>
-    <button id="tab-cuaderno" type="button" role="tab" aria-controls="panel-cuaderno" aria-selected="false">Operations Data</button>
-    <button id="tab-lab" type="button" role="tab" aria-controls="panel-lab" aria-selected="false">Lab</button>
-    <button id="tab-ajustes" type="button" role="tab" aria-controls="panel-ajustes" aria-selected="false">My node</button>
-    <button id="tab-modelos" type="button" role="tab" aria-controls="panel-modelos" aria-selected="false">Open World</button>
-    <button id="tab-settings" type="button" role="tab" aria-controls="panel-settings" aria-selected="false">Settings</button>
-  </nav>
-</header>
+""" + app_header + """
 <main id="public-mini-main">
 <section class="panel" id="panel-conversacion" role="tabpanel" aria-labelledby="tab-conversacion" tabindex="0">
   <header class="panel-cabecera superbot-panel-header"><h2 class="sr">Talk</h2><h3>Agents</h3>
   """ + agent_disclosure + """
   </header>
   """ + intro + """
+  <p id="mini-offline-badge" role="status" aria-live="polite" data-state="DETERMINISTIC_ONLY" data-acho="DETERMINISTIC_ONLY">DETERMINISTIC_ONLY · local guide ready. Owner-only network actions are unavailable.</p>
   <div class="talk-model-picker">
     <button id="modelos-toggle" type="button" aria-expanded="false" aria-controls="modelos-menu">Mini Orchestrator · local</button>
     <div id="modelos-menu" role="dialog" aria-label="Mini Orchestrator" hidden>
@@ -238,9 +249,9 @@ def shell(source: str) -> str:
 </section>
 </main>
 <div class="mini-compose">
+""" + crab + """
 """ + talk_input + """
 </div>
-""" + crab + """
 <script>window.PreceptorMiniBrowserEnabled=true;window.PreceptorProfile='personal_mvp';</script>
 <script src="./face/bubble/openworld_crab_body.js"></script>
 <script src="./talk_crab_canvas.js"></script>
@@ -372,25 +383,19 @@ BOOT = r"""/* Thin six-panel adapter for the EXISTING APP's owner-safe local mod
 CSS = r"""/* Approved APP six-panel, public-safe projection; same owner-local modules. */
 *{box-sizing:border-box}
 body.public-mini{max-width:56rem;min-width:0;margin:0 auto;padding:1rem;background:var(--ground,#1e1b2c);color:var(--ink,#f4efff)}
-.public-mini .mini-head{padding:1rem;border-bottom:1px solid #9baeb9;position:relative}
-.public-mini h1{margin:.2rem 0 .7rem;font-size:clamp(1.4rem,4vw,2rem)}
-.public-mini .pestanas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;margin:1rem 0}
-@media (min-width:720px){.public-mini .pestanas{grid-template-columns:repeat(6,minmax(0,1fr))}}
-.public-mini .pestanas button{min-width:0;white-space:normal;min-height:3rem;padding:.55rem .2rem;background:#e8f1f5;color:#123}
-.public-mini .pestanas button[aria-selected=true]{background:#1b5068;color:white;outline:2px solid #15445d;outline-offset:1px}
 .public-mini .panel{position:static!important;height:auto!important;overflow:visible!important;max-height:none!important;padding:.5rem 0 7rem;display:block}
 .public-mini .panel[hidden]{display:none!important}
-.public-mini .tarjeta{max-width:none;padding:1rem;border:1px solid #c2d0d8;border-radius:.5rem;margin:.8rem 0;background:#fff}
-.public-mini button,.public-mini input,.public-mini textarea,.public-mini select{font:inherit}
+.public-mini .tarjeta{max-width:none;padding:1rem;border:1px solid var(--line);border-radius:.5rem;margin:.8rem 0;background:var(--paper)}
+.public-mini button:not([role=tab]),.public-mini input,.public-mini textarea,.public-mini select{font:inherit}
 .public-mini input:not([type=checkbox]),.public-mini textarea,.public-mini select{width:100%;max-width:100%;padding:.7rem;min-height:2.75rem;margin:.2rem 0 .8rem}
-.public-mini button{min-height:2.75rem;border-radius:.3rem;padding:.45rem .7rem;cursor:pointer}
+.public-mini button:not([role=tab]){min-height:2.75rem;border-radius:.3rem;padding:.45rem .7rem;cursor:pointer}
 .public-mini label{display:block;font-weight:600;margin-top:.5rem}
 .public-mini button:focus-visible,.public-mini a:focus-visible,.public-mini input:focus-visible,.public-mini textarea:focus-visible{outline:3px solid #ab5e00;outline-offset:2px}
 .public-mini .mini-guide-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0}
-.public-mini .mini-compose{position:sticky;bottom:0;background:var(--ground,#1e1b2c);border-top:2px solid #c1d1d7;padding:.6rem;z-index:2}
+.public-mini .mini-compose{position:sticky;bottom:0;background:var(--ground,#171526);border-top:2px solid var(--line);padding:.6rem;z-index:2}
 .public-mini .mini-compose textarea{min-height:2.8rem;max-height:6rem}
 .public-mini .hilo{min-height:3rem;max-height:22rem;overflow:auto;list-style:none;padding:.25rem}
-.public-mini pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:25rem;overflow:auto;background:#edf2f5;padding:.75rem}
+.public-mini pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:25rem;overflow:auto;background:var(--paper);padding:.75rem}
 .public-mini [data-state=NO_DATA]{font-style:italic}
 .public-mini details,.public-mini fieldset{max-width:100%}
 .public-mini .owner-models-grid{display:grid;grid-template-columns:1fr;gap:1rem}
@@ -411,7 +416,7 @@ html[data-mini-contrast=true] body.public-mini{background:#000!important;color:#
 html[data-mini-contrast=true] .public-mini button{background:#fff;color:#000}
 html[data-reduce-motion=true] #talk-processing .talk-processing-crab{animation:none!important}
 @media (prefers-reduced-motion: reduce){#talk-processing .talk-processing-crab{animation:none!important}}
-@media (max-width:390px){body.public-mini{padding:.4rem}.public-mini .pestanas button{font-size:.82rem}}
+@media (max-width:390px){body.public-mini{padding:.4rem}}
 """
 SW = r"""/* Public APP static shell. Never intercept or cache /api or remote requests. */
 const CACHE='preceptoros-public-mini-recover-v1';
@@ -448,9 +453,9 @@ def build(out: Path) -> dict:
     (app/"public-boot.js").write_text(BOOT,encoding="utf-8")
     (app/"public-mini.css").write_text(CSS,encoding="utf-8")
     (app/"manifest.webmanifest").write_text(json.dumps({
-         "id":"/app/","name":"PreceptorOS APP · local projection","short_name":"PreceptorOS",
+         "id":"/app/","name":"PreceptorOS","short_name":"PreceptorOS",
         "start_url":"/app/","scope":"/app/","display":"standalone",
-        "theme_color":"#152c38","background_color":"#f7f8f7",
+        "theme_color":"#171526","background_color":"#171526",
         "icons":[
             {"src":"./assets/icono-192.png","sizes":"192x192","type":"image/png"},
             {"src":"./assets/icono-512.png","sizes":"512x512","type":"image/png"},
