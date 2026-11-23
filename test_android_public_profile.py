@@ -410,6 +410,37 @@ class TestPublicAppHtmlStructure(unittest.TestCase):
 
         html_text = app_html.read_text()
 
+        # The restricted PUBLIC projection keeps the approved APP frame verbatim.
+        # Content inside the panels may be sanitized; navigation and header are invariant.
+        source_html = (ROOT / "interface" / "app.html").read_text()
+        source_header = re.search(r'<header class="barra">.*?</header>', source_html, re.S)
+        projected_header = re.search(r'<header class="barra">.*?</header>', html_text, re.S)
+        self.assertIsNotNone(source_header, "canonical APP header must exist")
+        self.assertIsNotNone(projected_header, "PUBLIC must preserve the canonical APP header")
+        self.assertEqual(projected_header.group(), source_header.group())
+        source_tabs = re.search(r'<nav class="pestanas" id="pestanas".*?</nav>', source_html, re.S)
+        projected_tabs = re.search(r'<nav class="pestanas" id="pestanas".*?</nav>', html_text, re.S)
+        self.assertIsNotNone(source_tabs, "canonical six-tab navigation must exist")
+        self.assertIsNotNone(projected_tabs, "PUBLIC must preserve canonical six-tab navigation")
+        self.assertEqual(projected_tabs.group(), source_tabs.group())
+        self.assertNotIn('class="mini-head"', html_text)
+        self.assertIn('<html lang="en" data-theme="dark">', html_text)
+        self.assertNotIn('app-installed-version', html_text)
+        self.assertNotIn('NO_DATA(not_native_android)', html_text)
+        self.assertNotIn('local projection', html_text.lower())
+        self.assertLess(html_text.index('id="talk-processing"'), html_text.index('id="form-chat"'))
+        self.assertIn('data-state="IDLE" data-acho="silent" data-crab-render="NO_DATA"', html_text)
+
+        public_css = assets_dir / "public-mini.css"
+        self.assertTrue(public_css.exists(), "PUBLIC projection stylesheet must be staged")
+        css_text = public_css.read_text()
+        self.assertNotRegex(css_text, r"\.public-mini\s+\.pestanas[^{}]*\{[^}]*display\s*:\s*grid")
+        self.assertNotRegex(css_text, r"\.public-mini\s+\.pestanas\s+button")
+        self.assertIn("button:not([role=tab])", css_text,
+                      "PUBLIC control sizing must not override canonical tab icon geometry")
+        self.assertIn("background:var(--paper)", css_text,
+                      "public panels must follow the selected canonical theme")
+
         # Assert six tab ids present
         expected_tabs = [
             "tab-conversacion",
