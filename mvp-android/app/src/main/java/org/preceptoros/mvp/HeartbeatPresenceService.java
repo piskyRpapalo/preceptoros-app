@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 import org.json.JSONObject;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,6 +23,7 @@ public final class HeartbeatPresenceService extends Service {
     static final String ACTION_BOOT_RESUME = "org.preceptoros.mvp.HEARTBEAT_BOOT_RESUME";
     private static final String CHANNEL = "node-presence-heartbeat";
     private static final int NOTIFICATION_ID = 4315;
+    private static final String TAG = "PreceptorPresence";   // alias, action and cause only: never a key
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService sender = Executors.newSingleThreadExecutor();
@@ -35,10 +37,17 @@ public final class HeartbeatPresenceService extends Service {
         createChannel();
         // Android requires foreground promotion immediately after a user-started start.
         promote("Starting owner-approved node presence.");
+        // A sticky restart after Android killed the process (APP swiped from recents) may never deliver onStartCommand:
+        // measured on Tank 3 2026-11-24 19:51Z, the service sat at «Starting» and stopped beating. While the owner's
+        // consent is active, the beat chain starts here too; sendTick re-checks consent before every beat.
+        boolean consent = HeartbeatCredentialStore.consentActive(this);
+        Log.i(TAG, "create consent=" + consent);
+        if (consent && !looping) { looping = true; handler.post(tick); }
     }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent == null ? null : intent.getAction();
+        Log.i(TAG, "start action=" + action + " looping=" + looping);
         if (ACTION_REVOKE.equals(action)) {
             revokeAndStop();
             return START_NOT_STICKY;
@@ -107,6 +116,7 @@ public final class HeartbeatPresenceService extends Service {
                             ? "Node " + r.get("alias") + ": Aduana accepted the heartbeat; public LIVE is unverified."
                             : "Reconnecting; " + cause + ". Public LIVE is unverified.";
                     String status = next;
+                    Log.i(TAG, "beat " + status);
                     handler.post(() -> { inFlight = false; if (!HeartbeatCredentialStore.consentActive(this)) { stopSelf(); return; }
                         visibleStatus = status; updateNotification(); handler.postDelayed(tick, HeartbeatServicePolicy.INTERVAL_MILLIS); });
                     return;
@@ -121,6 +131,7 @@ public final class HeartbeatPresenceService extends Service {
                         ". Public LIVE is unverified.";
             }
             String status = next;
+            Log.i(TAG, "beat " + status);
             handler.post(() -> {
                 inFlight = false;
                 if (!HeartbeatCredentialStore.consentActive(this)) {

@@ -27,7 +27,7 @@ import javax.net.ssl.HttpsURLConnection;
  * The owner seed and heartbeat key live in getFilesDir()/node-owner and never reach JavaScript;
  * JS only receives the public state. Creating the identity and raising the building each need a
  * second, native confirmation. While the APP is open it finishes the admission once the Sovereign
- * has approved, and keeps the node's heartbeat every 240 s.
+ * has approved; periodic heartbeats belong to the owner-consented HeartbeatPresenceService.
  */
 final class NodeOwnerBridge {
     private static final String API = "https://api.preceptoros.org";
@@ -57,19 +57,17 @@ final class NodeOwnerBridge {
                 if (raw == null || raw.length() > 600) { bridge.reply(reply, "", Map.of("state", "NO_DATA", "cause", "message_out_of_range")); return; }
                 activity.runOnUiThread(() -> bridge.handle(raw, reply));
             });
-        // Finish the admission after approval, then beat, while the APP is open. Never before a request exists.
+        // Finish the admission after approval (one first beat), while the APP is open. Never before a request exists.
         bridge.worker.scheduleWithFixedDelay(bridge::tick, 20, 120, TimeUnit.SECONDS);
         return bridge;
     }
 
     void close() { worker.shutdownNow(); }
 
-    private long lastBeat = 0;
     private void tick() {
         try {
             Map<String, Object> s = owner.status();
             String step = (String) s.get("step");
-            long now = System.currentTimeMillis() / 1000;
             // One emitter per identity: while the owner's presence service beats for this node, the APP does not.
             boolean serviceBeats = HeartbeatCredentialStore.deviceNode(activity);
             // The owner's consent is active but the service may have died (update, OEM kill): the open APP brings it back.
@@ -81,12 +79,10 @@ final class NodeOwnerBridge {
                     else activity.startService(service);
                 } catch (RuntimeException notAllowedNow) { /* background start refused: the next foreground tick retries */ }
             }
+            // Only the admission steps advance here. Periodic beats belong to the owner-consented service alone: after
+            // «Revoke and stop» an open APP must not become the old foreground emitter again (Sovereign, 2026-11-24).
             synchronized (NodeOwner.LOCK) {
                 if ("awaiting_approval".equals(step) || "awaiting_map_link".equals(step)) owner.advance(Instant.now());
-                else if (!serviceBeats && ("ready_to_build".equals(step) || "building_raised".equals(step)) && now - lastBeat >= NodeOwner.BEAT_SECONDS - 5) {
-                    owner.advance(Instant.now());   // renews the key 12 h before it expires, then beats
-                    lastBeat = now;
-                }
             }
         } catch (Exception ignored) { /* NO_DATA is shown on the next status read; never a false LIVE */ }
     }
