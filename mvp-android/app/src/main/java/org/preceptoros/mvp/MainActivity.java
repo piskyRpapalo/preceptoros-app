@@ -369,6 +369,7 @@ public class MainActivity extends Activity {
             }
         });
         setContentView(web);
+        SystemBars.pad(web);
         web.loadUrl(START);
     }
 
