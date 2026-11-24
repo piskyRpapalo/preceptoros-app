@@ -123,7 +123,9 @@ class PresenceServiceOneEmitter(unittest.TestCase):
         sbridge = (SRC / "HeartbeatServiceBridge.java").read_text()
         self.assertIn("NodeOwnerBridge.owner(this).advance(", service)
         self.assertIn("synchronized (NodeOwner.LOCK)", service)
-        self.assertIn("!serviceBeats &&", bridge)          # one emitter per identity
+        tick = bridge.split("private void tick()")[1].split("\n    }\n")[0]
+        self.assertNotIn("ready_to_build", tick)             # no periodic APP beat: revoke stays revoked when the APP opens
+        self.assertNotIn("lastBeat", bridge)
         self.assertIn("synchronized (NodeOwner.LOCK)", bridge)
         self.assertIn("beatingAlias()", sbridge)            # a phone-born node needs no imported file
         self.assertIn("openPicker()", sbridge)              # any other node keeps the picker
