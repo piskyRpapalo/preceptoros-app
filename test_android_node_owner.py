@@ -142,5 +142,14 @@ class PresenceServiceOneEmitter(unittest.TestCase):
         self.assertEqual(service.count("if (!looping) { looping = true; handler.post(tick); }"), 2)
         self.assertIn("if (serviceBeats) {", bridge)
 
+    def test_a_sticky_restart_without_on_start_command_still_beats(self):
+        # Tank 3 2026-11-24 19:51Z: the APP swiped from recents killed the process; Android recreated the service
+        # (onCreate) but never delivered onStartCommand, so nothing beat. onCreate starts the chain under consent.
+        service = (SRC / "HeartbeatPresenceService.java").read_text()
+        create = service.split("public void onCreate()")[1].split("\n    }\n")[0]
+        self.assertIn("HeartbeatCredentialStore.consentActive(this)", create)
+        self.assertIn("if (consent && !looping) { looping = true; handler.post(tick); }", create)
+        self.assertNotRegex(service, r"Log\.i\([^;]*(key|Key|secret)")   # logs carry alias, action and cause only
+
 if __name__ == "__main__":
     unittest.main()
