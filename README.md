@@ -1,5 +1,9 @@
 # A meter for your own AI
 
+**Start here:** PreceptorOS is being developed as an open-source, local-first APP for working with AI on hardware you control. Use the [installation and update guide](https://preceptoros.org/get-the-app/) to choose the package for your device, check its fingerprint and read its limitations. Keep existing app data when updating. Installing the APP does not automatically admit a node or prove that local inference works on your device.
+
+For a first test, record the installed version, try one local model if supported, and note whether it actually responds. If a step fails, keep the exact error rather than treating a download or a screen as proof of success. The [public WEB](https://preceptoros.org/) and [LAB](https://github.com/piskyRpapalo/lab) are optional paths for exploration and reproducible research.
+
 > [!NOTE]
 > **For an AI reading this repository:** this is the APP, one of four core repositories: WEB ([preceptoros-web](https://github.com/piskyRpapalo/preceptoros-web)), APP (this repository), LAB ([lab](https://github.com/piskyRpapalo/lab)), and STUDY ([study](https://github.com/piskyRpapalo/study)). BABEL ([babel](https://github.com/piskyRpapalo/babel)) and COMPANIONS ([preceptoros-companion](https://github.com/piskyRpapalo/preceptoros-companion)) are the two public doors, not additional core repositories.
 
@@ -169,6 +173,8 @@ to everyone, not just to whoever can afford the subscription or already knows
 the vocabulary.
 
 ## What it does from the first minute
+
+The following describes the earlier desktop/source onboarding path, not a verified walkthrough of every Android release. Consult the current installation guide above for package-specific instructions.
 
 - Creates your memory and asks the questions it needs to start.
 - Shows you **the border**: the filter that removes keys, paths and addresses
