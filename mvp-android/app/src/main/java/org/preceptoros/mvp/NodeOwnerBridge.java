@@ -108,6 +108,8 @@ final class NodeOwnerBridge {
             final String rid = id;
             switch (action) {
                 case "status": background(rid, reply, () -> withSuggestion(owner.status())); return;
+                // What the public OpenWorld says about this phone's node: state, cause, source, age (Acho in the APP).
+                case "public_state": background(rid, reply, () -> PublicNodeState.read(owner.beatingAlias())); return;
                 case "advance": background(rid, reply, () -> { synchronized (NodeOwner.LOCK) { return owner.advance(Instant.now()); } }); return;
                 case "create": {
                     String node = m.get("node") instanceof String ? (String) m.get("node") : "";
