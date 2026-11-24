@@ -194,7 +194,7 @@ class PublicNodeStateForAcho(unittest.TestCase):
 
     def test_android_15_edge_to_edge_pads_both_pages(self):
         # Tank 3 (Android 15, targetSdk 36) 2026-11-24: the clock covered «PreceptorOS» and «OpenWorld visitor».
-        self.assertIn("SystemBars.pad(web);", (SRC / "MainActivity.java").read_text())
+        self.assertIn("SystemBars.pad(frame);", (SRC / "MainActivity.java").read_text())   # a WebView ignores padding
         self.assertIn("SystemBars.pad(page);", (SRC / "OpenWorldActivity.java").read_text())
         self.assertIn("WindowInsets.Type.systemBars()", (SRC / "SystemBars.java").read_text())
 

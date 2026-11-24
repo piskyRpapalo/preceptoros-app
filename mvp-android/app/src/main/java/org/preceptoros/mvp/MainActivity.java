@@ -368,8 +368,11 @@ public class MainActivity extends Activity {
                 return !"https".equals(request.getUrl().getScheme()) || !DOMAIN.equals(request.getUrl().getHost());
             }
         });
-        setContentView(web);
-        SystemBars.pad(web);
+        // A WebView ignores its own padding when it draws: the system-bar padding goes on a frame around it.
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+        frame.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        setContentView(frame);
+        SystemBars.pad(frame);
         web.loadUrl(START);
     }
 
