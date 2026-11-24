@@ -61,9 +61,31 @@
      try{root.AchoMotion.express(status,{MEASURED:"ok",PENDING:"needs_you",NO_DATA:"uncertain"}[state],state);}catch(e){}
    }
  }
+ // The public OpenWorld's word on this phone's node (2026-11-24): state, cause, source and age, for the eye and for Acho.
+ // Absence is NO_DATA with its cause, never OFFLINE. Painted in Open World and under My node.
+ const pubLine=el("p",{id:"native-node-public"});pubLine.setAttribute("role","status");pubLine.setAttribute("aria-live","polite");
+ card.insertBefore(pubLine,json);
+ function paintPublic(d){
+   const state=["LIVE","STALE","OFFLINE","NO_DATA"].includes(d.state)?d.state:"NO_DATA";
+   const cause=state==="NO_DATA"?(typeof d.cause==="string"&&/^[a-z0-9_]{1,64}$/.test(d.cause)?d.cause:"native_reply_invalid"):"";
+   const node=typeof d.node==="string"&&/^[a-z0-9][a-z0-9-]{0,29}$/.test(d.node)?d.node:null;
+   const at=Date.parse(d.checked_at),age=Number.isFinite(at)?Math.max(0,Math.round((Date.now()-at)/1000)):null;
+   const src="preceptoros.org world-state";
+   const words=(state==="NO_DATA"?"NO_DATA("+cause+")":(node?"Node "+node:"This node")+" is "+state+" in OpenWorld")+
+     (state==="LIVE"?" · heartbeat within 5 min":"")+(typeof d.since==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(d.since)?" · measured day "+d.since:"")+
+     " · source "+src+(age===null?"":" · checked "+age+" s ago")+".";
+   const frame=JSON.stringify({id:"app/node-public",state,cause,source:d.source===PUBLIC_SRC?PUBLIC_SRC:"NO_DATA",checked_at:Number.isFinite(at)?d.checked_at:null,node});
+   for(const t of [pubLine,doc.getElementById("openworld-node-state")]){
+     if(!t)continue;t.textContent=words;t.dataset.state=state;t.dataset.cause=cause;t.dataset.acho=frame;
+     if(root.AchoMotion&&typeof root.AchoMotion.express==="function"){try{root.AchoMotion.express(t,state==="LIVE"?"ok":"uncertain",state);}catch(e){}}
+   }
+   if(typeof root.CustomEvent==="function")doc.dispatchEvent(new root.CustomEvent("acho:event",{detail:{id:"app/node-public",frame:JSON.parse(frame)}}));
+ }
+ const PUBLIC_SRC="https://preceptoros.org/api/world-state";
  native.onmessage=function(evt){
    let data;try{data=JSON.parse(evt.data);}catch(e){return;}
    if(pending&&data.id===pending.id){clearTimeout(pending.timer);pending=null;}
+   if(data.kind==="public_state")return paintPublic(data);
    if(!data.id&&data.cause)return paint(data);
    paint(data);
  };
@@ -80,6 +102,9 @@
  });
  build.addEventListener("click",()=>ask({action:"build"}));
  paint({state:"NO_DATA",cause:"node_not_created",step:"no_identity"});
+ paintPublic({state:"NO_DATA",cause:"native_state_not_read"});
  ask({action:"status"});
- setInterval(()=>{if(!pending)ask({action:"status"});},30000);
+ let turn=0;   // status and the public word take turns, one native question at a time
+ setTimeout(()=>{if(!pending)ask({action:"public_state"});},3000);
+ setInterval(()=>{if(!pending)ask({action:(turn++%2)?"status":"public_state"});},15000);
 })(typeof window!=="undefined"?window:globalThis);

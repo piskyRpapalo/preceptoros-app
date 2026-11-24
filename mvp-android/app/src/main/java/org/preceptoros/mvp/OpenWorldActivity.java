@@ -75,6 +75,7 @@ public final class OpenWorldActivity extends Activity {
         page.addView(back, new LinearLayout.LayoutParams(-1, -2));
         page.addView(game, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(page, new ViewGroup.LayoutParams(-1, -1));
+        SystemBars.pad(page);
         game.loadUrl(OpenWorldVisitorPolicy.URL);
     }
 

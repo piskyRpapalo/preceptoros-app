@@ -151,5 +151,52 @@ class PresenceServiceOneEmitter(unittest.TestCase):
         self.assertIn("if (consent && !looping) { looping = true; handler.post(tick); }", create)
         self.assertNotRegex(service, r"Log\.i\([^;]*(key|Key|secret)")   # logs carry alias, action and cause only
 
+
+PUBLIC_PROBE = """package org.preceptoros.mvp;
+import java.time.Instant;
+public class PublicProbe { public static void main(String[] a) throws Exception {
+  Instant t = Instant.parse("2026-11-24T21:00:00.400Z");
+  String w = "{\\"colonia\\":{\\"nodes\\":[{\\"id\\":\\"tank-3\\",\\"seal\\":\\"LIVE\\",\\"since\\":\\"2026-11-24\\"},{\\"id\\":\\"odd\\",\\"seal\\":\\"MAYBE\\"}]}}";
+  System.out.println(PublicNodeState.classify(NodeCrypto.parse(w), "tank-3", t));
+  System.out.println(PublicNodeState.classify(NodeCrypto.parse(w), "doggee-s110", t));
+  System.out.println(PublicNodeState.classify(NodeCrypto.parse(w), "odd", t));
+  System.out.println(PublicNodeState.classify(NodeCrypto.parse("{}"), "tank-3", t));
+  System.out.println(PublicNodeState.classify(null, null, t));
+} }
+"""
+
+@unittest.skipUnless(shutil.which("javac"), "javac required")
+class PublicNodeStateForAcho(unittest.TestCase):
+    """Sovereign 2026-11-24: the APP shows what the public OpenWorld says about this phone's node, with state, cause,
+    source and age. Absence is NO_DATA with its cause, never OFFLINE; an unknown seal is NO_DATA too."""
+    def test_classify(self):
+        tmp = Path(tempfile.mkdtemp()); pkg = tmp / "src/org/preceptoros/mvp"; pkg.mkdir(parents=True)
+        for f in ("NodeCrypto.java", "PublicNodeState.java"): shutil.copy(SRC / f, pkg)
+        (pkg / "PublicProbe.java").write_text(PUBLIC_PROBE)
+        subprocess.run(["javac", "-nowarn", "-d", str(tmp / "out"), *map(str, pkg.glob("*.java"))], check=True, capture_output=True)
+        live, absent, odd, empty, none = subprocess.run(["java", "-cp", str(tmp / "out"), "org.preceptoros.mvp.PublicProbe"],
+            check=True, capture_output=True, text=True).stdout.splitlines()
+        src = "source=https://preceptoros.org/api/world-state, checked_at=2026-11-24T21:00:00Z"
+        self.assertEqual(live, "{kind=public_state, state=LIVE, cause=, " + src + ", node=tank-3, since=2026-11-24}")
+        self.assertIn("state=NO_DATA, cause=node_not_in_public_feed", absent)   # absence is never OFFLINE
+        self.assertIn("state=NO_DATA, cause=seal_not_recognised", odd)
+        self.assertIn("state=NO_DATA, cause=world_state_without_nodes", empty)
+        self.assertIn("state=NO_DATA, cause=no_beating_node_on_this_phone", none)
+
+    def test_wired_to_the_bridge_and_both_panels(self):
+        bridge = (SRC / "NodeOwnerBridge.java").read_text()
+        js = (SRC.parents[6] / "android_node_bridge.js").read_text()
+        gen = (SRC.parents[7] / "bin/package_public_mini.py").read_text()
+        self.assertIn('case "public_state": background(rid, reply, () -> PublicNodeState.read(owner.beatingAlias()));', bridge)
+        self.assertIn('doc.getElementById("openworld-node-state")', js)
+        self.assertIn('id="openworld-node-state"', gen)
+        self.assertNotIn("Your Companion is not LIVE", gen)   # the old fixed sentence lied while the node was LIVE
+
+    def test_android_15_edge_to_edge_pads_both_pages(self):
+        # Tank 3 (Android 15, targetSdk 36) 2026-11-24: the clock covered «PreceptorOS» and «OpenWorld visitor».
+        self.assertIn("SystemBars.pad(frame);", (SRC / "MainActivity.java").read_text())   # a WebView ignores padding
+        self.assertIn("SystemBars.pad(page);", (SRC / "OpenWorldActivity.java").read_text())
+        self.assertIn("WindowInsets.Type.systemBars()", (SRC / "SystemBars.java").read_text())
+
 if __name__ == "__main__":
     unittest.main()
