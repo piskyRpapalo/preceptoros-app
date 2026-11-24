@@ -129,5 +129,16 @@ class PresenceServiceOneEmitter(unittest.TestCase):
         self.assertIn("openPicker()", sbridge)              # any other node keeps the picker
         self.assertIn("minusSeconds(NodeOwner.CLOCK_MARGIN_SECONDS)", (SRC / "HeartbeatSender.java").read_text())
 
+    def test_an_update_or_an_open_app_brings_a_consented_service_back_without_a_second_chain(self):
+        receiver = (SRC / "HeartbeatBootReceiver.java").read_text()
+        manifest = (SRC.parents[3] / "AndroidManifest.xml").read_text()
+        service = (SRC / "HeartbeatPresenceService.java").read_text()
+        bridge = (SRC / "NodeOwnerBridge.java").read_text()
+        self.assertIn("android.intent.action.MY_PACKAGE_REPLACED", manifest)
+        self.assertIn("ACTION_MY_PACKAGE_REPLACED.equals(action) && HeartbeatCredentialStore.consentActive(context)", receiver)
+        self.assertIn("ACTION_BOOT_COMPLETED.equals(action) && HeartbeatCredentialStore.autoResume(context)", receiver)  # boot stays opt-in
+        self.assertEqual(service.count("if (!looping) { looping = true; handler.post(tick); }"), 2)
+        self.assertIn("if (serviceBeats) {", bridge)
+
 if __name__ == "__main__":
     unittest.main()

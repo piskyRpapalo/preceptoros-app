@@ -26,6 +26,7 @@ public final class HeartbeatPresenceService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService sender = Executors.newSingleThreadExecutor();
     private volatile boolean inFlight;
+    private boolean looping;   // a start while already looping must not add a second beat chain
     private String visibleStatus = "Waiting for first Aduana receipt; public LIVE is not checked.";
     private final Runnable tick = this::sendTick;
 
@@ -53,8 +54,7 @@ public final class HeartbeatPresenceService extends Service {
                     throw new IllegalStateException("device_node_unavailable");
                 visibleStatus = "Node " + alias + ": service active; public LIVE is not checked.";
                 updateNotification();
-                handler.removeCallbacks(tick);
-                handler.post(tick);
+                if (!looping) { looping = true; handler.post(tick); }
                 return START_STICKY;
             }
             HeartbeatCredentialStore.Credential credential = HeartbeatCredentialStore.load(this);
@@ -73,8 +73,7 @@ public final class HeartbeatPresenceService extends Service {
         }
         visibleStatus = "Connected service active; public LIVE is not checked.";
         updateNotification();
-        handler.removeCallbacks(tick);
-        handler.post(tick);
+        if (!looping) { looping = true; handler.post(tick); }
         return START_STICKY;
     }
 

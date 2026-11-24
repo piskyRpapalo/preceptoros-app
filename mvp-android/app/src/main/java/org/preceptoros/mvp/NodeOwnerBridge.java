@@ -72,6 +72,15 @@ final class NodeOwnerBridge {
             long now = System.currentTimeMillis() / 1000;
             // One emitter per identity: while the owner's presence service beats for this node, the APP does not.
             boolean serviceBeats = HeartbeatCredentialStore.deviceNode(activity);
+            // The owner's consent is active but the service may have died (update, OEM kill): the open APP brings it back.
+            if (serviceBeats) {
+                try {
+                    android.content.Intent service = new android.content.Intent(activity, HeartbeatPresenceService.class)
+                        .setAction(HeartbeatPresenceService.ACTION_START);
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) activity.startForegroundService(service);
+                    else activity.startService(service);
+                } catch (RuntimeException notAllowedNow) { /* background start refused: the next foreground tick retries */ }
+            }
             synchronized (NodeOwner.LOCK) {
                 if ("awaiting_approval".equals(step) || "awaiting_map_link".equals(step)) owner.advance(Instant.now());
                 else if (!serviceBeats && ("ready_to_build".equals(step) || "building_raised".equals(step)) && now - lastBeat >= NodeOwner.BEAT_SECONDS - 5) {
