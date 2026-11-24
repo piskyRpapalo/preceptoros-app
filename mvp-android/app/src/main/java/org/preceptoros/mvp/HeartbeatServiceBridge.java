@@ -60,7 +60,7 @@ final class HeartbeatServiceBridge {
             finish(false, "notification_permission_required", null);
             return;
         }
-        openPicker();
+        chooseSource();
     }
 
     private boolean safePage() {
@@ -107,7 +107,7 @@ final class HeartbeatServiceBridge {
                     activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},
                             NOTIFICATION_PERMISSION_REQUEST);
                 } else {
-                    openPicker();
+                    chooseSource();
                 }
                 return;
             }
@@ -132,6 +132,50 @@ final class HeartbeatServiceBridge {
         } catch (Exception failure) {
             reply(reply, id, false, "heartbeat_service_request_invalid", null);
         }
+    }
+
+    /** The node born on this phone needs no imported file; any other node keeps the picker. */
+    private void chooseSource() {
+        String alias = null;
+        try { alias = NodeOwnerBridge.owner(activity).beatingAlias(); } catch (Exception ignored) { /* no device node */ }
+        if (alias == null) { openPicker(); return; }
+        confirmDeviceNode(alias);
+    }
+
+    private void confirmDeviceNode(String alias) {
+        if (!safePage()) { finish(false, "page_not_verified", null); return; }
+        android.widget.CheckBox resume = new android.widget.CheckBox(activity);
+        resume.setText("Resume automatically after device restart (still visible and revocable)");
+        resume.setPadding(32, 12, 32, 8);
+        new AlertDialog.Builder(activity)
+                .setTitle("Keep this node online?")
+                .setMessage("Node: " + alias + " (born on this phone)" +
+                        "\n\nWhile the visible foreground service runs, the app sends this node's heartbeat to Aduana over HTTPS every 120 seconds, with the key that was born on this phone and never leaves it. It renews that key before it expires. A notification stays visible with a revoke action. This does not prove public LIVE.")
+                .setView(resume)
+                .setNegativeButton("Cancel", (dialog, which) -> finish(false, "owner_cancelled", null))
+                .setOnCancelListener(dialog -> finish(false, "owner_cancelled", null))
+                .setPositiveButton("Start visible service", (dialog, which) -> {
+                    if (!safePage()) { finish(false, "page_not_verified", null); return; }
+                    if (HeartbeatOnceBridge.isBusy()) { finish(false, "one_shot_heartbeat_in_flight", null); return; }
+                    try {
+                        HeartbeatCredentialStore.saveDeviceNode(activity, alias, resume.isChecked());
+                        Intent service = new Intent(activity, HeartbeatPresenceService.class)
+                                .setAction(HeartbeatPresenceService.ACTION_START);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) activity.startForegroundService(service);
+                        else activity.startService(service);
+                        JSONObject result = new JSONObject();
+                        result.put("state", "STARTING");
+                        result.put("node", alias);
+                        result.put("source", "device_node");
+                        result.put("intervalSeconds", HeartbeatServicePolicy.INTERVAL_MILLIS / 1000);
+                        result.put("autoResume", resume.isChecked());
+                        result.put("publicProof", "NO_DATA(public_live_not_independently_verified)");
+                        finish(true, null, result);
+                    } catch (Exception failure) {
+                        HeartbeatCredentialStore.revoke(activity);
+                        finish(false, "heartbeat_service_start_failed", null);
+                    }
+                }).show();
     }
 
     private void openPicker() {

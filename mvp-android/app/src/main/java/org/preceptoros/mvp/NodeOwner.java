@@ -31,6 +31,8 @@ final class NodeOwner {
     static final Pattern ALIAS = Pattern.compile("^[a-z0-9][a-z0-9._-]{0,63}$");
     static final Pattern HEX64 = Pattern.compile("^[a-f0-9]{64}$");
     static final long BEAT_SECONDS = 240;
+    /** One writer at a time for the node state (APP tick and the presence service live in one process). */
+    static final Object LOCK = new Object();
     private static final String STATE = "state.json", SEED = "owner.seed";
 
     private final File dir;
@@ -174,6 +176,13 @@ final class NodeOwner {
             }
         }
         return beat(now);
+    }
+
+    /** The alias of the node born on this phone once it holds its own heartbeat key; null otherwise. */
+    String beatingAlias() {
+        Map<String, Object> s = state();
+        Object alias = s.get("alias");
+        return s.get("hb_key") != null && alias instanceof String && ALIAS.matcher((String) alias).matches() ? (String) alias : null;
     }
 
     /** One heartbeat with the device's own key (preceptoros.latido/1, strictly increasing sequence). */
