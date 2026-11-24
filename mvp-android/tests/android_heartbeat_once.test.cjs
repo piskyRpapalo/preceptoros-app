@@ -2,8 +2,15 @@
 const test=require("node:test"),assert=require("node:assert/strict");
 const vm=require("node:vm"),fs=require("node:fs"),path=require("node:path");
 const src=fs.readFileSync(path.join(__dirname,"../android_heartbeat_bridge.js"),"utf8");
+const serviceSrc=fs.readFileSync(path.join(__dirname,"../android_heartbeat_service_bridge.js"),"utf8");
 const bridgeJava=fs.readFileSync(path.join(__dirname,
  "../app/src/main/java/org/preceptoros/mvp/HeartbeatOnceBridge.java"),"utf8");
+const senderJava=fs.readFileSync(path.join(__dirname,
+ "../app/src/main/java/org/preceptoros/mvp/HeartbeatSender.java"),"utf8");
+const serviceJava=fs.readFileSync(path.join(__dirname,
+ "../app/src/main/java/org/preceptoros/mvp/HeartbeatPresenceService.java"),"utf8");
+const credentialJava=fs.readFileSync(path.join(__dirname,
+ "../app/src/main/java/org/preceptoros/mvp/HeartbeatCredentialStore.java"),"utf8");
 const activity=fs.readFileSync(path.join(__dirname,
  "../app/src/main/java/org/preceptoros/mvp/MainActivity.java"),"utf8");
 function fixture(hasNative=true){
@@ -82,10 +89,19 @@ test("bridge transport is origin+main frame restricted, owner-picked and one-sho
  assert.match(bridgeJava,/Intent\.ACTION_OPEN_DOCUMENT/);
  assert.match(bridgeJava,/ContentResolver/); // negative check supplied by owner file path, no browser key
  assert.match(bridgeJava,/\.setPositiveButton\("Send one heartbeat"/);
- assert.match(bridgeJava,/x-heartbeat-key/);
- assert.match(bridgeJava,/setInstanceFollowRedirects\(false\)/);
- assert.match(bridgeJava,/Receipt|receipt/);
+ assert.match(senderJava,/x-heartbeat-key/);
+ assert.match(senderJava,/setInstanceFollowRedirects\(false\)/);
+ assert.match(senderJava,/Receipt|receipt/);
  assert.doesNotMatch(src,/fetch\(|localStorage|x-heartbeat-key|secret|\.key/);
  assert.match(activity,/HeartbeatOnceBridge\.install/);
  assert.doesNotMatch(bridgeJava,/AlarmManager|WorkManager|JobScheduler|startForegroundService|setRepeating/);
+ assert.match(serviceJava,/HeartbeatServicePolicy\.INTERVAL_MILLIS/);
+ assert.match(serviceJava,/Revoke and stop/);
+ assert.match(serviceJava,/public LIVE is unverified/);
+ assert.match(credentialJava,/AES\/GCM\/NoPadding/);
+ assert.match(credentialJava,/AndroidKeyStore/);
+ assert.match(serviceSrc,/heartbeat_service_start/);
+ assert.match(serviceSrc,/heartbeat_service_revoke/);
+ assert.match(serviceSrc,/NO_DATA\(public_live_not_independently_verified\)/);
+ assert.doesNotMatch(serviceSrc,/fetch\(|localStorage|x-heartbeat-key|secret|\.key/);
 });

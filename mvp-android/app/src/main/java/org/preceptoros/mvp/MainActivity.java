@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
     private static final int MINI_RECOVERY_PICKER = 3114;
     private ValueCallback<Uri[]> pendingMiniRecoveryFile;
     private HeartbeatOnceBridge heartbeatBridge;
+    private HeartbeatServiceBridge heartbeatServiceBridge;
     private NodeOwnerBridge nodeBridge;
     private RackModelsBridge modelsBridge;
     @Override
@@ -63,12 +64,22 @@ public class MainActivity extends Activity {
             if (heartbeatBridge != null) heartbeatBridge.onCredentialSelected(resultCode,data);
             return;
         }
+        if (requestCode == HeartbeatServiceBridge.PICKER_REQUEST) {
+            if (heartbeatServiceBridge != null) heartbeatServiceBridge.onCredentialSelected(resultCode, data);
+            return;
+        }
         if (requestCode != MINI_RECOVERY_PICKER) return;
         ValueCallback<Uri[]> callback = pendingMiniRecoveryFile;
         pendingMiniRecoveryFile = null;
         if (callback == null) return;
         Uri selected = (resultCode == RESULT_OK && data != null) ? data.getData() : null;
         callback.onReceiveValue(selected == null ? null : new Uri[]{selected});
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == HeartbeatServiceBridge.NOTIFICATION_PERMISSION_REQUEST && heartbeatServiceBridge != null)
+            heartbeatServiceBridge.onNotificationPermissionResult(grantResults);
     }
     private static final String MINI_MODEL_SHA256 =
             "ed5fa30c487b282ec156c29062f1222e5c20875a944ac98289dbd242e947f747";
@@ -304,7 +315,8 @@ public class MainActivity extends Activity {
         installLocalBridge(web);
         // All native messages require a verified local main frame.
         final boolean joinAvailable = DeploymentJoinBridge.install(this, web);
-        heartbeatBridge = HeartbeatOnceBridge.install(this,web);
+        heartbeatServiceBridge = HeartbeatServiceBridge.create(this, web);
+        heartbeatBridge = HeartbeatOnceBridge.install(this,web,heartbeatServiceBridge);
         nodeBridge = NodeOwnerBridge.install(this, web);
         modelsBridge = RackModelsBridge.install(this, web);
         if ("OWNER".equals(BuildConfig.APP_DISTRIBUTION_PROFILE)) {
@@ -328,6 +340,7 @@ public class MainActivity extends Activity {
                         evaluateBundledScript(view, "offline_mini.js");
                         if (joinAvailable) evaluateBundledScript(view, "android_join_bridge.js");
                         if (heartbeatBridge != null) evaluateBundledScript(view, "android_heartbeat_bridge.js");
+                        if (heartbeatServiceBridge != null) evaluateBundledScript(view, "android_heartbeat_service_bridge.js");
                         if (nodeBridge != null) evaluateBundledScript(view, "android_node_bridge.js");
                         if (modelsBridge != null) evaluateBundledScript(view, "android_models_bridge.js");
                     } catch (IOException unavailable) {
