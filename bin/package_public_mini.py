@@ -234,7 +234,7 @@ def shell(source: str) -> str:
 <section class="panel" id="panel-modelos" role="tabpanel" aria-labelledby="tab-modelos" tabindex="0" hidden>
   <header class="panel-cabecera"><h2>Open World</h2></header>
   <p>Explore as a visitor without registering your Companion. Nothing from this device is published here automatically.</p>
-  <a id="openworld-visit" href="https://preceptoros.org/openworld/" target="_blank" rel="noopener noreferrer">Explore public Open World (requires your action and connection)</a>
+  <a id="openworld-visit" class="ow-go" href="https://preceptoros.org/openworld/" target="_blank" rel="noopener noreferrer">Explore public Open World (requires your action and connection)</a>
   <p id="openworld-visit-status" role="status" aria-live="polite" data-state="READY" data-acho="READY">OpenWorld visitor access starts only after you select the link. No account or node is created.</p>
   <p role="status" data-state="NO_DATA" data-acho="NO_DATA" data-cause="admission_not_verified">NO_DATA(signed_companion_admission_not_verified). Your Companion is not LIVE.</p>
 </section>
@@ -411,6 +411,11 @@ body.public-mini{max-width:56rem;min-width:0;margin:0 auto;padding:1rem;backgrou
 .public-mini #node-public-template{padding:.5rem}
 .public-mini [data-state=NO_DATA]{font-style:normal}
 .public-mini [data-state=NO_DATA]::before{content:"";display:none}
+/* Open World door (Acho grammar, 2026-11-24): the one explicit visitor action is a big inked button, not a thin link. */
+.public-mini a.ow-go{display:flex;align-items:center;gap:.75rem;min-height:3.5rem;margin:1rem 0;padding:.6rem 1.1rem .6rem .7rem;border:3px solid var(--ink,#f4efff);border-radius:999px;background:#ffe58a;color:#1d1b26;font-weight:800;text-decoration:none;box-shadow:0 4px 0 #1d1b26}
+.public-mini a.ow-go::before{content:"";flex:0 0 2.2rem;height:2.2rem;border-radius:50%;background:#1d1b26 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffe58a' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18'/%3E%3C/svg%3E") center/1.4rem no-repeat}
+.public-mini a.ow-go:active{transform:translateY(2px);box-shadow:0 2px 0 #1d1b26}
+@media (forced-colors:active){.public-mini a.ow-go{border-color:LinkText;background:Canvas;color:LinkText;box-shadow:none}}
 html[data-mini-large-text=true] body.public-mini{font-size:1.2rem}
 html[data-mini-contrast=true] body.public-mini{background:#000!important;color:#fff!important}
 html[data-mini-contrast=true] .public-mini button{background:#fff;color:#000}
