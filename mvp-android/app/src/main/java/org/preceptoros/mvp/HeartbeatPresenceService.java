@@ -26,6 +26,7 @@ public final class HeartbeatPresenceService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService sender = Executors.newSingleThreadExecutor();
     private volatile boolean inFlight;
+    private boolean looping;   // a start while already looping must not add a second beat chain
     private String visibleStatus = "Waiting for first Aduana receipt; public LIVE is not checked.";
     private final Runnable tick = this::sendTick;
 
@@ -47,6 +48,15 @@ public final class HeartbeatPresenceService extends Service {
             return START_NOT_STICKY;
         }
         try {
+            if (HeartbeatCredentialStore.deviceNode(this)) {
+                String alias = NodeOwnerBridge.owner(this).beatingAlias();
+                if (alias == null || !alias.equals(HeartbeatCredentialStore.deviceAlias(this)))
+                    throw new IllegalStateException("device_node_unavailable");
+                visibleStatus = "Node " + alias + ": service active; public LIVE is not checked.";
+                updateNotification();
+                if (!looping) { looping = true; handler.post(tick); }
+                return START_STICKY;
+            }
             HeartbeatCredentialStore.Credential credential = HeartbeatCredentialStore.load(this);
             if (credential == null || !HeartbeatOncePolicy.node(credential.node) ||
                     !HeartbeatOncePolicy.key(credential.key)) {
@@ -63,8 +73,7 @@ public final class HeartbeatPresenceService extends Service {
         }
         visibleStatus = "Connected service active; public LIVE is not checked.";
         updateNotification();
-        handler.removeCallbacks(tick);
-        handler.post(tick);
+        if (!looping) { looping = true; handler.post(tick); }
         return START_STICKY;
     }
 
@@ -88,6 +97,20 @@ public final class HeartbeatPresenceService extends Service {
             try {
                 if (!HeartbeatCredentialStore.consentActive(this))
                     throw new IllegalStateException("consent_revoked");
+                if (HeartbeatCredentialStore.deviceNode(this)) {
+                    // The phone's own node: NodeOwner renews its key 12 h before expiry and keeps the
+                    // sequence strictly increasing (max(last+1, epoch seconds)), the same chain Aduana already holds.
+                    java.util.Map<String, Object> r;
+                    synchronized (NodeOwner.LOCK) { r = NodeOwnerBridge.owner(this).advance(java.time.Instant.now()); }
+                    String cause = String.valueOf(r.get("cause"));
+                    next = "MEASURED".equals(r.get("state"))
+                            ? "Node " + r.get("alias") + ": Aduana accepted the heartbeat; public LIVE is unverified."
+                            : "Reconnecting; " + cause + ". Public LIVE is unverified.";
+                    String status = next;
+                    handler.post(() -> { inFlight = false; if (!HeartbeatCredentialStore.consentActive(this)) { stopSelf(); return; }
+                        visibleStatus = status; updateNotification(); handler.postDelayed(tick, HeartbeatServicePolicy.INTERVAL_MILLIS); });
+                    return;
+                }
                 HeartbeatCredentialStore.Credential credential = HeartbeatCredentialStore.load(this);
                 if (credential == null) throw new IllegalStateException("credential_unavailable");
                 JSONObject receipt = HeartbeatSender.send(this, credential.node, credential.key);

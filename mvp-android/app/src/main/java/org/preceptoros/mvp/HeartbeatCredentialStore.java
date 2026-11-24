@@ -47,6 +47,30 @@ final class HeartbeatCredentialStore {
         if (!editor.commit()) throw new IllegalStateException("credential_storage_unavailable");
     }
 
+    /**
+     * Consent for the node born on THIS phone (NodeOwner): no credential copy is stored, because its heartbeat key,
+     * renewal and sequence already live in NodeOwner's private state. Revocation stops the beats and clears consent;
+     * it does not delete the node's identity (that would need a new admission).
+     */
+    static void saveDeviceNode(Context context, String alias, boolean autoResume) {
+        if (alias == null || !NodeOwner.ALIAS.matcher(alias).matches())
+            throw new IllegalArgumentException("device_node_alias_invalid");
+        SharedPreferences.Editor editor = prefs(context).edit().clear()
+                .putString("source", "device_node")
+                .putString("device_alias", alias)
+                .putBoolean("consent_active", true)
+                .putBoolean("auto_resume", autoResume);
+        if (!editor.commit()) throw new IllegalStateException("credential_storage_unavailable");
+    }
+
+    static boolean deviceNode(Context context) {
+        return consentActive(context) && "device_node".equals(prefs(context).getString("source", null));
+    }
+
+    static String deviceAlias(Context context) {
+        return deviceNode(context) ? prefs(context).getString("device_alias", null) : null;
+    }
+
     static boolean consentActive(Context context) {
         return prefs(context).getBoolean("consent_active", false);
     }

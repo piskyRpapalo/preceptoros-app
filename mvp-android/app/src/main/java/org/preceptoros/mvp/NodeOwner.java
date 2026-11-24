@@ -31,6 +31,14 @@ final class NodeOwner {
     static final Pattern ALIAS = Pattern.compile("^[a-z0-9][a-z0-9._-]{0,63}$");
     static final Pattern HEX64 = Pattern.compile("^[a-f0-9]{64}$");
     static final long BEAT_SECONDS = 240;
+    /**
+     * Aduana refuses any medido_en later than its own receive time (medicion_futura, no tolerance). A phone whose clock
+     * runs a few hundred ms ahead (Tank 3, measured 2026-11-24) loses beats intermittently. Stamp the measurement this
+     * many seconds back; liveness is counted from Aduana's receive time, so nothing else moves.
+     */
+    static final long CLOCK_MARGIN_SECONDS = 2;
+    /** One writer at a time for the node state (APP tick and the presence service live in one process). */
+    static final Object LOCK = new Object();
     private static final String STATE = "state.json", SEED = "owner.seed";
 
     private final File dir;
@@ -176,13 +184,20 @@ final class NodeOwner {
         return beat(now);
     }
 
+    /** The alias of the node born on this phone once it holds its own heartbeat key; null otherwise. */
+    String beatingAlias() {
+        Map<String, Object> s = state();
+        Object alias = s.get("alias");
+        return s.get("hb_key") != null && alias instanceof String && ALIAS.matcher((String) alias).matches() ? (String) alias : null;
+    }
+
     /** One heartbeat with the device's own key (preceptoros.latido/1, strictly increasing sequence). */
     Map<String, Object> beat(Instant now) throws Exception {
         Map<String, Object> s = state();
         if (s.get("hb_key") == null) return status();
         long last = s.get("seq") instanceof Long ? (Long) s.get("seq") : 0L;
         long seq = Math.max(last + 1, now.getEpochSecond());
-        Map<String, Object> body = obj("esquema", "preceptoros.latido/1", "nodo", s.get("alias"), "secuencia", seq, "medido_en", iso(now));
+        Map<String, Object> body = obj("esquema", "preceptoros.latido/1", "nodo", s.get("alias"), "secuencia", seq, "medido_en", iso(now.minusSeconds(CLOCK_MARGIN_SECONDS)));
         Reply r = http.post("/api/v1/latidos", NodeCrypto.canonicalBytes(body), (String) s.get("hb_key"));
         if (r.status != 202 && r.status != 200) return result("NO_DATA", (String) status().get("step"), code(r), s);
         s.put("seq", seq); s.put("last_beat", iso(now));

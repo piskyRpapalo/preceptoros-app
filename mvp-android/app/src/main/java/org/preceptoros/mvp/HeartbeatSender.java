@@ -18,7 +18,7 @@ final class HeartbeatSender {
 
     static JSONObject send(Context context, String node, String key) throws Exception {
         long sequence = HeartbeatSequence.reserve(context, node);
-        String measured = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
+        String measured = Instant.now().minusSeconds(NodeOwner.CLOCK_MARGIN_SECONDS).truncatedTo(ChronoUnit.SECONDS).toString(); // medicion_futura guard
         String body = HeartbeatOncePolicy.body(node, sequence, measured);
         URL url = new URL(HeartbeatOncePolicy.ENDPOINT);
         if (!"https".equals(url.getProtocol()) ||

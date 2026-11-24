@@ -40,7 +40,7 @@ final class NodeOwnerBridge {
 
     private NodeOwnerBridge(MainActivity activity) {
         this.activity = activity;
-        this.owner = new NodeOwner(new File(activity.getFilesDir(), "node-owner"), NodeOwnerBridge::post);
+        this.owner = owner(activity);
     }
 
     static NodeOwnerBridge install(MainActivity activity, WebView web) {
@@ -70,10 +70,23 @@ final class NodeOwnerBridge {
             Map<String, Object> s = owner.status();
             String step = (String) s.get("step");
             long now = System.currentTimeMillis() / 1000;
-            if ("awaiting_approval".equals(step) || "awaiting_map_link".equals(step)) owner.advance(Instant.now());
-            else if (("ready_to_build".equals(step) || "building_raised".equals(step)) && now - lastBeat >= NodeOwner.BEAT_SECONDS - 5) {
-                owner.advance(Instant.now());   // renews the key 12 h before it expires, then beats
-                lastBeat = now;
+            // One emitter per identity: while the owner's presence service beats for this node, the APP does not.
+            boolean serviceBeats = HeartbeatCredentialStore.deviceNode(activity);
+            // The owner's consent is active but the service may have died (update, OEM kill): the open APP brings it back.
+            if (serviceBeats) {
+                try {
+                    android.content.Intent service = new android.content.Intent(activity, HeartbeatPresenceService.class)
+                        .setAction(HeartbeatPresenceService.ACTION_START);
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) activity.startForegroundService(service);
+                    else activity.startService(service);
+                } catch (RuntimeException notAllowedNow) { /* background start refused: the next foreground tick retries */ }
+            }
+            synchronized (NodeOwner.LOCK) {
+                if ("awaiting_approval".equals(step) || "awaiting_map_link".equals(step)) owner.advance(Instant.now());
+                else if (!serviceBeats && ("ready_to_build".equals(step) || "building_raised".equals(step)) && now - lastBeat >= NodeOwner.BEAT_SECONDS - 5) {
+                    owner.advance(Instant.now());   // renews the key 12 h before it expires, then beats
+                    lastBeat = now;
+                }
             }
         } catch (Exception ignored) { /* NO_DATA is shown on the next status read; never a false LIVE */ }
     }
@@ -99,7 +112,7 @@ final class NodeOwnerBridge {
             final String rid = id;
             switch (action) {
                 case "status": background(rid, reply, () -> withSuggestion(owner.status())); return;
-                case "advance": background(rid, reply, () -> owner.advance(Instant.now())); return;
+                case "advance": background(rid, reply, () -> { synchronized (NodeOwner.LOCK) { return owner.advance(Instant.now()); } }); return;
                 case "create": {
                     String node = m.get("node") instanceof String ? (String) m.get("node") : "";
                     String alias = m.get("alias") instanceof String ? (String) m.get("alias") : "";
@@ -168,7 +181,11 @@ final class NodeOwnerBridge {
     }
 
     @SuppressWarnings("unchecked")
-    private static NodeOwner.Reply post(String path, byte[] body, String heartbeatKey) throws Exception {
+    static NodeOwner owner(android.content.Context context) {
+        return new NodeOwner(new File(context.getFilesDir(), "node-owner"), NodeOwnerBridge::post);
+    }
+
+    static NodeOwner.Reply post(String path, byte[] body, String heartbeatKey) throws Exception {
         if (!PATHS.contains(path)) throw new IllegalStateException("destination_not_authorized");
         URL url = new URL(API + path);
         HttpsURLConnection c = (HttpsURLConnection) url.openConnection();
