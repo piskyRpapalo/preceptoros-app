@@ -68,7 +68,7 @@ public class BeatProbe { public static void main(String[] a) throws Exception {
   File dir = new File(a[0]); List<String> sent = new ArrayList<>();
   NodeOwner.Http http = (path, body, key) -> {
     Map<?,?> m = (Map<?,?>) NodeCrypto.parse(new String(body, "UTF-8"));
-    sent.add(path + " " + (m.get("secuencia") == null ? "-" : m.get("secuencia")) + " " + (key == null ? "nokey" : key.substring(0, 6)));
+    sent.add(path + " " + (m.get("secuencia") == null ? "-" : m.get("secuencia")) + " " + (key == null ? "nokey" : key.substring(0, 6)) + " " + m.get("medido_en"));
     Map<String,Object> r = new HashMap<>();
     if (path.equals("/api/v1/latidos/llaves")) { r.put("estado", "registrada"); r.put("nodo", m.get("nodo")); }
     return new NodeOwner.Reply(202, r); };
@@ -108,6 +108,7 @@ class NodeOwnerServiceBeat(unittest.TestCase):
         self.assertEqual(seqs[1], seqs[0] + 1)              # same second: still strictly increasing
         self.assertTrue(all(l.split()[3] == "aaaaaa" for l in sent))
         self.assertEqual(out.count("state=MEASURED"), 2)
+        self.assertTrue(all(l.split()[4] == "2026-11-24T17:59:58Z" for l in sent))   # 2 s before now: never medicion_futura
 
     def test_key_near_expiry_is_renewed_before_the_beat(self):
         out = self.run_probe("2026-11-24T23:00:00Z")    # 5 h left (< 12 h): renew first
@@ -126,6 +127,7 @@ class PresenceServiceOneEmitter(unittest.TestCase):
         self.assertIn("synchronized (NodeOwner.LOCK)", bridge)
         self.assertIn("beatingAlias()", sbridge)            # a phone-born node needs no imported file
         self.assertIn("openPicker()", sbridge)              # any other node keeps the picker
+        self.assertIn("minusSeconds(NodeOwner.CLOCK_MARGIN_SECONDS)", (SRC / "HeartbeatSender.java").read_text())
 
 if __name__ == "__main__":
     unittest.main()
