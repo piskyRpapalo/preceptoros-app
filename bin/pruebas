@@ -212,6 +212,8 @@ UNITTEST=(test_bandeja_lectura test_herencia_web test_app_una_pestana test_keep_
           # Android asset allowlist, Gradle copy integration, and PUBLIC profile verification.
           test_android_asset_allowlist
           test_android_gradle_copy
+          # 2026-11-25: the Talk runner runs on ARMv8.2 phones (no i8mm: SIGILL on S110).
+          test_android_runner_baseline
           test_android_public_profile
           # OWNER grants regression suite added by PR #376; negative contracts only.
           test_owner_talk_cross_contract test_owner_thread_retry_gate

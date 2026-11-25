@@ -426,6 +426,22 @@ tasks.register('copyLauncherEmblem', Copy) {
 def localRunner = project.findProperty('localRunner')?.toString()
 def localRunnerSha = project.findProperty('localRunnerSha256')?.toString()
 def runnerOut = file("$buildDir/generated/local-runner/arm64-v8a/libllama_server.so")
+// i8mmInstructions(elfBytes) → how many SMMLA/UMMLA/USMMLA words sit in SHF_EXECINSTR sections of an ELF64 (little endian).
+def i8mmInstructions = { byte[] b ->
+    def bb = java.nio.ByteBuffer.wrap(b).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+    long shoff = bb.getLong(0x28); int shentsize = bb.getShort(0x3A) & 0xffff, shnum = bb.getShort(0x3C) & 0xffff
+    int count = 0
+    for (int i = 0; i < shnum; i++) {
+        int o = (int) (shoff + (long) i * shentsize)
+        if (bb.getInt(o + 4) != 1 || (bb.getLong(o + 8) & 4L) == 0) continue
+        int off = (int) bb.getLong(o + 0x18), size = (int) bb.getLong(o + 0x20)
+        for (int j = off; j + 4 <= off + size; j += 4) {
+            int w = (int) (bb.getInt(j) & 0xffe0fc00L)
+            if (w == 0x4e80a400 || w == 0x6e80a400 || w == 0x4e80ac00) count++
+        }
+    }
+    count
+}
 tasks.register('stageLocalRunner') {
     doLast {
         if (localRunner == null) return
@@ -433,6 +449,10 @@ tasks.register('stageLocalRunner') {
         def src = new File(localRunner)
         def actual = java.security.MessageDigest.getInstance('SHA-256').digest(src.bytes).encodeHex().toString()
         if (actual != localRunnerSha) throw new GradleException("localRunner sha256 mismatch: ${actual}")
+        // 2026-11-25: a runner with i8mm (smmla/ummla/usmmla) dies with SIGILL on ARMv8.2 phones (S110, MT6789).
+        // Count those opcodes in the ELF's executable sections only; build it with native-mini/build-runner-android.sh.
+        def i8mm = i8mmInstructions(src.bytes)
+        if (i8mm > 0) throw new GradleException("localRunner carries ${i8mm} i8mm instructions: SIGILL on ARMv8.2 phones; rebuild with native-mini/build-runner-android.sh")
         runnerOut.parentFile.mkdirs()
         runnerOut.bytes = src.bytes
     }
