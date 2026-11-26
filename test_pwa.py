@@ -996,6 +996,8 @@ class TestHablarConHexelion(unittest.TestCase):
         self.assertIn("detener-chat", app)
         html = pathlib.Path(AQUI, "interface", "app.html").read_text(encoding="utf-8")
         self.assertIn('id="detener-chat"', html)
+        self.assertIn('data-i18n="stop_waiting"', html)
+        self.assertIn("stop_waiting:", app)
         self.assertIn('respuesta.voz === "hexelion"', formulario)
         self.assertIn('Array.isArray(respuesta.fuentes)', formulario)
         self.assertIn('t.chat_sin_respuesta(causa)', formulario)
