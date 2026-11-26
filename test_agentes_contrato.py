@@ -170,5 +170,39 @@ class AuthorizationContract(unittest.TestCase):
         self.assertEqual(self._evaluate(consumed_grant_ids=None)["cause"], "grant_replay_state_unavailable")
 
 
+    def test_perceived_control_is_not_authority_to_invoke(self):
+        # Synthetic semantic projection; never a real APP control or grant.
+        control = {"id": "fixture-control", "visible": True, "enabled": True,
+                   "authorized": True, "label": "Run fixture"}
+        self.card["requests"] = ["talk.read"]
+        self.card_raw = A.canonical_bytes(self.card)
+        self.task = A.canonical_bytes({"action": "read", "control": control})
+        read_grant = self._grant(capability="talk.read", scope=["talk.read"])
+        positive = self._evaluate(grant=read_grant, capability="talk.read")
+        self.assertEqual(positive["state"], "ELIGIBLE_FOR_ATOMIC_CLAIM", positive)
+        self.assertIn("no dispatch", positive["note"])
+        for operation in ("app.control.invoke", "talk.write", "lab.propose"):
+            with self.subTest(operation=operation):
+                denied = self._evaluate(grant=read_grant, capability=operation)
+                self.assertEqual((denied["state"], denied["cause"]),
+                                 ("REJECTED", "grant_capability_not_requested_or_mismatched"))
+        altered = A.canonical_bytes({"action": "invoke", "control": control})
+        denied = self._evaluate(grant=read_grant, capability="talk.read", task_bytes=altered)
+        self.assertEqual((denied["state"], denied["cause"]),
+                         ("REJECTED", "grant_task_mismatch"))
+
+    def test_permission_expansion_requires_a_new_supported_contract(self):
+        # A signature over a proposed scope is not enough to introduce it.
+        for capability in ("app.control.invoke", "repo.deploy", "shell.execute"):
+            with self.subTest(capability=capability):
+                grant = self._grant(capability=capability, scope=[capability])
+                self.assertEqual(A.validate_grant(grant)["cause"], "grant_scope_invalid")
+                result = self._evaluate(grant=grant, capability=capability)
+                self.assertEqual((result["state"], result["cause"]),
+                                 ("REJECTED", "grant_scope_invalid"))
+        widened = self._grant(scope=["lab.propose", "talk.write"])
+        self.assertEqual(A.validate_grant(widened)["cause"], "grant_scope_invalid")
+
+
 if __name__ == "__main__":
     unittest.main()
