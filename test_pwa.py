@@ -1462,7 +1462,10 @@ class HexelionStationContract(unittest.TestCase):
         import hashlib
         import hexelion_book
         import hexelion_proxy
-        payload = json.dumps({"texto": "¿Qué dice el archivo?", "panel": "lab"}, ensure_ascii=False).encode()
+        request_id = "app-" + "1" * 32
+        context = json.dumps({"panel": "lab", "agente": ""}, separators=(",", ":"), sort_keys=True)
+        payload = json.dumps({"texto": "¿Qué dice el archivo?", "panel": "lab",
+                              "request_id": request_id}, ensure_ascii=False).encode()
         handler = PWA.PWA.__new__(PWA.PWA)
         handler.path = "/api/hexelion/chat"
         handler.headers = {"Content-Type": "application/json", "Content-Length": str(len(payload))}
@@ -1483,7 +1486,8 @@ class HexelionStationContract(unittest.TestCase):
              mock.patch.object(PWA._memory_lookup, "buscar", return_value=evidence) as search, \
              mock.patch.object(PWA._hexelion_proxy, "ask", return_value=result) as ask:
             PWA.PWA._hexelion_chat(handler)
-        person.assert_called_once_with("orquesta", "¿Qué dice el archivo?", base="unused")
+        person.assert_called_once_with("orquesta", "¿Qué dice el archivo?", base="unused",
+                                       request_id=request_id, request_context=context, deduplicar=True)
         search.assert_called_once_with("¿Qué dice el archivo?", "unused")
         prompt = ask.call_args.args[0]
         fmt = ask.call_args.kwargs["output_format"]
