@@ -22,6 +22,7 @@
         data-state="NO_DATA" data-cause="service_not_checked" data-acho="silent">Checking connection…</span>
     </div>
   </div>
+  <p id="acho-control-description" class="pie" hidden></p>
 <div class="carril-pestanas">
 <nav class="pestanas" id="pestanas" role="tablist" aria-orientation="horizontal" aria-label="Zonas">
   <!-- Six owner-facing zones in visual, keyboard and swipe order. -->
@@ -47,7 +48,7 @@
       </div>
       <details class="superbot-agents" id="superbot-agent-disclosure" data-state="NO_DATA"
         data-cause="plan_references_unavailable" data-acho="silent">
-        <summary aria-labelledby="superbot-agent-count">
+        <summary aria-labelledby="superbot-agent-count" data-acho-control="control-agents">
           <span id="superbot-agent-status-dot" class="superbot-agent-status-dot" aria-hidden="true"></span>
           <span id="superbot-agent-names" class="superbot-agent-names" aria-hidden="true">No plan references</span>
           <span id="superbot-agent-count" class="sr" role="status" aria-live="polite">Agents · plan unavailable</span>
@@ -102,13 +103,13 @@
          data-state="NO_DATA" data-acho="NO_DATA">Mini Orchestrator offline mode is off. Talk uses your configured model if available.</p>
     </div>
       </div>
-      <details class="model-available-catalog"><summary>Available model information</summary>
+      <details class="model-available-catalog"><summary data-acho-control="control-available-model-information">Available model information</summary>
         <ul class="turnos" id="modelos-lista"></ul></details>
-      <details class="model-selection-config"><summary>Model preferences (draft only)</summary>
+      <details class="model-selection-config"><summary data-acho-control="control-model-preferences-draft-only">Model preferences (draft only)</summary>
         <div id="owner-model-slots-mount"></div></details>
     </section>
       </div>
-      <button type="button" class="refrescar" data-refrescar="conversacion" aria-label="Refresh Talk" title="Refresh Talk">Refresh</button>
+      <button type="button" class="refrescar" data-refrescar="conversacion" aria-label="Refresh Talk" title="Refresh Talk" data-acho-control="control-refresh-talk">Refresh</button>
     </div>
       <!-- Provenance hooks are present for readers, but not a duplicate model chooser. -->
       <div class="conv-interlocutor" id="conv-interlocutor" hidden aria-hidden="true"
@@ -143,7 +144,7 @@
     <header class="panel-cabecera">
       <h2 class="sr" id="h-documentos">Document Editor</h2>
       <p class="pie" id="documentos-estado" role="status" aria-live="polite">Your documents stay local until you explicitly share them.</p>
-      <button type="button" class="refrescar" data-refrescar="documentos" aria-label="Refresh Documents" title="Refresh Documents">↻</button>
+      <button type="button" class="refrescar" data-refrescar="documentos" aria-label="Refresh Documents" title="Refresh Documents" data-acho-control="control-refresh-documents">↻</button>
     </header>
     <section class="documentos-acciones" aria-labelledby="documentos-acciones-titulo">
       <h3 id="documentos-acciones-titulo">Actions</h3>
@@ -177,7 +178,7 @@
     </section>
     <div class="talk-plan" id="talk-plan" role="status" aria-live="polite" hidden></div>
     <details class="grupo plan-escribir" id="plan-escribir" data-state="writing" data-acho="waiting">
-      <summary><h3 data-i18n="plan_write_title">Write a plan</h3></summary>
+      <summary data-acho-control="control-write-a-plan"><h3 data-i18n="plan_write_title">Write a plan</h3></summary>
       <label for="plan-titulo" data-i18n="plan_title_label">Title</label>
       <input type="text" id="plan-titulo" autocomplete="off" aria-describedby="plan-ref">
       <label for="plan-texto" data-i18n="plan_write_label">Your plan, as long as it needs to be. It is kept whole: never cut.</label>
@@ -187,11 +188,11 @@
       <p class="pie" id="plan-guardar-estado" role="status" aria-live="polite" aria-atomic="true"></p>
       <p class="pie" id="plan-nota" data-i18n="plan_store_note">Stored privately on this device. Storing is not a task: nothing is proposed, authorized or run.</p>
       <button type="button" id="plan-releer" class="plan-guardar" data-i18n="plan_read_back" hidden>Read it back</button>
-      <details id="plan-leido" hidden><summary data-i18n="plan_read_back_title">The stored text</summary><pre id="plan-leido-texto" class="plan-leido"></pre></details>
+      <details id="plan-leido" hidden><summary data-i18n="plan_read_back_title" data-acho-control="control-the-stored-text">The stored text</summary><pre id="plan-leido-texto" class="plan-leido"></pre></details>
     </details>
     </div>
     <details class="grupo" id="notebook-rack-lab-group">
-      <summary><h3 id="notebook-rack-lab-title">Shared Rack LAB · Results</h3><span class="fold-teaser">Read-only benchmark receipts and harness status</span></summary>
+      <summary data-acho-control="control-shared-rack-lab-results-read-only-benchmark-receipts-and-harness-"><h3 id="notebook-rack-lab-title">Shared Rack LAB · Results</h3><span class="fold-teaser">Read-only benchmark receipts and harness status</span></summary>
       <p class="pie" role="note">These results come from the same rack LAB sources as the Lab panel. They are not copied into browser Documents or stored in localStorage. The offline Android APK cannot read this rack source until its owner-authorized bridge exists.</p>
       <p class="pie" id="notebook-rack-status" role="status" aria-live="polite" data-state="NO_DATA" data-cause="not_read" data-acho="silent">NO_DATA: rack LAB has not been read.</p>
       <p class="pie" id="notebook-rack-processes" role="status" aria-live="polite" data-state="NO_DATA" data-cause="live_process_binding_missing" data-acho="silent">NO_DATA: active process-to-task witness unavailable.</p>
@@ -200,7 +201,7 @@
       <div id="notebook-rack-results" class="notebook-grid"></div>
     </details>
     <details class="grupo" id="notebook-memory-group">
-      <summary><h3 id="notebook-memory-title">Memory</h3><span class="fold-teaser">Compass, consent and private memories</span></summary>
+      <summary data-acho-control="control-memory-compass-consent-and-private-memories"><h3 id="notebook-memory-title">Memory</h3><span class="fold-teaser">Compass, consent and private memories</span></summary>
       <p class="pie">Your private memory, consent, redaction and compass. Nothing is saved without consent.</p>
     <section class="mando-decide" id="mando-decide" aria-labelledby="mando-decide-titulo">
       <h3 id="mando-decide-titulo">Needs your decision</h3>
@@ -237,7 +238,7 @@
         </div>
       </details>
     <details class="grupo" id="command-memory-management">
-      <summary><h3>Memory and consent</h3></summary>
+      <summary data-acho-control="control-memory-and-consent"><h3>Memory and consent</h3></summary>
     <section class="tarjeta memoria-inicio" id="memoria-inicio" aria-labelledby="memoria-inicio-titulo" data-state="loading" data-acho="waiting">
       <h3 id="memoria-inicio-titulo">Your private memory</h3>
       <p id="memoria-inicio-estado" role="status" aria-live="polite" aria-atomic="true">Reading whether your memory exists…</p>
@@ -295,13 +296,13 @@
         <p class="pie" data-i18n="pie_anidar">Se guarda el texto tachado, nunca el que pegaste. El filtro vuelve a correr en el servidor al guardar: esta pantalla no decide qué está limpio.</p>
       </div>
       <details class="payload-caja">
-        <summary data-i18n="payload_titulo">El payload, tal cual llegó</summary>
+        <summary data-i18n="payload_titulo" data-acho-control="control-el-payload-tal-cual-llego">El payload, tal cual llegó</summary>
         <pre class="payload" id="payload" data-i18n="sin_llamada">(sin llamada todavía)</pre>
       </details>
     </div>
     </details>
     <!-- Technical cause codes belong to Memory, never the default Talk face. -->
-    <details class="talk-diagnostics" id="talk-diagnostics"><summary>Technical evidence and causes</summary>
+    <details class="talk-diagnostics" id="talk-diagnostics"><summary data-acho-control="control-technical-evidence-and-causes">Technical evidence and causes</summary>
       <p class="pie" id="talk-diagnostics-thread">NO_DATA(thread_not_read_yet)</p>
       <p class="pie" id="talk-diagnostics-brain">NO_DATA(brain_not_read_yet)</p>
       <p class="pie" id="talk-diagnostics-mini">NO_DATA(mini_inactive)</p>
@@ -317,34 +318,34 @@
     </div>
     </details>
     <details class="grupo">
-      <summary><h3 id="notebook-turns-title">Requests and answers</h3><span class="fold-teaser">Requests, responses and source evidence</span></summary>
+      <summary data-acho-control="control-requests-and-answers-requests-responses-and-source-evidence"><h3 id="notebook-turns-title">Requests and answers</h3><span class="fold-teaser">Requests, responses and source evidence</span></summary>
       <p class="pie" id="notebook-turns-status" role="status" aria-live="polite">NO_DATA: the requests have not been read yet.</p>
       <div id="notebook-turns" class="notebook-grid"></div>
     </details>
     <details class="grupo">
-      <summary><h3 id="notebook-tasks-title">Delegated tasks</h3><span class="fold-teaser">Delegations and their recorded outcomes</span></summary>
+      <summary data-acho-control="control-delegated-tasks-delegations-and-their-recorded-outcomes"><h3 id="notebook-tasks-title">Delegated tasks</h3><span class="fold-teaser">Delegations and their recorded outcomes</span></summary>
       <p class="pie" id="notebook-tasks-status" role="status" aria-live="polite">NO_DATA: the tasks have not been read yet.</p>
       <div id="notebook-tasks" class="notebook-grid"></div>
     </details>
     <details class="grupo">
-      <summary><h3 id="notebook-plans-title" data-i18n="plan_notebook_title">Plans and their tasks</h3><span class="fold-teaser">Saved plans and linked tasks</span></summary>
+      <summary data-acho-control="control-plans-and-their-tasks-saved-plans-and-linked-tasks"><h3 id="notebook-plans-title" data-i18n="plan_notebook_title">Plans and their tasks</h3><span class="fold-teaser">Saved plans and linked tasks</span></summary>
       <p class="pie" id="notebook-plans-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
       <div id="notebook-plans" class="notebook-grid"></div>
     </details>
     <details class="grupo">
-      <summary><h3 id="notebook-agents-title">Agents observed</h3><span class="fold-teaser">Agents observed, not assumed active</span></summary>
+      <summary data-acho-control="control-agents-observed-agents-observed-not-assumed-active"><h3 id="notebook-agents-title">Agents observed</h3><span class="fold-teaser">Agents observed, not assumed active</span></summary>
       <div id="notebook-agents" class="notebook-grid"></div>
     </details>
     <details class="grupo">
-      <summary><h3 id="notebook-reports-title">Reviews · WBR / MBR</h3><span class="fold-teaser">Weekly and monthly review receipts</span></summary>
+      <summary data-acho-control="control-reviews-wbr-mbr-weekly-and-monthly-review-receipts"><h3 id="notebook-reports-title">Reviews · WBR / MBR</h3><span class="fold-teaser">Weekly and monthly review receipts</span></summary>
       <div id="notebook-reports" class="notebook-grid"></div>
     </details>
     <details class="grupo">
-      <summary><h3 id="tx-05">Command receipts</h3><span class="fold-teaser">Operational receipts from Command</span></summary>
+      <summary data-acho-control="control-command-receipts-operational-receipts-from-command"><h3 id="tx-05">Command receipts</h3><span class="fold-teaser">Operational receipts from Command</span></summary>
       <div id="notebook-receipts" class="notebook-grid"><p class="pie" id="tx-27">NO_DATA: the Notebook has not been read yet.</p></div>
     </details>
     <details class="grupo">
-      <summary><h3 id="tx-06">Studies and proposals</h3><span class="fold-teaser">Proposals and external study references</span></summary>
+      <summary data-acho-control="control-studies-and-proposals-proposals-and-external-study-references"><h3 id="tx-06">Studies and proposals</h3><span class="fold-teaser">Proposals and external study references</span></summary>
       <ul class="turnos"><li id="tx-28">NO_DATA: studies are published in their own repository; no local copy is read here</li></ul>
     </details>
   </section>
@@ -353,7 +354,7 @@
     <header class="panel-cabecera sr"><h2 data-i18n="tab_lab" id="h-lab">Lab</h2></header>
     <div class="panel-actions" id="lab-actions" role="group" aria-label="Lab actions">
       <button type="button" id="lab-bench-toggle" aria-expanded="false" aria-controls="lab-bench-group">Benchmarks</button>
-      <button type="button" class="refrescar" data-refrescar="lab" aria-label="Refresh the Lab" title="Refresh the Lab">Refresh</button>
+      <button type="button" class="refrescar" data-refrescar="lab" aria-label="Refresh the Lab" title="Refresh the Lab" data-acho-control="control-refresh-the-lab">Refresh</button>
     </div>
     <p class="pie" id="lab-first-experiment-help">
       This is your Lab workspace: it shows sources you have configured and verified. Opening the Lab does not run experiments.
@@ -362,32 +363,32 @@
     <button id="lab-first-experiment" type="button" class="probar"
             aria-describedby="lab-first-experiment-help">Write my first experiment plan</button>
     <details class="grupo">
-      <summary><h3 id="lab-runs-title" data-i18n="plan_lab_title">Runs from plans</h3><span class="fold-teaser">Results of work started from plans</span></summary>
+      <summary data-acho-control="control-runs-from-plans-results-of-work-started-from-plans"><h3 id="lab-runs-title" data-i18n="plan_lab_title">Runs from plans</h3><span class="fold-teaser">Results of work started from plans</span></summary>
       <p class="pie" id="lab-runs-status" role="status" aria-live="polite">NO_DATA: not read yet.</p>
       <p class="sr" id="lab-turno-pointer">Requests and their answers are kept in the Notebook.</p>
       <div id="lab-runs" class="notebook-grid"></div>
     </details>
     <details class="grupo" id="lab-bench-group">
-      <summary><h3 id="lab-bench-title">Benchmarks · reproducible runs</h3><span class="fold-teaser">Reproducible tests and their evidence</span></summary>
+      <summary data-acho-control="control-benchmarks-reproducible-runs-reproducible-tests-and-their-evidenc"><h3 id="lab-bench-title">Benchmarks · reproducible runs</h3><span class="fold-teaser">Reproducible tests and their evidence</span></summary>
       <p class="pie" id="lab-bench-status" role="status" aria-live="polite">NO_DATA: the benchmark runs have not been read yet.</p>
       <div id="lab-bench" class="notebook-grid"></div>
     </details>
     <details class="grupo">
-      <summary><h3 data-i18n="lab_canales_titulo">Canales recientes</h3><span class="fold-teaser">Channels reported by this device</span></summary>
+      <summary data-acho-control="control-canales-recientes-channels-reported-by-this-device"><h3 data-i18n="lab_canales_titulo">Canales recientes</h3><span class="fold-teaser">Channels reported by this device</span></summary>
       <ul class="turnos" id="lab-canales"></ul>
     </details>
     <details class="grupo">
-      <summary><h3 data-i18n="lab_modelos_titulo">Modelos locales</h3><span class="fold-teaser">Local model inventory, when available</span></summary>
+      <summary data-acho-control="control-modelos-locales-local-model-inventory-when-available"><h3 data-i18n="lab_modelos_titulo">Modelos locales</h3><span class="fold-teaser">Local model inventory, when available</span></summary>
       <ul class="turnos" id="lab-modelos"></ul>
     </details>
     <details class="grupo" id="lab-loops-group">
-      <summary><h3 id="tx-10">Lab loops</h3><span class="fold-teaser">Loop runs, timing and measured outcomes</span></summary>
+      <summary data-acho-control="control-lab-loops-loop-runs-timing-and-measured-outcomes"><h3 id="tx-10">Lab loops</h3><span class="fold-teaser">Loop runs, timing and measured outcomes</span></summary>
       <p id="tx-11" class="pie">Measured loop runs and their outcomes are read here. Documents stay in Operations Data.</p>
       <p id="lab-loops-status" class="pie" role="status" aria-live="polite" data-state="NO_DATA" data-cause="loop_sensor_not_read">Loop sensor not read yet.</p>
       <div id="lab-loops" class="notebook-grid"></div>
     </details>
     <details class="grupo" id="lab-connection-diagnostics">
-      <summary><h3>Connection details</h3><span class="fold-teaser">Availability and connection causes</span></summary>
+      <summary data-acho-control="control-connection-details-availability-and-connection-causes"><h3>Connection details</h3><span class="fold-teaser">Availability and connection causes</span></summary>
       <p class="pie" id="lab-estado" role="status" aria-live="polite" data-i18n="lab_cargando">Checking the local Lab…</p>
       <p id="lab-mini-recovery-state" class="pie" role="status" aria-live="polite" aria-atomic="true"
        data-state="NO_DATA" data-acho="NO_DATA" data-cause="no_previous_recovery">NO_DATA(no_previous_recovery) · No previous MINI project restored.</p>
@@ -395,9 +396,9 @@
       <a id="lab-rack-enlace" href="#" target="_blank" rel="noopener noreferrer" hidden>Rack Lab</a>
     </details>
     <details class="grupo" id="lab-boundary-group">
-      <summary><h3>Boundary</h3><span class="fold-teaser">Approvals, signatures and permissions</span></summary>
+      <summary data-acho-control="control-boundary-approvals-signatures-and-permissions"><h3>Boundary</h3><span class="fold-teaser">Approvals, signatures and permissions</span></summary>
     <header class="panel-cabecera"><h2 data-i18n="tab_frontera" id="h-gobierno">Boundary</h2>
-      <button type="button" class="refrescar" data-refrescar="gobierno" aria-label="Refresh the signature list" title="Refresh the signature list">↻</button></header>
+      <button type="button" class="refrescar" data-refrescar="gobierno" aria-label="Refresh the signature list" title="Refresh the signature list" data-acho-control="control-refresh-the-signature-list">↻</button></header>
     <section class="hitl" id="hitl" aria-labelledby="hitl-titulo">
       <button type="button" class="hitl-cabecera" id="hitl-cabecera" aria-expanded="false" aria-controls="hitl-cuerpo"><span id="hitl-titulo"><span data-i18n="hitl_titulo">Firmas HITL</span> · <span id="hitl-n">…</span></span></button>
       <div class="hitl-cuerpo" id="hitl-cuerpo" hidden>
@@ -419,10 +420,10 @@
     <p class="pie" id="a2a-politica" role="status" lang="en">NO_DATA: this node has no A2A policy written yet. Boundary is where you will write how other agents may reach it. The redaction filter now lives in Ajustes.</p>
     </details>
     <details class="grupo" id="lab-harness-group">
-      <summary><h3>Harness</h3><span class="fold-teaser">Agents, tools and execution evidence</span></summary>
+      <summary data-acho-control="control-harness-agents-tools-and-execution-evidence"><h3>Harness</h3><span class="fold-teaser">Agents, tools and execution evidence</span></summary>
     <header class="panel-cabecera"><h2 data-i18n="tab_harness" id="h-harness">Harness</h2>
       <p class="pie" id="harness-frescura" role="status" aria-live="polite" data-i18n="harness_cargando">Reading local cycles…</p>
-      <button type="button" class="refrescar" data-refrescar="harness" aria-label="Refresh the loops and the team" title="Refresh the loops and the team">↻</button></header>
+      <button type="button" class="refrescar" data-refrescar="harness" aria-label="Refresh the loops and the team" title="Refresh the loops and the team" data-acho-control="control-refresh-the-loops-and-the-team">↻</button></header>
     <section class="fleet-zona" aria-labelledby="fleet-h">
       <h3 id="fleet-h">Fleet</h3>
       <p class="pie" id="fleet-estado" role="status" aria-live="polite">Fleet · NO_DATA · not read yet.</p>
@@ -435,7 +436,7 @@
     </section>
     <div class="team" id="team"></div>
     <details class="grupo" id="harness-operator-visibility">
-      <summary><h3 id="harness-operator-visibility-title">Operator visibility · local agents</h3></summary>
+      <summary data-acho-control="control-operator-visibility-local-agents"><h3 id="harness-operator-visibility-title">Operator visibility · local agents</h3></summary>
       <p class="pie" id="harness-operator-visibility-help">Use a tool you control, such as SentinelX or Desktop Commander, to give a paid or local agent scoped visibility into your own computer. The tool connection is separate from PreceptorOS and does not grant execution rights by itself.</p>
       <p class="pie" id="harness-operator-visibility-state" role="status" aria-live="polite">NO_DATA: no verified operator connection is reported by this panel.</p>
       <ol id="harness-operator-visibility-steps" aria-label="Connect an operator tool safely">
@@ -447,13 +448,13 @@
       <p class="pie" id="harness-operator-visibility-policy">Read-only observation, messaging, remote execution and deployment are different permissions. A running CLI is not proof that it received a message. Harness must show NO_DATA until a trusted adapter supplies fresh evidence.</p>
     </details>
     <details class="grupo" id="harness-cli">
-      <summary><h3 id="harness-cli-title">Agent questions to Hexelion</h3></summary>
+      <summary data-acho-control="control-agent-questions-to-hexelion"><h3 id="harness-cli-title">Agent questions to Hexelion</h3></summary>
       <p class="pie" id="harness-cli-why">Rack CLI preceptors ask Hexelion in their own thread, so your conversation stays yours. Read only.</p>
       <p class="pie" id="harness-cli-status" role="status" aria-live="polite">NO_DATA: the agents' questions have not been read yet.</p>
       <div id="harness-cli-turns" class="turnos"></div>
     </details>
     <details class="harness-motor">
-      <summary data-i18n="harness_motor">Engine: measured cycles</summary>
+      <summary data-i18n="harness_motor" data-acho-control="control-engine-measured-cycles">Engine: measured cycles</summary>
       <p class="pie" id="harness-causa" hidden></p>
       <ul class="turnos" id="harness-bucles"></ul>
     </details>
@@ -486,14 +487,14 @@
     <div class="panel-actions" id="mynode-actions" role="group" aria-label="My node actions">
       <button type="button" id="mynode-identity-toggle" aria-expanded="false" aria-controls="ajustes-nodo">Node identity</button>
       <button type="button" id="mynode-building-toggle" aria-expanded="false" aria-controls="room-building">Create building</button>
-      <button type="button" class="refrescar" data-refrescar="ajustes" aria-label="Refresh My node" title="Refresh My node">Refresh</button>
+      <button type="button" class="refrescar" data-refrescar="ajustes" aria-label="Refresh My node" title="Refresh My node" data-acho-control="control-refresh-my-node">Refresh</button>
     </div>
     <p id="mynode-paused" class="node-paused" role="status" hidden>
       My node connections are paused. Talk and documents remain available.
     </p>
     <p class="pie" id="ajustes-estado" role="status" aria-live="polite">NO_DATA: Settings are read when this tab opens.</p>
     <details class="grupo" id="mvp-journey-guide">
-      <summary><h3>Getting started · installation guide</h3><span class="fold-teaser">First steps, instructions and installation</span></summary>
+      <summary data-acho-control="control-getting-started-installation-guide-first-steps-instructions-and-i"><h3>Getting started · installation guide</h3><span class="fold-teaser">First steps, instructions and installation</span></summary>
       <p class="pie">These steps are guidance, not verified accomplishments or admission decisions.</p>
       <ol id="mvp-three-steps" aria-label="PreceptorOS in three steps">
         <li><strong>Understand PreceptorOS.</strong> Own your inference, models, agents and experiments on your devices. Nothing from another owner's rack is bundled.</li>
@@ -523,7 +524,7 @@
     </section>
     </details>
     <details class="grupo ajustes-grupo" id="ajustes-nodo">
-      <summary><h3 id="ajustes-nodo-titulo">Node identity</h3><span class="fold-teaser">Local node ID and identity controls</span></summary>
+      <summary data-acho-control="control-node-identity-local-node-id-and-identity-controls"><h3 id="ajustes-nodo-titulo">Node identity</h3><span class="fold-teaser">Local node ID and identity controls</span></summary>
       <p class="pie">Read and configure your local node identity. This does not register, deploy or approve a remote node.</p>
       <section id="mini-recovery" class="tarjeta" aria-labelledby="mini-recovery-title">
         <h3 id="mini-recovery-title">Recover a previous MINI project</h3>
@@ -591,7 +592,7 @@
       </form>
       <p id="node-identity-status" role="status" aria-live="polite" data-i18n="node_building_unread">La identidad local no se ha leído todavía.</p>
       <details class="grupo" id="node-declaration-advanced">
-        <summary>Declare an assigned building (requires verified local service)</summary>
+        <summary data-acho-control="control-declare-an-assigned-building-requires-verified-local-service">Declare an assigned building (requires verified local service)</summary>
       <form id="node-building-form">
         <label class="fila-switch" for="node-building-consent">
           <input type="checkbox" id="node-building-consent" disabled>
@@ -603,7 +604,7 @@
       </details>
     </section>
     <details class="grupo" id="node-identity-advanced">
-      <summary>Advanced admission tools (review required)</summary>
+      <summary data-acho-control="control-advanced-admission-tools-review-required">Advanced admission tools (review required)</summary>
       <p class="pie">These tools do not create a LIVE node and require separate human authorization.</p>
     <section class="tarjeta" aria-labelledby="nodo-export-title">
       <h3 id="nodo-export-title" data-i18n="nodo_export_titulo">Identidad del nodo</h3>
@@ -634,7 +635,7 @@
           <label class="fila-switch"><input type="checkbox" name="role" value="MODEL_SERVER"> Model server for others</label>
           <label class="fila-switch"><input type="checkbox" name="role" value="BENCH_WORKER"> Benchmark worker</label>
         </fieldset>
-        <button type="submit" class="probar" data-i18n="node_registration_preview">Preview deployment request</button>
+        <button type="submit" class="probar" data-i18n="node_registration_preview" data-acho-control="control-preview-deployment-request">Preview deployment request</button>
         <label class="fila-switch" for="node-registration-consent">
           <input type="checkbox" id="node-registration-consent" disabled>
           <span data-i18n="node_registration_consent">I consent to send this preliminary request for human review. An approved and signed node is a separate step.</span>
@@ -693,7 +694,7 @@
     <!-- Day D: creating a building means making a private local draft, not
          requesting Companion admission, sending feedback or publishing. -->
     <details class="grupo tarjeta room-building" id="room-building" aria-labelledby="room-building-title">
-      <summary><h3 id="room-building-title">Create your building</h3><span class="fold-teaser">Create a building draft on this device</span></summary>
+      <summary data-acho-control="control-create-your-building-create-a-building-draft-on-this-device"><h3 id="room-building-title">Create your building</h3><span class="fold-teaser">Create a building draft on this device</span></summary>
       <p class="pie" id="room-building-help">Prepare one building draft; no identity or ownership is verified here. Make a draft, download it to your device, and decide what to do with it at home. No GitHub account, model, node, or permission is required today.</p>
       <form id="room-building-form" autocomplete="off">
         <label for="room-building-name">Building name</label>
@@ -710,7 +711,7 @@
       <p class="pie">Created means <strong>local draft only</strong>. OpenWorld publication: NO_DATA(world_publication_not_verified). Your models stay on your device. At the Lisbon table, prepare a docs-only Companion HITL PR if you have GitHub; otherwise keep this draft. Connect your own model at home later. Feedback stays on the node owner's hardware.</p>
     </details>
     <details class="grupo ajustes-grupo" id="ajustes-dispositivo">
-      <summary><h3 id="ajustes-dispositivo-titulo">This device and privacy</h3><span class="fold-teaser">Updates, storage and privacy choices</span></summary>
+      <summary data-acho-control="control-this-device-and-privacy-updates-storage-and-privacy-choices"><h3 id="ajustes-dispositivo-titulo">This device and privacy</h3><span class="fold-teaser">Updates, storage and privacy choices</span></summary>
     <section class="tarjeta" id="app-update" aria-labelledby="app-update-title">
       <h3 id="app-update-title" data-i18n="update_title">This app · install and update</h3>
       <p class="pie"><strong data-i18n="update_installed_label">Installed on this device:</strong> <span id="update-installed">NO_DATA: not read yet.</span></p>
@@ -728,7 +729,7 @@
       <p class="pie" data-i18n="energy_help">Local meter reading. Battery, solar generation and allocation remain unmeasured; no power switching.</p>
       <button type="button" class="probar" id="energy-read" style="min-height:44px" data-i18n="energy_read">Read energy</button>
       <p id="energy-status" role="status" aria-live="polite" aria-atomic="true" data-i18n="energy_not_checked">NO_DATA: not checked.</p>
-      <details><summary data-i18n="energy_receipt">Machine-readable receipt</summary>
+      <details><summary data-i18n="energy_receipt" data-acho-control="control-machine-readable-receipt">Machine-readable receipt</summary>
         <pre class="payload" id="energy-json"></pre>
       </details>
     </section>
@@ -740,7 +741,7 @@
     </section>
     </details>
     <details class="grupo ajustes-grupo" id="ajustes-voz" hidden>
-      <summary><h3 id="ajustes-voz-titulo">Voice and creations</h3><span class="fold-teaser">Optional voice and creation tools</span></summary>
+      <summary data-acho-control="control-voice-and-creations-optional-voice-and-creation-tools"><h3 id="ajustes-voz-titulo">Voice and creations</h3><span class="fold-teaser">Optional voice and creation tools</span></summary>
     <section class="tarjeta" lang="en" aria-labelledby="creation-voice-title">
       <h3 id="creation-voice-title">Creation voice</h3>
       <p id="creation-voice-help">Generate the drawing guidance and your author statement with one local voice.</p>
@@ -764,7 +765,7 @@
     </section>
     </details>
     <details class="grupo ajustes-grupo" id="ajustes-puerta" hidden>
-      <summary><h3 id="ajustes-puerta-titulo">Public gate and local tray</h3><span class="fold-teaser">Admission status and local tray</span></summary>
+      <summary data-acho-control="control-public-gate-and-local-tray-admission-status-and-local-tray"><h3 id="ajustes-puerta-titulo">Public gate and local tray</h3><span class="fold-teaser">Admission status and local tray</span></summary>
     <details class="tarjeta grupo" id="puerta-ajustes">
       <summary id="tx-24">Public gate</summary>
     <p class="pie" id="puerta-estado" role="status" aria-live="polite" data-i18n="puerta_cargando">Leyendo la puerta local…</p>
@@ -792,7 +793,7 @@
     <p class="pie">Appearance and accessibility apply to this browser only. Your node identity and documents are unchanged.</p>
 
     <details class="grupo settings-group" id="settings-appearance">
-      <summary><h3>Appearance</h3><span class="fold-teaser">Day, night or device preference</span></summary>
+      <summary data-acho-control="control-appearance-day-night-or-device-preference"><h3>Appearance</h3><span class="fold-teaser">Day, night or device preference</span></summary>
       <fieldset class="settings-fieldset" id="settings-theme-group">
         <legend>Color theme</legend>
         <label><input type="radio" name="settings-theme" value="system"> Follow device</label>
@@ -802,7 +803,7 @@
     </details>
 
     <details class="grupo settings-group" id="settings-accessibility">
-      <summary><h3>Accessibility</h3><span class="fold-teaser">Text size and optional animation</span></summary>
+      <summary data-acho-control="control-accessibility-text-size-and-optional-animation"><h3>Accessibility</h3><span class="fold-teaser">Text size and optional animation</span></summary>
       <fieldset class="settings-fieldset" id="settings-text-group">
         <legend>Text size</legend>
         <label><input type="radio" name="settings-text" value="normal"> Default</label>
@@ -837,7 +838,7 @@
     </details>
 
     <details class="grupo settings-group" id="settings-connection">
-      <summary><h3>Connection and privacy</h3><span class="fold-teaser">Pause My node and Open World without deleting data</span></summary>
+      <summary data-acho-control="control-connection-and-privacy-pause-my-node-and-open-world-without-delet"><h3>Connection and privacy</h3><span class="fold-teaser">Pause My node and Open World without deleting data</span></summary>
       <p class="pie">The Kill switch pauses My node and Open World in this browser. It does not power off hardware, disconnect Talk or revoke remote credentials.</p>
       <button type="button" id="connection-kill" class="connection-kill"
         aria-pressed="false" aria-label="Kill switch · Pause My node and Open World"
@@ -846,7 +847,7 @@
     </details>
 
     <details class="grupo settings-group" id="settings-about">
-      <summary><h3>About this APP</h3><span class="fold-teaser">What's local, what needs a service</span></summary>
+      <summary data-acho-control="control-about-this-app-what-s-local-what-needs-a-service"><h3>About this APP</h3><span class="fold-teaser">What's local, what needs a service</span></summary>
       <p class="pie">PreceptorOS includes Mini Orchestrator. This preview's offline fallback uses deterministic routing; a language-model reply requires a verified model runtime. A successful health check does not prove model inference or node admission.</p>
       <p class="pie">Settings are saved in this browser only. The current installation may be a static preview.</p>
       <button type="button" id="settings-reset" class="probar">Restore display defaults</button>
@@ -993,7 +994,7 @@
 <script src="/hitl.js?v=7"></script>
 <script src="/notebook.js?v=24"></script>
 <script src="/acho_sonido.js?v=3"></script>
-<script src="/audio_accessibility.js?v=1"></script>
+<script src="/audio_accessibility.js?v=2"></script>
 <script src="/memory_onboarding.js?v=1"></script>
 <script src="/app.js?v=59"></script>
 <!-- Enhancement only: Talk owns routing, identity and authorization. -->
