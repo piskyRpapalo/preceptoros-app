@@ -360,6 +360,80 @@ def lee(canal, desde=0, base=None, tope=TOPE_LECTURA):
             "recortados": max(0, len(mensajes) - tope), "corruptas": corruptas, "ultimo": ultimo}
 
 
+def lee_pagina(canal, *, cursor=0, limite=20, max_bytes=8192, base=None):
+    """Internal local ledger reader; not an authentication or export boundary.
+
+    Cursor is the last delivered event n in this ledger and scope, not the
+    newest event. Do not reuse across scopes or restored/replaced ledgers.
+    No HTTP/MCP caller may use this without an independent read grant.
+    """
+    hilo = _hilo(canal)
+    if (type(cursor) is not int or not 0 <= cursor <= 2**63 - 1
+            or type(limite) is not int or not 1 <= limite <= 20
+            or type(max_bytes) is not int or not 1024 <= max_bytes <= 8192):
+        raise CanalRechazado("invalid_page_bounds")
+    page = {"schema": ESQUEMA, "canal": hilo, "source": "eventos.db:mensaje",
+            "observed_at": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "authority": "none", "estado": "MEDIDO", "causa": None,
+            "cursor": cursor, "next_cursor": cursor, "complete": False, "mensajes": []}
+
+    def refuse(cause):
+        return dict(page, estado="NO_DATA", causa=cause, next_cursor=cursor,
+                    complete=False, mensajes=[])
+
+    def size(value):
+        return len(json.dumps(value, ensure_ascii=False, separators=(",", ":"),
+                              allow_nan=False).encode("utf-8"))
+
+    try:
+        # Malformed/unclassifiable messages are included as barriers, not
+        # silently skipped. Valid messages from other threads are excluded.
+        filas = _filas(base, """
+            select n, ts, actor, cuerpo_json from eventos
+             where tipo = ? and n > ?
+               and case when json_valid(cuerpo_json)
+                        then case when json_type(cuerpo_json, '$.hilo') = 'text'
+                                  then json_extract(cuerpo_json, '$.hilo') = ?
+                                  else 1 end
+                        else 1 end
+             order by n limit ?
+        """, (TIPO, cursor, hilo, limite + 1))
+    except (OSError, sqlite3.Error):
+        return refuse("channel_unreadable")
+    if filas is None:
+        return refuse("channel_has_no_messages")
+    for n, ts, actor, raw in filas[:limite]:
+        try:
+            c = json.loads(raw)
+            if (not isinstance(c, dict) or c.get("hilo") != hilo
+                    or not isinstance(c.get("texto"), str)
+                    or not isinstance(c.get("maquina"), dict)
+                    or c.get("sello") not in SELLOS
+                    or not isinstance(c.get("rol"), str)):
+                raise ValueError()
+            # Only explicit correlation fields cross this internal projection;
+            # an actor in the ledger is not an authenticated remote principal.
+            m = c["maquina"]
+            machine = {k: m[k] for k in ("para", "request_id", "reply_to_request_id",
+                                          "pregunta_n", "via") if k in m}
+            row = {"n": n, "t": ts, "canal": hilo, "voz": actor,
+                   "identity": "DECLARED", "rol": c["rol"], "texto": c["texto"],
+                   "sello": c["sello"], "maquina": machine}
+            candidate = dict(page, mensajes=page["mensajes"] + [row], next_cursor=n)
+            fits = size(candidate) <= max_bytes
+        except (ValueError, TypeError, UnicodeError, RecursionError):
+            if page["mensajes"]:
+                return page
+            return refuse("channel_row_invalid")
+        if not fits:
+            if page["mensajes"]:
+                return page
+            return refuse("message_exceeds_budget")
+        page = candidate
+    page["complete"] = len(filas) <= limite
+    return page
+
+
 def resumen(base=None):
     return [{"canal": c, "ultimo": lee(c, desde=10 ** 12, base=base)["ultimo"], "corruptas": 0}
             for c in CANALES]
