@@ -321,6 +321,40 @@ class TestPuerta(Base):
         self.assertEqual(r["codigo"], 400)
 
 
+class TestSolicitudAppIdempotente(Base):
+    def test_request_id_sin_destinatario_reutiliza_el_mismo_turno(self):
+        rid = "app-" + "a" * 32
+        context = '{"agente":"","panel":"lab"}'
+        first = K.di_soberano("orquesta", "hola", base=self.casa, request_id=rid,
+                              request_context=context, deduplicar=True)
+        replay = K.di_soberano("orquesta", "hola", base=self.casa, request_id=rid,
+                               request_context=context, deduplicar=True)
+        self.assertEqual(first["n"], replay["n"])
+        self.assertEqual(replay["via"], "acuse existente")
+        rows = self.filas()
+        self.assertEqual(len(rows), 1)
+        machine = json.loads(rows[0][3])["maquina"]
+        self.assertNotIn("para", machine)
+        self.assertEqual(machine["request_id"], rid)
+        self.assertEqual(machine["request_context"], context)
+
+    def test_request_id_sin_destinatario_rechaza_texto_distinto(self):
+        rid = "app-" + "b" * 32
+        K.di_soberano("orquesta", "primera pregunta", base=self.casa, request_id=rid, deduplicar=True)
+        with self.assertRaises(K.ConflictoSolicitud):
+            K.di_soberano("orquesta", "otra pregunta", base=self.casa, request_id=rid, deduplicar=True)
+        self.assertEqual(len(self.filas()), 1)
+
+    def test_request_context_forma_parte_de_la_huella(self):
+        rid = "app-" + "c" * 32
+        K.di_soberano("orquesta", "misma pregunta", base=self.casa, request_id=rid,
+                      request_context='{"agente":"","panel":"lab"}', deduplicar=True)
+        with self.assertRaises(K.ConflictoSolicitud):
+            K.di_soberano("orquesta", "misma pregunta", base=self.casa, request_id=rid,
+                          request_context='{"agente":"agent-1","panel":"lab"}', deduplicar=True)
+        self.assertEqual(len(self.filas()), 1)
+
+
 SABOTAJES = (
     ("un agente escribe como soberano",
      "    if not isinstance(voz, str) or es_soberano(voz):", "    if not isinstance(voz, str):"),
