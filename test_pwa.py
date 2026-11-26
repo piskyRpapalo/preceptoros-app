@@ -1745,7 +1745,7 @@ class InsertorAncladoContrato(unittest.TestCase):
         self.assertIn('id="ayuda-efimera"', html)
         self.assertIn('id="form-chat" aria-describedby="insertor-instrucciones"', html)
         self.assertIn("min-height: 44px", css)
-        self.assertIn('JSON.stringify(Object.assign({ texto, panel: ruta.panel },', js)  # private route + active team agent, if any
+        self.assertIn('JSON.stringify(Object.assign({ texto, panel: ruta.panel, request_id: requestId },', js)  # active private route carries its idempotency key
 
     def test_insertor_es_pieza_estatica_versionada_y_en_cache(self):
         root = pathlib.Path(AQUI)
