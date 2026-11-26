@@ -25,7 +25,7 @@ The existing `canales.di_soberano` idempotency contract covered addressed messag
 - Bind the idempotency fingerprint to the submitted text and the execution context (selected panel and agent). Same ID with changed inputs is a conflict.
 - On duplicate request, read the original turn and its correlated receipt. Return the bounded cached model answer, verified action receipt, or explicit PENDING/NO_DATA. Never call inference or an action adapter again.
 - Use `AbortController` in the active `app.js` request and an accessible, nine-locale “Stop waiting” control. Abort only the browser wait; it does not claim to cancel server inference.
-- Retain the same request ID in page memory for same-input retry. Different text/panel/agent is held until the previous outcome is reconciled.
+- Retain the same request ID in page memory for same-input retry. Within that page session, different text/panel/agent is held until the previous outcome is reconciled; after a full reload this guard is not yet restored automatically.
 - Align `app.html` script URL and `sw.js` shell cache (app.js v59 / shell v251).
 
 ## Measurable benefit
