@@ -990,7 +990,12 @@ class TestHablarConHexelion(unittest.TestCase):
         self.assertIn('fetch("/api/cerebro", { cache: "no-store" })', formulario)
         self.assertIn('talkMode !== localMode && talkMode !== privateMode', formulario)
         self.assertIn('fetch(localTalk ? "/api/charla" : "/api/hexelion/chat"', formulario)
-        self.assertIn('JSON.stringify(Object.assign({ texto, panel: ruta.panel },', formulario)
+        self.assertIn('JSON.stringify(Object.assign({ texto, panel: ruta.panel, request_id: requestId },', formulario)
+        self.assertIn("new AbortController()", formulario)
+        self.assertIn("browser_wait_aborted", formulario)
+        self.assertIn("detener-chat", app)
+        html = pathlib.Path(AQUI, "interface", "app.html").read_text(encoding="utf-8")
+        self.assertIn('id="detener-chat"', html)
         self.assertIn('respuesta.voz === "hexelion"', formulario)
         self.assertIn('Array.isArray(respuesta.fuentes)', formulario)
         self.assertIn('t.chat_sin_respuesta(causa)', formulario)
@@ -1497,6 +1502,109 @@ class HexelionStationContract(unittest.TestCase):
         self.assertEqual(captured["body"]["respuesta"]["fuentes"][0]["id"], 9)
         self.assertEqual(captured["body"]["causa"], "verified_memory_sources; no authority inferred")
         self.assertLess(len(json.dumps(captured["body"], ensure_ascii=False).encode()), 1024)
+
+    def test_chat_request_id_replay_reutiliza_respuesta_sin_segunda_inferencia(self):
+        import io
+        from types import SimpleNamespace
+        import hashlib
+        import json
+        import hexelion_proxy
+        request_id = "app-" + "d" * 32
+        context = json.dumps({"panel": "lab", "agente": ""}, separators=(",", ":"), sort_keys=True)
+        source_text = "The archive says: measured seed 17."
+        source = {"id": 9, "updated_at": "2026-11-06T00:00:00Z",
+                  "sha256": hashlib.sha256(source_text.encode()).hexdigest()}
+        messages = [
+            {"n": 1, "t": "2026-11-26T02:00:00Z", "voz": "soberano",
+             "texto": "¿Qué dice el archivo?",
+             "maquina": {"via": "app", "request_id": request_id, "request_context": context}},
+            {"n": 2, "t": "2026-11-26T02:00:01Z", "voz": "hexelion", "texto": "measured seed 17",
+             "maquina": {"pregunta_n": 1, "modelo": hexelion_proxy.MODEL, "ms": 23.0,
+                         "via": "loopback station", "fuentes": [source]}}
+        ]
+        payload = json.dumps({"texto": "¿Qué dice el archivo?", "panel": "lab",
+                              "request_id": request_id}, ensure_ascii=False).encode()
+        handler = PWA.PWA.__new__(PWA.PWA)
+        handler.path = "/api/hexelion/chat"
+        handler.headers = {"Content-Type": "application/json", "Content-Length": str(len(payload))}
+        handler.rfile = io.BytesIO(payload)
+        handler.server = SimpleNamespace(ruta_db="unused")
+        captured = {}
+        handler._json = lambda code, body: captured.update(code=code, body=body)
+        handler._nodo_local_autorizado = lambda: True
+        with mock.patch.object(PWA._casa, "raiz", return_value="unused"), \
+             mock.patch.object(PWA._canales, "di_soberano",
+                               return_value={"n": 1, "via": "acuse existente"}) as person, \
+             mock.patch.object(PWA._canales, "lee", return_value={"estado": "MEDIDO", "mensajes": messages}), \
+             mock.patch.object(PWA._memory_lookup, "buscar") as search, \
+             mock.patch.object(PWA._hexelion_proxy, "ask") as ask, \
+             mock.patch.object(PWA._canales, "di") as station:
+            PWA.PWA._hexelion_chat(handler)
+        person.assert_called_once_with("orquesta", "¿Qué dice el archivo?", base="unused",
+                                       request_id=request_id, request_context=context, deduplicar=True)
+        search.assert_not_called()
+        ask.assert_not_called()
+        station.assert_not_called()
+        self.assertEqual(captured["code"], 200)
+        self.assertEqual(captured["body"]["respuesta"]["texto"], "measured seed 17")
+        self.assertEqual(captured["body"]["turno"]["state"], "ANSWERED")
+
+    def test_chat_request_id_replay_pendiente_no_duplica_inferencia(self):
+        import io
+        from types import SimpleNamespace
+        request_id = "app-" + "e" * 32
+        context = '{"agente":"","panel":"lab"}'
+        messages = [{"n": 1, "t": "2026-11-26T02:00:00Z", "voz": "soberano",
+                     "texto": "¿Qué dice el archivo?",
+                     "maquina": {"via": "app", "request_id": request_id, "request_context": context}}]
+        payload = json.dumps({"texto": "¿Qué dice el archivo?", "panel": "lab",
+                              "request_id": request_id}, ensure_ascii=False).encode()
+        handler = PWA.PWA.__new__(PWA.PWA)
+        handler.path = "/api/hexelion/chat"
+        handler.headers = {"Content-Type": "application/json", "Content-Length": str(len(payload))}
+        handler.rfile = io.BytesIO(payload)
+        handler.server = SimpleNamespace(ruta_db="unused")
+        captured = {}
+        handler._json = lambda code, body: captured.update(code=code, body=body)
+        handler._nodo_local_autorizado = lambda: True
+        with mock.patch.object(PWA._casa, "raiz", return_value="unused"), \
+             mock.patch.object(PWA._canales, "di_soberano",
+                               return_value={"n": 1, "via": "acuse existente"}), \
+             mock.patch.object(PWA._canales, "lee", return_value={"estado": "MEDIDO", "mensajes": messages}), \
+             mock.patch.object(PWA._memory_lookup, "buscar") as search, \
+             mock.patch.object(PWA._hexelion_proxy, "ask") as ask:
+            PWA.PWA._hexelion_chat(handler)
+        search.assert_not_called()
+        ask.assert_not_called()
+        self.assertEqual(captured["code"], 202)
+        self.assertEqual(captured["body"]["estado"], "PENDING")
+        self.assertEqual(captured["body"]["turno"]["state"], "NO_REPLY_RECORDED")
+
+    def test_chat_request_id_conflict_falla_cerrado(self):
+        import io
+        from types import SimpleNamespace
+        request_id = "app-" + "f" * 32
+        payload = json.dumps({"texto": "otra pregunta", "panel": "lab",
+                              "request_id": request_id}, ensure_ascii=False).encode()
+        handler = PWA.PWA.__new__(PWA.PWA)
+        handler.path = "/api/hexelion/chat"
+        handler.headers = {"Content-Type": "application/json", "Content-Length": str(len(payload))}
+        handler.rfile = io.BytesIO(payload)
+        handler.server = SimpleNamespace(ruta_db="unused")
+        captured = {}
+        handler._json = lambda code, body: captured.update(code=code, body=body)
+        handler._nodo_local_autorizado = lambda: True
+        with mock.patch.object(PWA._casa, "raiz", return_value="unused"), \
+             mock.patch.object(PWA._canales, "di_soberano",
+                               side_effect=PWA._canales.ConflictoSolicitud("request_id_conflict")) as person, \
+             mock.patch.object(PWA._memory_lookup, "buscar") as search, \
+             mock.patch.object(PWA._hexelion_proxy, "ask") as ask:
+            PWA.PWA._hexelion_chat(handler)
+        person.assert_called_once()
+        search.assert_not_called()
+        ask.assert_not_called()
+        self.assertEqual(captured["code"], 409)
+        self.assertEqual(captured["body"]["causa"], "request_id_conflict")
 
     def test_chat_sin_memoria_no_llama_estacion_ni_append_hexelion(self):
         import io
