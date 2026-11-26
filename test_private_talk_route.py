@@ -58,7 +58,7 @@ class PrivateTalkRoute(unittest.TestCase):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf8")
         self.assertIn('src="/browser_mini_gate.js?v=3"', html)
         self.assertIn('"/browser_mini_gate.js?v=3"', sw)
-        self.assertIn('const Cache = "preceptoros-armazon-v250"', sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v251"', sw)
 
 
 if __name__ == "__main__":
