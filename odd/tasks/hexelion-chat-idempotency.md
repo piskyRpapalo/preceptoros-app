@@ -60,7 +60,9 @@ The existing `canales.di_soberano` idempotency contract covered addressed messag
 - Draft PR: https://github.com/piskyRpapalo/preceptoros-app/pull/437
 - Branch: `codex-web/app-hexelion-idempotent-chat-20261126`
 - Base: `56930aa55dbe89872b6001be265b378c82dad75f`
-- CI: pending at time of writing; do not interpret pending/skipped checks as PASS.
+- CI run #45749336667 on code head `d6f249dc`: FAIL across the Python 3.10–3.14 matrix; 27 failing corridors. Corrected served asset/cache alignment, public-name inventory, focus restoration path count, and a docstring collision detected by the repository gate.
+- CI run #45750510481 on code head `897a4cc8`: FAIL across the matrix; 8 remaining suites. These isolated stale asset/cache snapshots (including the install-worker fixture) and the additional draft-restoration branch; all identified expectations were updated in the current branch.
+- Current code head before this log update: `37e7f642`. A fresh certified run is required; do not interpret earlier runs, pending checks, or skipped checks as PASS.
 
 ## Log
 
