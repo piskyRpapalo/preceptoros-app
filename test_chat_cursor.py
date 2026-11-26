@@ -4,6 +4,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from contextlib import closing
 
 import canales as C
 
@@ -15,13 +16,13 @@ class ConversationCursorTests(unittest.TestCase):
         self.base = Path(self.tmp.name)
         self.db = C.ruta_canal(self.base)
         self.db.parent.mkdir()
-        with sqlite3.connect(self.db) as con:
+        with closing(sqlite3.connect(self.db)) as con, con:
             con.executescript(C.ESQUEMA_EVENTOS)
 
     def append(self, thread="orquesta", text="fixture", machine=None, raw=None):
         body = {"hilo": thread, "texto": text, "rol": "fixture",
                 "sello": "DECLARADO", "maquina": machine or {}}
-        with sqlite3.connect(self.db) as con:
+        with closing(sqlite3.connect(self.db)) as con, con:
             return con.execute(
                 "insert into eventos (ts,maquina,tipo,actor,cuerpo_json,no_data_json)"
                 " values (?,?,?,?,?,?)",
@@ -38,13 +39,17 @@ class ConversationCursorTests(unittest.TestCase):
             if i % 7 == 0:
                 self.append(thread="lab", text="not in scope")
         cursor, got = 0, []
-        while True:
+        for _ in range(225):
             p = self.page(cursor=cursor, limite=13)
             self.assertEqual(p["estado"], "MEDIDO")
             got.extend(m["n"] for m in p["mensajes"])
+            if not p["complete"]:
+                self.assertGreater(p["next_cursor"], cursor)
             cursor = p["next_cursor"]
             if p["complete"]:
                 break
+        else:
+            self.fail("cursor did not finish")
         self.assertEqual(got, expected)
         self.assertEqual(self.page(cursor=cursor)["mensajes"], [])
         new = self.append()
