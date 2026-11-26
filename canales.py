@@ -212,7 +212,10 @@ def _anexar(canal, actor, texto, sello, rol, maquina, base, *, deduplicar=False)
     if deduplicar:
         # Compare the accepted payload before redaction, even when two different
         # inputs would leave the same visible text. Bind the digest to this ID.
-        payload = json.dumps([maquina["request_id"], maquina["para"], texto])
+        request_payload = [maquina["request_id"], maquina.get("para"), texto]
+        if "request_context" in maquina:
+            request_payload.append(maquina["request_context"])
+        payload = json.dumps(request_payload)
         huella = hashlib.sha256(payload.encode("ascii")).hexdigest()
         cuerpo["maquina"]["request_fingerprint"] = huella
     crudo = json.dumps(cuerpo, ensure_ascii=False, sort_keys=True)
@@ -275,12 +278,11 @@ def di(canal, voz, texto, sello="DECLARADO", rol="", maquina=None, base=None):
     return _anexar(canal, voz, texto, sello, rol, maquina, base)
 
 
-def di_soberano(canal, texto, sello="DECLARADO", base=None, para=None, request_id=None, *, deduplicar=False):
+def di_soberano(canal, texto, sello="DECLARADO", base=None, para=None, request_id=None, request_context=None, *, deduplicar=False):
     """La persona escribe desde la app. Solo la llama la puerta de la PWA.
-    Tampoco esto concede nada: una frase no es una firma. `para` nombra a quién
-    va dirigido (un slug); `request_id` correlaciona una respuesta futura, no prueba
-    recepción ni da permiso a nadie. `deduplicar` reutiliza el acuse del turno
-    existente dentro del mismo hilo y actor, bajo el cerrojo de escritura."""
+    Una frase no es firma ni permiso. para es opcional; request_id correlaciona
+    el turno aunque la puerta sea directa (Hexelion) y request_context vincula
+    entradas de ejecución adicionales al mismo acuse. Ninguno prueba recepción."""
     if deduplicar and not solicitud_app_valida(request_id):
         raise CanalRechazado("la deduplicación requiere un identificador de solicitud")
     maquina = {"via": "app"}
@@ -288,12 +290,15 @@ def di_soberano(canal, texto, sello="DECLARADO", base=None, para=None, request_i
         if not isinstance(para, str) or not _SLUG.match(para) or es_soberano(para):
             raise CanalRechazado("`para` es el slug de un agente")
         maquina["para"] = para
-        if request_id is not None:
-            if not solicitud_app_valida(request_id):
-                raise CanalRechazado("`request_id` must be an app-generated opaque id")
-            maquina["request_id"] = request_id
-    elif request_id is not None:
-        raise CanalRechazado("`request_id` requires an addressed recipient")
+    if request_id is not None:
+        if not solicitud_app_valida(request_id):
+            raise CanalRechazado("`request_id` must be an app-generated opaque id")
+        maquina["request_id"] = request_id
+    if request_context is not None:
+        if (request_id is None or not isinstance(request_context, str) or not request_context or
+                len(request_context) > 128 or any(ord(char) < 32 for char in request_context)):
+            raise CanalRechazado("`request_context` requires a request_id and <=128 printable characters")
+        maquina["request_context"] = request_context
     return _anexar(canal, VOZ_RESERVADA, texto, sello, "persona", maquina, base, deduplicar=deduplicar)
 
 
