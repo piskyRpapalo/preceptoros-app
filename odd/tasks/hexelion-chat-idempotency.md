@@ -41,7 +41,7 @@ The existing `canales.di_soberano` idempotency contract covered addressed messag
 - Browser abort does not stop the server-side inference.
 - The client retains the pending ID in page memory; a full reload does not yet restore that client-side key automatically. The durable question and request ID remain in the existing ledger.
 - Cached local sensor detail is not reconstructed when its full receipt is unavailable; the route returns NO_DATA rather than fabricating a reading.
-- Live Hexelion E2E is not established. The latest measured MCP snapshot reported `models_loaded=0`; no live model response or deployment is claimed.
+- Live Hexelion E2E is not established. Read-only local Ollama `GET /api/tags` listed `qwen38-27b-q4xl:latest`, `qwen3-coder-next:latest`, `qwen3-coder:30b`, and `gpt-oss:120b`; the code default `hexelion:latest` was absent. `GET /api/ps` returned an empty model list. The configured `PRECEPTOROS_HEXELION_MODEL` override and SHA pin were not exposed, so the active selection remains NO_DATA. No live model response or deployment is claimed.
 - No new database, MCP, endpoint, daemon, relay, scheduler, service, grant, or dispatch path is introduced.
 
 ## Checklist
