@@ -37,7 +37,7 @@ class MiniBrowserDoor(unittest.TestCase):
         self.assertIn('data-state="NO_DATA" data-acho="NO_DATA"',html)
         self.assertIn('src="/offline_mini.js?v=1"',html)
         self.assertIn('src="/browser_mini_gate.js?v=3"',html)
-        self.assertIn('const Cache = "preceptoros-armazon-v250"',sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v251"',sw)
         for asset in ("/offline_mini.js?v=1","/browser_mini_gate.js?v=3"):
             self.assertIn('"'+asset+'"',sw)
         for panel in ("conversacion","cuaderno","lab","ajustes","modelos"):

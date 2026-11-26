@@ -1714,6 +1714,103 @@ class PWA(BaseHTTPRequestHandler):
             if stage is not None:
                 payload["stage"] = stage
             return reply(code, payload)
+        def replay_existing(request_id):
+            # The request ID already has a durable question. Reconcile its existing outcome; never run it again.
+            if not isinstance(turno.get("n"), int):
+                payload = {"estado": "NO_DATA", "causa": "request_outcome_unknown",
+                           "respuesta": {"estado": "NO_DATA", "causa": "request_outcome_unknown"}}
+                return reply(503, payload)
+            try:
+                lectura = _canales.lee(turno["hilo"], 0, base=_casa.raiz())
+            except Exception:
+                lectura = None
+            if not isinstance(lectura, dict) or lectura.get("estado") != "MEDIDO":
+                payload = {"estado": "NO_DATA", "causa": "request_outcome_unknown",
+                           "respuesta": {"estado": "NO_DATA", "causa": "request_outcome_unknown"}}
+                return reply(503, payload)
+            replies = []
+            for message in lectura.get("mensajes") or []:
+                if not isinstance(message, dict):
+                    continue
+                machine = message.get("maquina") if isinstance(message.get("maquina"), dict) else {}
+                if (machine.get("pregunta_n") == turno["n"] and
+                        message.get("voz") in ("hexelion", "hexelion-door", "orquestador")):
+                    replies.append((message, machine))
+            if len(replies) > 1:
+                turno["n"] = None
+                payload = {"estado": "NO_DATA", "causa": "duplicate_reply_conflict",
+                           "respuesta": {"estado": "NO_DATA", "causa": "duplicate_reply_conflict"}}
+                return reply(409, payload)
+            if not replies:
+                return reply(202, {"estado": "PENDING", "causa": "request_outcome_unknown",
+                                   "request_id": request_id})
+            message, machine = replies[0]
+            voice = message.get("voz")
+            if voice == "hexelion" and machine.get("via") == "loopback station":
+                model, duration, answer = machine.get("modelo"), machine.get("ms"), message.get("texto")
+                sources = machine.get("fuentes")
+                valid_sources = (isinstance(sources, list) and 1 <= len(sources) <= 3 and all(
+                    isinstance(source, dict) and type(source.get("id")) is int and
+                    isinstance(source.get("updated_at"), str) and
+                    isinstance(source.get("sha256"), str) and re.fullmatch(r"[a-f0-9]{64}", source["sha256"])
+                    for source in sources))
+                if (model != _hexelion_proxy.MODEL or type(duration) not in (int, float) or duration <= 0 or
+                        not isinstance(answer, str) or not answer.strip() or not valid_sources):
+                    turno["n"] = None
+                    payload = {"estado": "NO_DATA", "causa": "cached_reply_unverified",
+                               "respuesta": {"estado": "NO_DATA", "causa": "cached_reply_unverified"}}
+                    return reply(503, payload)
+                citations = [{"id": source["id"], "updated_at": source["updated_at"], "sha256": source["sha256"]}
+                             for source in sources]
+                response = {"estado": "MEASURED", "respuesta": {
+                    "estado": "MEASURED", "texto": answer, "voz": "hexelion",
+                    "maquina": {"modelo": model, "ms": duration}, "fuentes": citations},
+                    "causa": "verified_memory_sources; no authority inferred"}
+                try:
+                    _estado_compacto.serializar_objeto(response)
+                except (TypeError, ValueError, UnicodeError, OverflowError):
+                    turno["n"] = None
+                    payload = {"estado": "NO_DATA", "causa": "cached_reply_exceeds_budget",
+                               "respuesta": {"estado": "NO_DATA", "causa": "cached_reply_exceeds_budget"}}
+                    return reply(503, payload)
+                return reply(200, response)
+            if voice == "hexelion" and machine.get("via") in ("mcp_nativo", "lectura_local"):
+                ok, tool, answer = machine.get("ok"), machine.get("herramienta"), message.get("texto")
+                projected = next((row for row in _turnos.turns(lectura.get("mensajes") or [])
+                                  if row.get("n") == turno["n"]), None)
+                if (type(ok) is not bool or not isinstance(tool, str) or not tool or
+                        not isinstance(answer, str) or projected is None or projected.get("state") != "ACTED"):
+                    payload = {"estado": "NO_DATA", "causa": "cached_action_unverified",
+                               "respuesta": {"estado": "NO_DATA", "causa": "cached_action_unverified"}}
+                    return reply(200, payload)
+                action = {"estado": "MEASURED", "herramienta": tool, "ok": ok,
+                          "rc": machine.get("rc"), "ms": machine.get("ms"), "causa": machine.get("causa"),
+                          "allowlist_version": machine.get("allowlist_version"),
+                          "evidencia": machine.get("evidencia") if isinstance(machine.get("evidencia"), dict) else {},
+                          "texto": answer}
+                response = {"estado": "ACCION_LOCAL", "causa": "replayed_action_receipt;model_not_invoked",
+                            "respuesta": {"tipo": "accion_hexelion", "accion": action}}
+                try:
+                    _estado_compacto.serializar_objeto(response)
+                except (TypeError, ValueError, UnicodeError, OverflowError):
+                    turno["n"] = None
+                    payload = {"estado": "NO_DATA", "causa": "cached_action_exceeds_budget",
+                               "respuesta": {"estado": "NO_DATA", "causa": "cached_action_exceeds_budget"}}
+                    return reply(503, payload)
+                return reply(200, response)
+            if voice == "hexelion-door":
+                cause = machine.get("causa")
+                if not isinstance(cause, str) or not cause:
+                    cause = "cause_not_given"
+                payload = {"estado": "NO_DATA", "causa": cause,
+                           "respuesta": {"estado": "NO_DATA", "causa": cause}}
+                return reply(503, payload)
+            if voice == "orquestador":
+                payload = {"estado": "NO_DATA", "causa": "cached_local_sensor_detail_unavailable",
+                           "respuesta": {"estado": "NO_DATA", "causa": "cached_local_sensor_detail_unavailable"}}
+                return reply(200, payload)
+            return reply(202, {"estado": "PENDING", "causa": "request_outcome_unknown",
+                               "request_id": request_id})
         # Two doors. The person's window carries a same-host Origin; a rack CLI agent is loopback with NO Origin
         # and must name its voice (checked after parsing). Anything else is refused before the body is read.
         serve = self._hexelion_serve_access()
@@ -1742,8 +1839,11 @@ class PWA(BaseHTTPRequestHandler):
                 return result
             data = json.loads(raw.decode("utf-8", "strict"), object_pairs_hook=unique)
             if (len(raw) != size or type(data) is not dict or
-                    not {"texto"} <= set(data) <= {"texto", "panel", "agente", "voz"}):
+                    not {"texto"} <= set(data) <= {"texto", "panel", "agente", "voz", "request_id"}):
                 raise ValueError()
+            request_id = data.get("request_id")
+            if "request_id" in data and not _canales.solicitud_app_valida(request_id):
+                return no_data("request_id_invalid", 400)
             text = data["texto"]
             if type(text) is not str or not text.strip() or len(text) > 600:
                 raise ValueError()
@@ -1768,10 +1868,28 @@ class PWA(BaseHTTPRequestHandler):
             estilo = _team.instruction(elegido)
         try:
             voz = data.get("voz")
+            if voz is not None and request_id is not None:
+                return no_data("request_id_person_only", 400)
             if voz is None:
                 if not persona:   # a CLI without a voice never speaks as the person
                     return no_data("local_origin_required", 403)
-                asked = _canales.di_soberano("orquesta", text.strip(), base=_casa.raiz())
+                if request_id is None:
+                    asked = _canales.di_soberano("orquesta", text.strip(), base=_casa.raiz())
+                else:
+                    request_context = json.dumps({"panel": panel or "", "agente": agente or ""},
+                                                 separators=(",", ":"), sort_keys=True)
+                    try:
+                        asked = _canales.di_soberano("orquesta", text.strip(), base=_casa.raiz(),
+                                                     request_id=request_id, request_context=request_context,
+                                                     deduplicar=True)
+                    except _canales.ConflictoSolicitud:
+                        payload = {"estado": "NO_DATA", "causa": "request_id_conflict",
+                                   "respuesta": {"estado": "NO_DATA", "causa": "request_id_conflict"}}
+                        return reply(409, payload)
+                    if isinstance(asked, dict) and isinstance(asked.get("n"), int):
+                        turno["n"] = asked["n"]
+                    if isinstance(asked, dict) and asked.get("via") == "acuse existente":
+                        return replay_existing(request_id)
             elif (voz in AGENT_VOICES and self._es_loopback(self.client_address[0])
                   and not self.headers.get("Origin")):
                 # A CLI agent on this rack (Claude, Codex…) asks in its own voice; never the person's.

@@ -20,9 +20,9 @@ class TouchTargets(unittest.TestCase):
     def test_served_versions_aligned(self):
         html = (ROOT / "interface/app.html").read_text(encoding="utf8")
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf8")
-        self.assertIn('href="/app.css?v=58"', html)
-        self.assertIn('"/app.css?v=58"', sw)
-        self.assertIn('const Cache = "preceptoros-armazon-v250"', sw)
+        self.assertIn('href="/app.css?v=59"', html)
+        self.assertIn('"/app.css?v=59"', sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v251"', sw)
 
 
 if __name__ == "__main__":
