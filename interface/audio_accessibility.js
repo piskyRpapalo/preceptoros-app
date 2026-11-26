@@ -85,19 +85,26 @@
     if(!doc||typeof id!=="string"||!table.has(id))return fail("control_not_in_static_catalog");
     const row=table.get(id),el=locate(row);
     if(!el)return fail("control_mount_missing");
+    const disabled=!!(el.matches(":disabled")||el.getAttribute("aria-disabled")==="true"||el.closest('[aria-disabled="true"]'));
     let available=visibility(el);
-    if(available==="VISIBLE"&&(el.matches(":disabled")||el.getAttribute("aria-disabled")==="true"||el.closest('[aria-disabled="true"]')))available="DISABLED";
+    if(available==="VISIBLE"&&disabled)available="DISABLED";
     const states=[];
     for(const a of ["aria-selected","aria-expanded","aria-pressed","aria-checked"]){
       const v=el.getAttribute(a);if(v==="true"||v==="false"||v==="mixed")states.push(a.slice(5)+"="+v);
     }
-    if(el.tagName==="SUMMARY"&&el.parentElement?.tagName==="DETAILS")states.push("expanded="+String(el.parentElement.open));
+    if(el.tagName==="SUMMARY"&&el.parentElement?.tagName==="DETAILS"){
+      states.push("expanded="+String(el.parentElement.open));
+      if(el.parentElement.id==="superbot-agent-disclosure"){
+        const declared=el.parentElement.getAttribute("data-state");
+        states.push(["NO_DATA","PLAN_REFERENCE","SYNTHETIC"].includes(declared)?declared:"NO_DATA(agent reference state)");
+      }
+    }
     const raw=el.hasAttribute("aria-labelledby")?null:normalize(el.getAttribute("aria-label")||el.textContent);
     // Publish only audited labels; translated/dynamic names need reviewed scope.
     const nameVerified=raw===row[1];
     const scope=el.closest('[role="tabpanel"]')?.id?.replace(/^panel-/,"")||"global";
     const panel=panels.has(scope)?scope:"global", state=states.join(", ")||"NO_DATA(control state)";
-    const sentence=row[1]+". "+row[2]+". "+available+". "+state+". "+
+    const sentence=row[1]+". "+row[2]+". "+available+(disabled&&available==="HIDDEN"?" and disabled":"")+". "+state+". "+
       (nameVerified?"":"NO_DATA(current accessible name). ")+"Requirement: "+row[3]+". Read grants no action.";
     const frame={v:"preceptoros.acho/1",id,t:0,cv:[1024,160],seal:nameVerified?"STATIC":"NO_DATA",
       atoms:[{k:"control",r:sentence,i:[{o:"text",x:12,y:35,tx:sentence,sz:12,f:"paper",s:"ink"}]}],
@@ -106,7 +113,7 @@
     const frameBytes=new root.TextEncoder().encode(JSON.stringify(frame)).length;
     if(frameBytes>=1024||sentence.length>420)return fail("acho_frame_exceeds_limit");
     return {id,panel,name:row[1],accessible_name:nameVerified?row[1]:null,function:row[2],
-      state,availability:available,authorization:"NOT_GRANTED_BY_READ",requirement:row[3],
+      state,availability:available,disabled,authorization:"NOT_GRANTED_BY_READ",requirement:row[3],
       source:"APP static control and current DOM",cause:nameVerified?null:"current_accessible_name_not_verified",
       text:sentence,frame,frame_bytes:frameBytes};
   }
@@ -118,12 +125,17 @@
   return Object.freeze({read,focused,ids:()=>Array.from(table.keys())});
 }
   const controls=createControlReader(doc,root,controlCatalog);
-  function read(){
+  function read(){return speak(area());}
+  function readFocused(){
     const control=controls.focused();
-    if(!control.frame)return speak(area());
+    if(control.cause==="no_focused_control")return read();
+    const sentence=control.frame?control.text:"NO_DATA("+control.cause+"). Read grants no action.";
     const description=$("acho-control-description");
-    if(description){description.textContent=control.text;description.hidden=false;}
-    return speak(control.text);
+    if(description){
+      description.setAttribute("aria-live",enabled?"off":"polite");
+      description.textContent=sentence;
+    }
+    return enabled?speak(sentence):control;
   }
   async function tone(){
     if(!root.PreceptorAchoSonido)return status("NO_DATA","acho_engine_missing","NO_DATA: Acho sound engine is unavailable.");
@@ -152,15 +164,15 @@
     doc.addEventListener("keydown",(event)=>{
       if(!event.altKey||!event.shiftKey||event.ctrlKey||event.metaKey||event.repeat)return;
       const target=event.target;
-      if(target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
-      if(event.key.toLowerCase()==="r"){event.preventDefault();read();}
+      if(target?.matches?.('input,textarea,[contenteditable="true"]'))return;
+      if(event.key.toLowerCase()==="r"){event.preventDefault();readFocused();}
       if(event.key.toLowerCase()==="s"){event.preventDefault();stop();}
     });
     status("LOCAL",enabled?"speech_user_enabled":"speech_user_disabled",
       enabled?"Spoken guidance enabled by this browser. Use Read current area.":"Spoken guidance is off until you enable it. Screen readers work independently.");
     return true;
   }
-  const api=Object.freeze({mount,read,stop,setEnabled,area,speak,hasSpeech,tone,controls});
+  const api=Object.freeze({mount,read,stop,setEnabled,area,speak,hasSpeech,tone,controls,readFocused});
   root.PreceptorAudioAccessibility=api;
   if(typeof module==="object"&&module.exports)module.exports=api;
   if(doc){if(doc.readyState==="loading")doc.addEventListener("DOMContentLoaded",mount,{once:true});else mount();}
