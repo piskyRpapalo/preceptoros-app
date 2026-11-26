@@ -1716,6 +1716,10 @@ class PWA(BaseHTTPRequestHandler):
             return reply(code, payload)
         def replay_existing(request_id):
             # The request ID already has a durable question. Reconcile its existing outcome; never run it again.
+            if not isinstance(turno.get("n"), int):
+                payload = {"estado": "NO_DATA", "causa": "request_outcome_unknown",
+                           "respuesta": {"estado": "NO_DATA", "causa": "request_outcome_unknown"}}
+                return reply(503, payload)
             try:
                 lectura = _canales.lee(turno["hilo"], 0, base=_casa.raiz())
             except Exception:
@@ -1772,12 +1776,14 @@ class PWA(BaseHTTPRequestHandler):
                 return reply(200, response)
             if voice == "hexelion" and machine.get("via") in ("mcp_nativo", "lectura_local"):
                 ok, tool, answer = machine.get("ok"), machine.get("herramienta"), message.get("texto")
-                if type(ok) is not bool or not isinstance(tool, str) or not tool or not isinstance(answer, str):
-                    turno["n"] = None
+                projected = next((row for row in _turnos.turns(lectura.get("mensajes") or [])
+                                  if row.get("n") == turno["n"]), None)
+                if (type(ok) is not bool or not isinstance(tool, str) or not tool or
+                        not isinstance(answer, str) or projected is None or projected.get("state") != "ACTED"):
                     payload = {"estado": "NO_DATA", "causa": "cached_action_unverified",
                                "respuesta": {"estado": "NO_DATA", "causa": "cached_action_unverified"}}
-                    return reply(503, payload)
-                action = {"estado": "MEASURED" if ok else "NO_DATA", "herramienta": tool, "ok": ok,
+                    return reply(200, payload)
+                action = {"estado": "MEASURED", "herramienta": tool, "ok": ok,
                           "rc": machine.get("rc"), "ms": machine.get("ms"), "causa": machine.get("causa"),
                           "allowlist_version": machine.get("allowlist_version"),
                           "evidencia": machine.get("evidencia") if isinstance(machine.get("evidencia"), dict) else {},
@@ -1837,7 +1843,7 @@ class PWA(BaseHTTPRequestHandler):
                 raise ValueError()
             request_id = data.get("request_id")
             if "request_id" in data and not _canales.solicitud_app_valida(request_id):
-                raise ValueError()
+                return no_data("request_id_invalid", 400)
             text = data["texto"]
             if type(text) is not str or not text.strip() or len(text) > 600:
                 raise ValueError()
