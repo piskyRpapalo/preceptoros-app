@@ -1199,6 +1199,22 @@ function setTalkProcessing(active) {
   if (details) { details.textContent = ""; details.hidden = true; }
   panel.dataset.thinking = String(active);
 }
+let pendingHexelionRequest = null;
+let activeHexelionController = null;
+const stopHexelion = $("detener-chat");
+function newHexelionRequestId() {
+  try {
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    return "app-" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    throw new Error("secure_random_unavailable");
+  }
+}
+if (stopHexelion) stopHexelion.addEventListener("click", () => {
+  if (!activeHexelionController) return;
+  activeHexelionController.abort();
+  stopHexelion.disabled = true;
+});
 $("form-chat").addEventListener("submit", async (e) => {
   e.preventDefault();
   const volverA = document.activeElement;
@@ -1270,6 +1286,7 @@ $("form-chat").addEventListener("submit", async (e) => {
   // Waiting is drawn still: nothing is known to be running until the turn says so.
   if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), null, "waiting");
   esperando.lang = "en";
+  let requestController = null;
   try {
     const configResponse = await fetch("/api/cerebro", { cache: "no-store" });
     const config = configResponse.ok ? await configResponse.json() : null;
@@ -1299,13 +1316,47 @@ $("form-chat").addEventListener("submit", async (e) => {
       return;
     }
     const localTalk = talkMode === localMode;
+    let requestId = null, activeAgent = null;
+    if (!localTalk) {
+      activeAgent = window.PreceptorTeam && window.PreceptorTeam.active() ? window.PreceptorTeam.active().id : null;
+      const samePending = pendingHexelionRequest && pendingHexelionRequest.text === texto &&
+        pendingHexelionRequest.panel === ruta.panel && pendingHexelionRequest.agent === activeAgent;
+      if (pendingHexelionRequest && !samePending) {
+        esperando.remove(); localDraft.remove();
+        $("estado").dataset.state = "NO_DATA"; $("estado").dataset.acho = "silent";
+        $("estado").dataset.cause = "previous_request_unresolved";
+        $("estado").textContent = "NO_DATA(previous_request_unresolved) · Retry the same text or inspect the Notebook before another Hexelion request.";
+        if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), null, "silent");
+        if (!$("dicho").value.trim()) $("dicho").value = escrito;
+        $("enviar").disabled = false; devolverFoco(volverA);
+        return;
+      }
+      if (samePending) localDraft.remove();
+      if (!pendingHexelionRequest) {
+        pendingHexelionRequest = { text: texto, panel: ruta.panel, agent: activeAgent, id: newHexelionRequestId() };
+      }
+      requestId = pendingHexelionRequest.id;
+      requestController = new AbortController();
+      activeHexelionController = requestController;
+      if (stopHexelion) { stopHexelion.hidden = false; stopHexelion.disabled = false; }
+    }
     const request = {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: localTalk ? JSON.stringify({ texto }) : JSON.stringify(Object.assign({ texto, panel: ruta.panel },
-        window.PreceptorTeam && window.PreceptorTeam.active() ? { agente: window.PreceptorTeam.active().id } : {})),
+      body: localTalk ? JSON.stringify({ texto }) : JSON.stringify(Object.assign({ texto, panel: ruta.panel, request_id: requestId },
+        activeAgent ? { agente: activeAgent } : {})),
+      ...(requestController ? { signal: requestController.signal } : {}),
     };
     const r = await fetch(localTalk ? "/api/charla" : "/api/hexelion/chat", request);
     const d = await r.json();
+    if (!localTalk && pendingHexelionRequest) {
+      const state = d && d.turno && d.turno.state;
+      const terminal = ["ANSWERED", "ANSWERED_UNVERIFIED", "LOCAL_SENSOR", "ACTED", "ACTION_REFUSED",
+        "ACTION_UNVERIFIED", "NO_ANSWER", "REPLIED"].includes(state);
+      const terminalResponse = r.ok && ["MEASURED", "ACCION_LOCAL", "LECTURA_LOCAL"].includes(d && d.estado);
+      const terminalCause = ["request_id_conflict", "duplicate_reply_conflict", "cached_reply_unverified",
+        "cached_reply_exceeds_budget", "cached_action_unverified", "cached_action_exceeds_budget"].includes(d && d.causa);
+      if (terminal || terminalResponse || terminalCause || (r.status < 500 && !d.turno)) pendingHexelionRequest = null;
+    }
     esperando.remove();
     if (localTalk) {
       const modelo = d && d.modelo;
@@ -1386,15 +1437,24 @@ $("form-chat").addEventListener("submit", async (e) => {
       if (!$("dicho").value.trim()) $("dicho").value = escrito;
     }
     }
-  } catch {
+  } catch (error) {
     esperando.remove();
+    const aborted = error && error.name === "AbortError";
+    const cause = aborted ? "browser_wait_aborted" :
+      error && error.message === "secure_random_unavailable" ? "secure_random_unavailable" :
+      "talk_configuration_or_transport_unavailable";
     $("estado").dataset.state = "NO_DATA";
     $("estado").dataset.acho = "silent";
-    $("estado").textContent = "NO_DATA: talk_configuration_or_transport_unavailable";
+    $("estado").dataset.cause = cause;
+    $("estado").textContent = aborted
+      ? "NO_DATA(browser_wait_aborted) · Browser stopped waiting; the server may still finish. Retry the same text to reconcile."
+      : "NO_DATA: " + cause;
     if (window.AchoMotion) window.AchoMotion.express($("acho-estado"), null, "silent");
-    modelosWeb.setActiveModel(null, null, "hexelion_chat_transport_unavailable");
+    modelosWeb.setActiveModel(null, null, cause);
     if (!$("dicho").value.trim()) $("dicho").value = escrito;
   } finally {
+    if (activeHexelionController === requestController) activeHexelionController = null;
+    if (stopHexelion) { stopHexelion.disabled = true; stopHexelion.hidden = true; }
     setTalkProcessing(false);
   }
   $("enviar").disabled = false;
