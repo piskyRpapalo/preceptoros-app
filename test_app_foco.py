@@ -24,9 +24,9 @@ class Focus(unittest.TestCase):
     def test_every_re_enable_gives_focus_back(self):
         h = submit_handler()
         enables = [m.end() for m in re.finditer(re.escape('$("enviar").disabled = false;'), h)]
-        # Three legitimate routes now restore focus: preceptor thread, the
-        # personal private-route refusal, and normal local/private completion.
-        self.assertEqual(len(enables), 3)
+        # Four routes restore focus: preceptor thread, private-route refusal,
+        # unresolved prior request, and normal local/private completion.
+        self.assertEqual(len(enables), 4)
         for end in enables:
             self.assertTrue(h[end:end + 40].lstrip().startswith("devolverFoco(volverA);"))
 
