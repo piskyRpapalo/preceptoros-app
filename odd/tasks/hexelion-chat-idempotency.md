@@ -1,6 +1,6 @@
 # Direct Hexelion Talk idempotency and recoverable waiting
 
-Status: in progress
+Status: ready for independent review
 
 ## Objective
 
@@ -52,7 +52,7 @@ The existing `canales.di_soberano` idempotency contract covered addressed messag
 - [x] HXI-04 Add active Talk request ID, browser cancellation, and localized stop-waiting control.
 - [x] HXI-05 Align app.css/app.js cache keys and service-worker shell version.
 - [x] HXI-06 Add ledger, PWA replay, conflict, pending, and UI contract tests.
-- [ ] HXI-07 Pass the certified repository gate and review exact PR head.
+- [x] HXI-07 Pass the certified repository gate on code HEAD `730f6296f2844124de328a0c2ef32a8d26620496` (5/5 Python matrix).
 - [ ] HXI-08 Obtain independent D review; keep merge/deploy as separate governed decisions.
 
 ## Verification evidence
@@ -62,7 +62,8 @@ The existing `canales.di_soberano` idempotency contract covered addressed messag
 - Base: `56930aa55dbe89872b6001be265b378c82dad75f`
 - CI run #45749336667 on code head `d6f249dc`: FAIL across the Python 3.10–3.14 matrix; 27 failing corridors. Corrected served asset/cache alignment, public-name inventory, focus restoration path count, and a docstring collision detected by the repository gate.
 - CI run #45750510481 on code head `897a4cc8`: FAIL across the matrix; 8 remaining suites. These isolated stale asset/cache snapshots (including the install-worker fixture) and the additional draft-restoration branch; all identified expectations were updated in the current branch.
-- Current code head before this log update: `37e7f642`. A fresh certified run is required; do not interpret earlier runs, pending checks, or skipped checks as PASS.
+- CI run #45751255147 on exact code HEAD `730f6296f2844124de328a0c2ef32a8d26620496`: PASS on Python 3.10, 3.11, 3.12, 3.13 and 3.14; each reports `VERDE · 2798/2798`. `test_canales.py` 20/20, `test_pwa.py` 112/112, `test_canales.py --sabotaje` 6/6 detected, public-name sabotage 2/2 detected. All five workflow jobs concluded success.
+- This feature-record update is documentation-only; the tested code remains exactly the code at `730f6296`. Independent D review is still pending; no merge/deploy claim.
 
 ## Log
 
