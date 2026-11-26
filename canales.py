@@ -282,7 +282,7 @@ def di_soberano(canal, texto, sello="DECLARADO", base=None, para=None, request_i
     """La persona escribe desde la app. Solo la llama la puerta de la PWA.
     Una frase no es firma ni permiso. para es opcional; request_id correlaciona
     el turno aunque la puerta sea directa (Hexelion) y request_context vincula
-    entradas de ejecución adicionales al mismo acuse. Ninguno prueba recepción."""
+    contexto de ejecución adicional al mismo acuse. Ninguno prueba recepción."""
     if deduplicar and not solicitud_app_valida(request_id):
         raise CanalRechazado("la deduplicación requiere un identificador de solicitud")
     maquina = {"via": "app"}

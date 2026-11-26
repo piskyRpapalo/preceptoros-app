@@ -26,7 +26,7 @@ The existing `canales.di_soberano` idempotency contract covered addressed messag
 - On duplicate request, read the original turn and its correlated receipt. Return the bounded cached model answer, verified action receipt, or explicit PENDING/NO_DATA. Never call inference or an action adapter again.
 - Use `AbortController` in the active `app.js` request and an accessible, nine-locale “Stop waiting” control. Abort only the browser wait; it does not claim to cancel server inference.
 - Retain the same request ID in page memory for same-input retry. Within that page session, different text/panel/agent is held until the previous outcome is reconciled; after a full reload this guard is not yet restored automatically.
-- Align `app.html` script URL and `sw.js` shell cache (app.js v59 / shell v251).
+- Align `app.css` and `app.js` cache keys with the `sw.js` shell cache (app.css/app.js v59 / shell v251).
 
 ## Measurable benefit
 
@@ -50,7 +50,7 @@ The existing `canales.di_soberano` idempotency contract covered addressed messag
 - [x] HXI-02 Add no-recipient request IDs and context-bound idempotency to the existing ledger.
 - [x] HXI-03 Reconcile duplicate requests from existing receipts without rerunning work.
 - [x] HXI-04 Add active Talk request ID, browser cancellation, and localized stop-waiting control.
-- [x] HXI-05 Align app.js cache key and service-worker shell version.
+- [x] HXI-05 Align app.css/app.js cache keys and service-worker shell version.
 - [x] HXI-06 Add ledger, PWA replay, conflict, pending, and UI contract tests.
 - [ ] HXI-07 Pass the certified repository gate and review exact PR head.
 - [ ] HXI-08 Obtain independent D review; keep merge/deploy as separate governed decisions.
