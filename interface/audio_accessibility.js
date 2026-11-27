@@ -216,6 +216,21 @@
   const table=new Map(catalog.map(row=>[row[0],row]));
   const panels=new Set(["conversacion","cuaderno","lab","ajustes","modelos","settings"]);
   const normalize=s=>typeof s==="string"?s.replace(/\s+/g," ").trim():"";
+  function wrapText(value,maxChars){
+    const words=normalize(value).split(" "),lines=[];
+    let line="";
+    for(const word of words){
+      if(word.length>maxChars){
+        if(line){lines.push(line);line="";}
+        for(let i=0;i<word.length;i+=maxChars)lines.push(word.slice(i,i+maxChars));
+        continue;
+      }
+      const next=line?line+" "+word:word;
+      if(next.length>maxChars){lines.push(line);line=word;}else line=next;
+    }
+    if(line)lines.push(line);
+    return lines;
+  }
   const fail=cause=>({state:"NO_DATA",cause,authorization:"NOT_GRANTED_BY_READ"});
   function locate(row){return row[4]?doc.getElementById(row[0]):doc.querySelector('[data-acho-control="'+row[0]+'"]');}
   function visibility(el){
@@ -259,17 +274,24 @@
     const nameVerified=raw===row[1];
     const scope=el.closest('[role="tabpanel"]')?.id?.replace(/^panel-/,"")||"global";
     const panel=panels.has(scope)?scope:"global", state=states.join(", ")||"NO_DATA(control state)";
-    const sentence=row[1]+". Panel: "+panel+". "+row[2]+". "+available+(disabled&&available==="HIDDEN"?" and disabled":"")+". "+state+". "+
-      (nameVerified?"":"NO_DATA(current accessible name). ")+"Requirement: "+row[3]+". Local APP DOM. Read grants no action.";
-    const frame={v:"preceptoros.acho/1",id,t:0,cv:[1024,160],seal:nameVerified?"STATIC":"NO_DATA",
-      atoms:[{k:"control",r:sentence,i:[{o:"text",x:12,y:35,tx:sentence,sz:12,f:"paper",s:"ink"}]}],
+    const sentence=normalize(row[1]+". Panel: "+panel+". "+row[2]+". "+available+(disabled&&available==="HIDDEN"?" and disabled":"")+". "+state+". "+
+      (nameVerified?"":"NO_DATA(current accessible name). ")+"Requirement: "+row[3]+". Local APP DOM. Read grants no action.");
+    const cv=[390,96],fontSize=10,centerX=cv[0]/2,visualLines=wrapText(sentence,60);
+    // The shared renderer centers text; t remains scroll offset, not an observation timestamp.
+    const frame={v:"preceptoros.acho/1",id,t:0,cv,seal:nameVerified?"STATIC":"NO_DATA",
+      atoms:[{k:"control",r:sentence,i:visualLines.map((tx,index)=>({o:"text",x:centerX,y:15+index*13,tx,sz:fontSize,f:"paper"}))}],
       bands:["paper","ink"],change:[],sound:"NO_DATA",soundCause:"audible output not measured",motion:"NO_DATA"};
     if(typeof root.TextEncoder!=="function")return fail("utf8_encoder_unavailable");
     const frameBytes=new root.TextEncoder().encode(JSON.stringify(frame)).length;
+    const geometryOk=visualLines.length>0&&visualLines.length<=4&&visualLines.every((line,index)=>{
+      const width=0.6*fontSize*line.length,y=15+index*13;
+      return centerX-width/2>=0&&centerX+width/2<=cv[0]&&y-fontSize*0.7>=0&&y+fontSize*0.7<=cv[1];
+    });
+    if(!geometryOk)return fail("acho_frame_geometry_exceeds_canvas");
     if(frameBytes>=1024||sentence.length>420)return fail("acho_frame_exceeds_limit");
     return {id,panel,name:row[1],accessible_name:nameVerified?row[1]:null,function:row[2],
       state,availability:available,disabled,authorization:"NOT_GRANTED_BY_READ",requirement:row[3],
-      source:"APP static control and current DOM",
+      source:"APP static control and current DOM",freshness:"LOCAL_DOM_SNAPSHOT",
       observed_at:new Date().toISOString(),
       evidence_ref:(id.startsWith("owner-")?"interface/owner_model_slots.js":"interface/app.html")+"#"+id,
       cause:nameVerified?null:"current_accessible_name_not_verified",
