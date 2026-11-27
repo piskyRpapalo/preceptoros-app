@@ -570,8 +570,8 @@ class G2_FicherosDeInterfazLimpios(unittest.TestCase):
         INTRINSECOS |= {"DRAFT_ONLY", "JSON", "MINI", "LOCAL"}  # MINI-LOCAL is a router label, not a scrub policy.
         # MINI-RECOVER-01 is a locally restored document/project, never a credential or policy.
         INTRINSECOS |= {"UNVERIFIED_LOCAL"}
-# Acho control catalogue states and DOM roles; these are not policy names.
-INTRINSECOS |= {"NOT_GRANTED_BY_READ", "DETAILS", "SUMMARY", "VISIBLE", "DISABLED", "STATIC", "LOCAL_DOM_SNAPSHOT"}
+        # Acho control catalogue states and DOM roles; these are not policy names.
+        INTRINSECOS |= {"NOT_GRANTED_BY_READ", "DETAILS", "SUMMARY", "VISIBLE", "DISABLED", "STATIC", "LOCAL_DOM_SNAPSHOT"}
         INTRINSECOS |= {"SCHEMA", "ENGINE", "STAGES", "SIDES", "MIN_MM", "MAX_MM", "MAX_WORDS", "DONE"}  # Existing data-contract identifiers and status words, not scrub policies.
         # Plans in the panels (plan_flow.js, Superbot contract #310): the five stage words and the person's no.
         # Stages of a task, never redaction policies.
