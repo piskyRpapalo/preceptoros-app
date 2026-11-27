@@ -70,7 +70,7 @@ fi
 # hace falta es el desglose: si manana una suite desaparece del arbol, un
 # total agregado baja sin que nadie sepa cual falta.
 suite_unittest() {
-  local nombre="$1" informe n codigo extra=""
+  local nombre="$1" informe n codigo extra="" metrica=""
   # El informe de unittest va por stderr y lo que imprimen los casos por
   # stdout. Mezclarlos con `2>&1` parece comodo y no lo es: stdout sale con
   # bufer y stderr sin el, asi que el "OK" final aparece PEGADO a media linea
@@ -80,11 +80,14 @@ suite_unittest() {
   codigo=$?
   n="$(printf '%s' "$informe" | sed -n 's/^Ran \([0-9]*\) test.*/\1/p' | tail -1)"
   n="${n:-0}"
+  # Surface the deterministic local cursor latency measured by test_chat_cursor.
+  metrica="$(printf '%s\n' "$informe" | grep -E '^LOCAL_CURSOR_LATENCY_MS ' | tail -1 || true)"
   TOTAL=$((TOTAL + n))
   if [ "$codigo" = "0" ]; then
     printf '%s' "$informe" | grep -qE '^OK \(' && \
       extra=" $gris($(printf '%s' "$informe" | sed -n 's/^OK (\(.*\))/\1/p'))$fin"
     LINEAS+=("  ${verde}ok${fin}    ${nombre}.py $(printf '%*s' $((26 - ${#nombre})) '')${n}${extra}")
+    [ -n "$metrica" ] && LINEAS+=("      $metrica")
   else
     FALLOS=$((FALLOS + 1))
     LINEAS+=("  ${rojo}FALLO${fin} ${nombre}.py $(printf '%*s' $((26 - ${#nombre})) '')${n}")
