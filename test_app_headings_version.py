@@ -30,7 +30,7 @@ class HeadingsAndVersion(unittest.TestCase):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf8")
         self.assertIn('href="/app.css?v=59"', HTML)
         self.assertIn('"/app.css?v=59"', sw)
-        self.assertIn('const Cache = "preceptoros-armazon-v251"', sw)
+        self.assertIn('const Cache = "preceptoros-armazon-v252"', sw)
 
 
 if __name__ == "__main__":

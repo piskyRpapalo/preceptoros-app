@@ -27,7 +27,7 @@ class TeamFace(unittest.TestCase):
         sw = (ROOT / "interface/sw.js").read_text(encoding="utf-8")
         server = (ROOT / "bin/preceptoros-pwa").read_text(encoding="utf-8")
         self.assertIn('<div class="team" id="team"></div>', html)
-        self.assertIn('<summary data-i18n="harness_motor">', html)
+        self.assertRegex(html, r'<summary\b[^>]*data-i18n="harness_motor"[^>]*>')
         self.assertLess(html.index('/acho_motion.js?v=4'), html.index('/team.js?v=2'))
         self.assertLess(html.index('/team.js?v=2'), html.index(re.search(r'/app\.js\?v=\d+', html).group(0)))
         self.assertIn('"/acho_motion.js?v=4"', sw)

@@ -161,7 +161,7 @@ class NotebookShellTests(unittest.TestCase):
         self.assertIn('"/notebook.js": ("notebook.js", "application/javascript; charset=utf-8")', pwa)
         self.assertIn('ruta == "/api/notebook"', pwa)
         self.assertIn('ruta in ("/api/bandeja", "/api/energia", "/api/notebook")', pwa)
-        self.assertIn("preceptoros-armazon-v251", sw)
+        self.assertIn("preceptoros-armazon-v252", sw)
         self.assertIn('<script src="/app.js?v=59"></script>', html)
         self.assertIn('"/app.js?v=59"', sw)
         self.assertIn('<link rel="stylesheet" href="/app.css?v=59">', html)

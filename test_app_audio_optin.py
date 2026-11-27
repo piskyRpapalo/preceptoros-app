@@ -11,3 +11,12 @@ class AudioOptIn(unittest.TestCase):
         src=(ROOT/"interface/acho_sonido.js").read_text()
         assert 's.getItem(KEY) === "on"' in src
         assert "if (!enabled(host)) return" in src
+
+    def test_control_perception_fixture(self):
+        import shutil, subprocess
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("NO_DATA(node_not_installed)")
+        result = subprocess.run([node, str(ROOT / "tests/acho_control_perception.test.cjs")],
+                                capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

@@ -60,7 +60,263 @@
       return status("REQUESTED","native_speech_requested","Speech requested on this device. Audible output is not independently verified.");
     }catch{return status("NO_DATA","speech_refused","NO_DATA: speech synthesis was refused on this device.");}
   }
+
+  // Static audited control names; never export values, messages, agent IDs or arbitrary DOM.
+  const controlCatalog = [
+    ["tab-conversacion","Talk","navigate","local UI",true],
+    ["tab-cuaderno","Operations Data","navigate","local UI",true],
+    ["tab-lab","Lab","navigate","local UI",true],
+    ["tab-ajustes","My node","navigate","local UI",true],
+    ["tab-modelos","Open World","navigate","local UI",true],
+    ["tab-settings","Settings","navigate","local UI",true],
+    ["control-agents","Agents","disclosure","local UI",false],
+    ["mvp-first-run-mini","Find local Mini Orchestrator","activate","NO_DATA(action policy)",true],
+    ["mvp-first-run-node","Open Node identity","activate","NO_DATA(action policy)",true],
+    ["mvp-first-run-finish","Finish introduction","activate","NO_DATA(action policy)",true],
+    ["modelos-toggle","Choose model","activate","NO_DATA(action policy)",true],
+    ["mini-local-toggle","Use Mini Orchestrator offline","activate","NO_DATA(action policy)",true],
+    ["control-available-model-information","Available model information","disclosure","local UI",false],
+    ["control-model-preferences-draft-only","Model preferences (draft only)","disclosure","local UI",false],
+    ["control-refresh-talk","Refresh Talk","activate","NO_DATA(action policy)",false],
+    ["notebook-document-editor-toggle","Document Editor","activate","NO_DATA(action policy)",true],
+    ["notebook-plan-toggle","Write a plan","activate","NO_DATA(action policy)",true],
+    ["notebook-refresh","Refresh Operations Data","activate","NO_DATA(action policy)",true],
+    ["control-refresh-documents","Refresh Documents","activate","NO_DATA(action policy)",false],
+    ["documentos-importar-btn","Import document","activate","NO_DATA(action policy)",true],
+    ["documentos-nuevo-btn","New document","activate","NO_DATA(action policy)",true],
+    ["documentos-guardar","Save locally","activate","NO_DATA(action policy)",true],
+    ["documentos-descargar","Download","activate","NO_DATA(action policy)",true],
+    ["documentos-cancelar","Cancel","activate","NO_DATA(action policy)",true],
+    ["control-write-a-plan","Write a plan","disclosure","local UI",false],
+    ["plan-guardar","Store the plan","activate","NO_DATA(action policy)",true],
+    ["plan-releer","Read it back","activate","NO_DATA(action policy)",true],
+    ["control-the-stored-text","The stored text","disclosure","local UI",false],
+    ["control-shared-rack-lab-results-read-only-benchmark-receipts-and-harness-","Shared Rack LAB · Results Read-only benchmark receipts and harness status","disclosure","local UI",false],
+    ["control-memory-compass-consent-and-private-memories","Memory Compass, consent and private memories","disclosure","local UI",false],
+    ["mando-ir-firmas","Open Boundary","activate","NO_DATA(action policy)",true],
+    ["mando-ir-tareas","Open the Notebook","activate","NO_DATA(action policy)",true],
+    ["comandos-hexelion-abrir","Hexelion commands","disclosure","local UI",true],
+    ["cmd-estado","/estado rack and house services","activate","NO_DATA(action policy)",true],
+    ["cmd-capacidades","/capacidades what Hexelion may do","activate","NO_DATA(action policy)",true],
+    ["cmd-registro","/registro 5 last receipts","activate","NO_DATA(action policy)",true],
+    ["cmd-firmas","/firmas what awaits your signature","activate","NO_DATA(action policy)",true],
+    ["cmd-lab","/lab Lab results","activate","NO_DATA(action policy)",true],
+    ["cmd-preceptores","/preceptores which preceptors are working","activate","NO_DATA(action policy)",true],
+    ["cmd-dispositivos","/dispositivos devices and their roles","activate","NO_DATA(action policy)",true],
+    ["cmd-modelos","/modelos models by node","activate","NO_DATA(action policy)",true],
+    ["cmd-ejecuta","/ejecuta [@worktree] <command> run one command","activate","owner approval and effect gate",true],
+    ["cmd-escribe","/escribe @worktree <path> :: <text> write one file","activate","owner approval and effect gate",true],
+    ["cmd-ayuda","@ayuda help for this panel","activate","NO_DATA(action policy)",true],
+    ["control-memory-and-consent","Memory and consent","disclosure","local UI",false],
+    ["memoria-inicio-boton","Create my private memory","activate","NO_DATA(action policy)",true],
+    ["captura-consent-summary","Training consent · captured turns","disclosure","local UI",true],
+    ["switch","Redacción","activate","NO_DATA(action policy)",true],
+    ["probar","Pasar por el filtro","activate","NO_DATA(action policy)",true],
+    ["anidar","Anidar esto en tu memoria","activate","NO_DATA(action policy)",true],
+    ["control-el-payload-tal-cual-llego","El payload, tal cual llegó","disclosure","local UI",false],
+    ["control-technical-evidence-and-causes","Technical evidence and causes","disclosure","local UI",false],
+    ["compass-modo-camino","The Path","activate","NO_DATA(action policy)",true],
+    ["compass-modo-detalle","Detail","activate","NO_DATA(action policy)",true],
+    ["control-requests-and-answers-requests-responses-and-source-evidence","Requests and answers Requests, responses and source evidence","disclosure","local UI",false],
+    ["control-delegated-tasks-delegations-and-their-recorded-outcomes","Delegated tasks Delegations and their recorded outcomes","disclosure","local UI",false],
+    ["control-plans-and-their-tasks-saved-plans-and-linked-tasks","Plans and their tasks Saved plans and linked tasks","disclosure","local UI",false],
+    ["control-agents-observed-agents-observed-not-assumed-active","Agents observed Agents observed, not assumed active","disclosure","local UI",false],
+    ["control-reviews-wbr-mbr-weekly-and-monthly-review-receipts","Reviews · WBR / MBR Weekly and monthly review receipts","disclosure","local UI",false],
+    ["control-command-receipts-operational-receipts-from-command","Command receipts Operational receipts from Command","disclosure","local UI",false],
+    ["control-studies-and-proposals-proposals-and-external-study-references","Studies and proposals Proposals and external study references","disclosure","local UI",false],
+    ["lab-bench-toggle","Benchmarks","activate","NO_DATA(action policy)",true],
+    ["control-refresh-the-lab","Refresh the Lab","activate","NO_DATA(action policy)",false],
+    ["lab-first-experiment","Write my first experiment plan","activate","NO_DATA(action policy)",true],
+    ["control-runs-from-plans-results-of-work-started-from-plans","Runs from plans Results of work started from plans","disclosure","local UI",false],
+    ["control-benchmarks-reproducible-runs-reproducible-tests-and-their-evidenc","Benchmarks · reproducible runs Reproducible tests and their evidence","disclosure","local UI",false],
+    ["control-canales-recientes-channels-reported-by-this-device","Canales recientes Channels reported by this device","disclosure","local UI",false],
+    ["control-modelos-locales-local-model-inventory-when-available","Modelos locales Local model inventory, when available","disclosure","local UI",false],
+    ["control-lab-loops-loop-runs-timing-and-measured-outcomes","Lab loops Loop runs, timing and measured outcomes","disclosure","local UI",false],
+    ["control-connection-details-availability-and-connection-causes","Connection details Availability and connection causes","disclosure","local UI",false],
+    ["control-boundary-approvals-signatures-and-permissions","Boundary Approvals, signatures and permissions","disclosure","local UI",false],
+    ["control-refresh-the-signature-list","Refresh the signature list","activate","NO_DATA(action policy)",false],
+    ["hitl-cabecera","Firmas HITL · …","activate","NO_DATA(action policy)",true],
+    ["hitl-recargar","Actualizar lista","activate","NO_DATA(action policy)",true],
+    ["hitl-si","Sí, firmo y fusiono","activate","owner approval and effect gate",true],
+    ["hitl-no","No","activate","NO_DATA(action policy)",true],
+    ["control-harness-agents-tools-and-execution-evidence","Harness Agents, tools and execution evidence","disclosure","local UI",false],
+    ["control-refresh-the-loops-and-the-team","Refresh the loops and the team","activate","NO_DATA(action policy)",false],
+    ["control-operator-visibility-local-agents","Operator visibility · local agents","disclosure","local UI",false],
+    ["control-agent-questions-to-hexelion","Agent questions to Hexelion","disclosure","local UI",false],
+    ["control-engine-measured-cycles","Engine: measured cycles","disclosure","local UI",false],
+    ["openworld-retry","Reintentar OpenWorld","activate","NO_DATA(action policy)",true],
+    ["mynode-identity-toggle","Node identity","activate","NO_DATA(action policy)",true],
+    ["mynode-building-toggle","Create building","activate","NO_DATA(action policy)",true],
+    ["control-refresh-my-node","Refresh My node","activate","NO_DATA(action policy)",false],
+    ["control-getting-started-installation-guide-first-steps-instructions-and-i","Getting started · installation guide First steps, instructions and installation","disclosure","local UI",false],
+    ["mvp-first-run-reopen","Show three-step introduction again","activate","NO_DATA(action policy)",true],
+    ["mvp-open-node","Open node identity setup","activate","NO_DATA(action policy)",true],
+    ["control-node-identity-local-node-id-and-identity-controls","Node identity Local node ID and identity controls","disclosure","local UI",false],
+    ["mini-recovery-preview-button","Preview MINI recovery","activate","NO_DATA(action policy)",true],
+    ["mini-recovery-import","Recover project locally","activate","NO_DATA(action policy)",true],
+    ["node-default-save","Keep these defaults on this device","activate","NO_DATA(action policy)",true],
+    ["node-default-reset","Restore example","activate","NO_DATA(action policy)",true],
+    ["node-default-id","Suggest my node ID","activate","NO_DATA(action policy)",true],
+    ["node-admission-open","Prepare admission request","activate","NO_DATA(action policy)",true],
+    ["node-identity-read","Leer identidad local","activate","NO_DATA(action policy)",true],
+    ["node-identity-save","Provisionar identidad local","activate","NO_DATA(action policy)",true],
+    ["control-declare-an-assigned-building-requires-verified-local-service","Declare an assigned building (requires verified local service)","disclosure","local UI",false],
+    ["node-building-submit","Declarar edificio asignado","activate","owner approval and effect gate",true],
+    ["control-advanced-admission-tools-review-required","Advanced admission tools (review required)","disclosure","local UI",false],
+    ["nodo-export-send","Enviar a la aduana","activate","owner approval and effect gate",true],
+    ["control-preview-deployment-request","Preview deployment request","activate","NO_DATA(action policy)",false],
+    ["node-registration-submit","Sign deployment · request review","activate","owner approval and effect gate",true],
+    ["node-admission-finish","Finish admission on this device","activate","owner approval and effect gate",true],
+    ["node-heartbeat-start","Create my heartbeat key","activate","NO_DATA(action policy)",true],
+    ["node-heartbeat-send","Send one heartbeat now","activate","owner approval and effect gate",true],
+    ["companion-generate","Prepare one-building draft","activate","NO_DATA(action policy)",true],
+    ["companion-copy","Copy draft","activate","NO_DATA(action policy)",true],
+    ["companion-download","Download draft","activate","NO_DATA(action policy)",true],
+    ["companion-reset","Clear form","activate","NO_DATA(action policy)",true],
+    ["control-create-your-building-create-a-building-draft-on-this-device","Create your building Create a building draft on this device","disclosure","local UI",false],
+    ["room-building-create","Create my building draft","activate","NO_DATA(action policy)",true],
+    ["room-building-download","Download my draft","activate","NO_DATA(action policy)",true],
+    ["room-building-clear","Clear draft","activate","NO_DATA(action policy)",true],
+    ["control-this-device-and-privacy-updates-storage-and-privacy-choices","This device and privacy Updates, storage and privacy choices","disclosure","local UI",false],
+    ["update-check","Check for update","activate","NO_DATA(action policy)",true],
+    ["update-reload","Reload to use the update","activate","NO_DATA(action policy)",true],
+    ["install-app","Install PreceptorOS","activate","NO_DATA(action policy)",true],
+    ["energy-read","Read energy","activate","NO_DATA(action policy)",true],
+    ["control-machine-readable-receipt","Machine-readable receipt","disclosure","local UI",false],
+    ["keep-device","Keep it","activate","NO_DATA(action policy)",true],
+    ["control-voice-and-creations-optional-voice-and-creation-tools","Voice and creations Optional voice and creation tools","disclosure","local UI",false],
+    ["creation-voice-generate","Generate voice downloads","activate","NO_DATA(action policy)",true],
+    ["creation-publish-send","Verify and import","activate","owner approval and effect gate",true],
+    ["control-public-gate-and-local-tray-admission-status-and-local-tray","Public gate and local tray Admission status and local tray","disclosure","local UI",false],
+    ["tx-24","Public gate","disclosure","local UI",true],
+    ["puerta-copiar-llave","Copiar llave","activate","NO_DATA(action policy)",true],
+    ["puerta-copiar-documento","Copiar documento fuente","activate","NO_DATA(action policy)",true],
+    ["tray-read","Read local tray","activate","NO_DATA(action policy)",true],
+    ["control-appearance-day-night-or-device-preference","Appearance Day, night or device preference","disclosure","local UI",false],
+    ["control-accessibility-text-size-and-optional-animation","Accessibility Text size and optional animation","disclosure","local UI",false],
+    ["settings-speech-rate","Native speech speed","select","NO_DATA(action policy)",true],
+    ["settings-sound-test","Test sound","activate","NO_DATA(action policy)",true],
+    ["settings-speech-read","Read current area","activate","NO_DATA(action policy)",true],
+    ["settings-speech-stop","Stop speech","activate","NO_DATA(action policy)",true],
+    ["control-connection-and-privacy-pause-my-node-and-open-world-without-delet","Connection and privacy Pause My node and Open World without deleting data","disclosure","local UI",false],
+    ["connection-kill","Kill switch · Pause My node and Open World","activate","NO_DATA(action policy)",true],
+    ["control-about-this-app-what-s-local-what-needs-a-service","About this APP What's local, what needs a service","disclosure","local UI",false],
+    ["settings-reset","Restore display defaults","activate","NO_DATA(action policy)",true],
+    ["ayuda-efimera-cerrar","Close help","activate","NO_DATA(action policy)",true],
+    ["talk-crab-check","Check Talk activity","activate","NO_DATA(action policy)",true],
+    ["enviar","Dilo","activate","NO_DATA(action policy)",true],
+    ["detener-chat","Stop waiting for Hexelion","activate","NO_DATA(action policy)",true],
+    ["owner-private-runtime","Where it would run","select","local draft only; runtime not verified",true],
+    ["owner-public-runtime","How visitors would reach it","select","local draft only; admission and effect gate",true],
+    ["owner-model-save","Save choices on this device","activate","local draft only",true],
+    ["owner-model-clear","Clear both choices","activate","local draft only",true],
+    ["owner-model-export","Prepare public model declaration (local draft)","activate","local draft only",true]
+  ];
+  function createControlReader(doc,root,catalog){
+  const table=new Map(catalog.map(row=>[row[0],row]));
+  const panels=new Set(["conversacion","cuaderno","lab","ajustes","modelos","settings"]);
+  const normalize=s=>typeof s==="string"?s.replace(/\s+/g," ").trim():"";
+  function wrapText(value,maxChars){
+    const words=normalize(value).split(" "),lines=[];
+    let line="";
+    for(const word of words){
+      if(word.length>maxChars){
+        if(line){lines.push(line);line="";}
+        for(let i=0;i<word.length;i+=maxChars)lines.push(word.slice(i,i+maxChars));
+        continue;
+      }
+      const next=line?line+" "+word:word;
+      if(next.length>maxChars){lines.push(line);line=word;}else line=next;
+    }
+    if(line)lines.push(line);
+    return lines;
+  }
+  const fail=cause=>({state:"NO_DATA",cause,authorization:"NOT_GRANTED_BY_READ"});
+  function locate(row){return row[4]?doc.getElementById(row[0]):doc.querySelector('[data-acho-control="'+row[0]+'"]');}
+  function visibility(el){
+    for(let n=el;n;n=n.parentElement){
+      if(n.hidden||n.inert||n.getAttribute("aria-hidden")==="true")return "HIDDEN";
+      const style=root.getComputedStyle?.(n);
+      if(style&&(style.display==="none"||style.visibility==="hidden"||style.visibility==="collapse"))return "HIDDEN";
+      if(n.tagName==="DETAILS"&&!n.open&&n!==el){
+        const summary=Array.from(n.children).find(c=>c.tagName==="SUMMARY");
+        if(!summary||!summary.contains(el))return "HIDDEN";
+      }
+    }
+    return "VISIBLE";
+  }
+  function read(id){
+    if(!doc||typeof id!=="string"||!table.has(id))return fail("control_not_in_static_catalog");
+    const row=table.get(id),el=locate(row);
+    if(!el)return fail("control_mount_missing");
+    const disabled=!!(el.matches(":disabled")||el.getAttribute("aria-disabled")==="true"||el.closest('[aria-disabled="true"]'));
+    let available=visibility(el);
+    if(available==="VISIBLE"&&disabled)available="DISABLED";
+    const states=[];
+    for(const a of ["aria-selected","aria-expanded","aria-pressed","aria-checked"]){
+      const v=el.getAttribute(a);if(v==="true"||v==="false"||v==="mixed")states.push(a.slice(5)+"="+v);
+    }
+    if(el.tagName==="SUMMARY"&&el.parentElement?.tagName==="DETAILS"){
+      states.push("expanded="+String(el.parentElement.open));
+      if(el.parentElement.id==="superbot-agent-disclosure"){
+        const declared=el.parentElement.getAttribute("data-state");
+        states.push(["NO_DATA","PLAN_REFERENCE","SYNTHETIC"].includes(declared)?declared:"NO_DATA(agent reference state)");
+      }
+    }
+    const labels=Array.from(el.labels||[]).map(label=>normalize(label.textContent)).join(" ");
+    const raw=el.hasAttribute("aria-labelledby")?null:normalize(el.getAttribute("aria-label")||labels||el.textContent);
+    if(id==="owner-private-runtime"||id==="owner-public-runtime"){
+      const status=doc.getElementById(id==="owner-private-runtime"?"owner-private-status":"owner-public-status");
+      const declared=status?.getAttribute("data-state");
+      states.push(["DRAFT_ONLY","NO_DATA"].includes(declared)?declared:"NO_DATA(model draft state)");
+    }
+    // Publish only audited labels; translated/dynamic names need reviewed scope.
+    const nameVerified=raw===row[1];
+    const scope=el.closest('[role="tabpanel"]')?.id?.replace(/^panel-/,"")||"global";
+    const panel=panels.has(scope)?scope:"global", state=states.join(", ")||"NO_DATA(control state)";
+    const sentence=normalize(row[1]+". Panel: "+panel+". "+row[2]+". "+available+(disabled&&available==="HIDDEN"?" and disabled":"")+". "+state+". "+
+      (nameVerified?"":"NO_DATA(current accessible name). ")+"Requirement: "+row[3]+". Local APP DOM. Read grants no action.");
+    const cv=[390,96],fontSize=10,centerX=cv[0]/2,visualLines=wrapText(sentence,60);
+    // The shared renderer centers text; t remains scroll offset, not an observation timestamp.
+    const frame={v:"preceptoros.acho/1",id,t:0,cv,seal:nameVerified?"STATIC":"NO_DATA",
+      atoms:[{k:"control",r:sentence,i:visualLines.map((tx,index)=>({o:"text",x:centerX,y:15+index*13,tx,sz:fontSize,f:"paper"}))}],
+      bands:["paper","ink"],change:[],sound:"NO_DATA",soundCause:"audible output not measured",motion:"NO_DATA"};
+    if(typeof root.TextEncoder!=="function")return fail("utf8_encoder_unavailable");
+    const frameBytes=new root.TextEncoder().encode(JSON.stringify(frame)).length;
+    const geometryOk=visualLines.length>0&&visualLines.length<=4&&visualLines.every((line,index)=>{
+      const width=0.6*fontSize*line.length,y=15+index*13;
+      return centerX-width/2>=0&&centerX+width/2<=cv[0]&&y-fontSize*0.7>=0&&y+fontSize*0.7<=cv[1];
+    });
+    if(!geometryOk)return fail("acho_frame_geometry_exceeds_canvas");
+    if(frameBytes>=1024||sentence.length>420)return fail("acho_frame_exceeds_limit");
+    return {id,panel,name:row[1],accessible_name:nameVerified?row[1]:null,function:row[2],
+      state,availability:available,disabled,authorization:"NOT_GRANTED_BY_READ",requirement:row[3],
+      source:"APP static control and current DOM",freshness:"LOCAL_DOM_SNAPSHOT",
+      observed_at:new Date().toISOString(),
+      evidence_ref:(id.startsWith("owner-")?"interface/owner_model_slots.js":"interface/app.html")+"#"+id,
+      cause:nameVerified?null:"current_accessible_name_not_verified",
+      text:sentence,frame,frame_bytes:frameBytes};
+  }
+  function focused(){
+    if(!doc)return fail("document_unavailable");
+    const el=doc.activeElement?.closest?.("button,summary,select");
+    return el?read(el.id||el.getAttribute("data-acho-control")):fail("no_focused_control");
+  }
+  return Object.freeze({read,focused,ids:()=>Array.from(table.keys())});
+}
+  const controls=createControlReader(doc,root,controlCatalog);
   function read(){return speak(area());}
+  function readFocused(){
+    const control=controls.focused();
+    if(control.cause==="no_focused_control")return read();
+    const sentence=control.frame?control.text:"NO_DATA("+control.cause+"). Read grants no action.";
+    const description=$("acho-control-description");
+    if(description){
+      description.setAttribute("aria-live",enabled?"off":"polite");
+      description.textContent=sentence;
+    }
+    return enabled?speak(sentence):control;
+  }
   async function tone(){
     if(!root.PreceptorAchoSonido)return status("NO_DATA","acho_engine_missing","NO_DATA: Acho sound engine is unavailable.");
     const out=await root.PreceptorAchoSonido.play(TONE);
@@ -88,15 +344,15 @@
     doc.addEventListener("keydown",(event)=>{
       if(!event.altKey||!event.shiftKey||event.ctrlKey||event.metaKey||event.repeat)return;
       const target=event.target;
-      if(target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
-      if(event.key.toLowerCase()==="r"){event.preventDefault();read();}
+      if(target?.matches?.('input,textarea,[contenteditable="true"]'))return;
+      if(event.key.toLowerCase()==="r"){event.preventDefault();readFocused();}
       if(event.key.toLowerCase()==="s"){event.preventDefault();stop();}
     });
     status("LOCAL",enabled?"speech_user_enabled":"speech_user_disabled",
       enabled?"Spoken guidance enabled by this browser. Use Read current area.":"Spoken guidance is off until you enable it. Screen readers work independently.");
     return true;
   }
-  const api=Object.freeze({mount,read,stop,setEnabled,area,speak,hasSpeech,tone});
+  const api=Object.freeze({mount,read,stop,setEnabled,area,speak,hasSpeech,tone,controls,readFocused});
   root.PreceptorAudioAccessibility=api;
   if(typeof module==="object"&&module.exports)module.exports=api;
   if(doc){if(doc.readyState==="loading")doc.addEventListener("DOMContentLoaded",mount,{once:true});else mount();}
