@@ -42,7 +42,7 @@ class SettingsGroups(unittest.TestCase):
         bounds = [panel.index('id="%s"' % g) for g, _, _ in GROUPS] + [len(panel)]
         for i, (gid, title, cards) in enumerate(GROUPS):
             chunk = panel[bounds[i]:bounds[i + 1]]
-            self.assertIn('<summary><h3 id="%s-titulo">%s</h3>' % (gid, title), chunk)
+            self.assertRegex(chunk, r'<summary\b[^>]*><h3 id="%s-titulo">%s</h3>' % (re.escape(gid), re.escape(title)))
             for card in cards:
                 self.assertEqual(HTML.count('id="%s"' % card), 1, card)
                 self.assertIn('id="%s"' % card, chunk, card)
