@@ -31,8 +31,17 @@ function runFixtures(source,html,owner,sw,Encoder,gate){
   check(html.includes('/audio_accessibility.js?v=2')&&sw.includes('/audio_accessibility.js?v=2'),"asset alignment");
   for(const row of catalog){
     const p=reader.read(row[0]);
-    check(!!p.frame&&p.frame.v==="preceptoros.acho/1"&&p.frame.atoms[0].r===p.text&&p.frame.atoms[0].i[0].tx===p.text&&
+    const items=p.frame?.atoms?.[0]?.i||[],cv=p.frame?.cv||[];
+    const visual=items.map(item=>item.tx).join(" ");
+    const geometry=items.length>0&&items.length<=4&&items.every(item=>{
+      const width=0.6*item.sz*item.tx.length;
+      return item.o==="text"&&item.x-width/2>=0&&item.x+width/2<=cv[0]&&
+        item.y-item.sz*0.7>=0&&item.y+item.sz*0.7<=cv[1];
+    });
+    check(!!p.frame&&p.frame.v==="preceptoros.acho/1"&&cv[0]===390&&cv[1]===96&&
+      p.frame.atoms[0].r===p.text&&visual===p.text&&geometry&&
       p.frame_bytes===new Encoder().encode(JSON.stringify(p.frame)).length&&p.frame_bytes<1024&&
+      p.freshness==="LOCAL_DOM_SNAPSHOT"&&Number.isFinite(Date.parse(p.observed_at))&&
       p.authorization==="NOT_GRANTED_BY_READ"&&p.frame.sound==="NO_DATA"&&p.frame.seal!=="LIVE","frame "+row[0]);
     if(gate)check(gate(p.frame).ok,"WEB gate "+row[0]);
     max=Math.max(max,p.frame_bytes);
@@ -56,7 +65,8 @@ function runFixtures(source,html,owner,sw,Encoder,gate){
   check(reader.read("mini-local-toggle").availability==="VISIBLE","open details");
   get("modelos-toggle").textContent="PRIVATE_VALUE_SENTINEL";
   check(!JSON.stringify(reader.read("modelos-toggle")).includes("PRIVATE_VALUE_SENTINEL"),"no dynamic label leakage");
-  check(reader.read("modelos-toggle").accessible_name===null,"dynamic name NO_DATA");
+  const dynamic=reader.read("modelos-toggle");
+  check(dynamic.accessible_name===null&&dynamic.frame.seal==="NO_DATA","dynamic name NO_DATA");
   check(reader.read("__proto__").state==="NO_DATA","unknown id");
   byId.delete("owner-public-runtime");
   check(reader.read("owner-public-runtime").cause==="control_mount_missing","unmounted dynamic selector");
