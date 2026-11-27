@@ -227,7 +227,7 @@ class ConversationCursorTests(unittest.TestCase):
         ordered = sorted(samples)
         p50 = ordered[(len(ordered) - 1) // 2]
         p95 = ordered[min(len(ordered) - 1, math.ceil(len(ordered) * 0.95) - 1)]
-        print("LOCAL_CURSOR_LATENCY_MS clients=3 messages=100 pages=%d p50=%.3f p95=%.3f max=%.3f" %
+        print("\nLOCAL_CURSOR_LATENCY_MS clients=3 messages=100 pages=%d p50=%.3f p95=%.3f max=%.3f" %
               (len(ordered), p50, p95, ordered[-1]), file=sys.stderr, flush=True)
 
     def test_ledger_identity_survives_appends_and_rejects_replacement(self):
