@@ -57,6 +57,8 @@ SELLOS = ("MEDIDO", "EMULADO", "NO_DATA", "PROPUESTA", "REQUIERE_FIRMA", "DECLAR
 VOZ_RESERVADA = "soberano"
 _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,60}$")     # el mismo `SLUG` del registro
 _SOLICITUD_APP = re.compile(r"app-[0-9a-f]{32}")
+_CONVERSATION_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}")
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 TOPE_TEXTO = 8000
 TOPE_MAQUINA = 4000
 TOPE_LECTURA = 200
@@ -360,19 +362,37 @@ def lee(canal, desde=0, base=None, tope=TOPE_LECTURA):
             "recortados": max(0, len(mensajes) - tope), "corruptas": corruptas, "ultimo": ultimo}
 
 
-def lee_pagina(canal, *, cursor=0, limite=20, max_bytes=8192, base=None):
-    """Internal local ledger reader; not an authentication or export boundary.
+def _ledger_identity(base=None):
+    """Opaque local identity of this SQLite file; stable across appends."""
+    try:
+        info = ruta_canal(base).stat()
+    except FileNotFoundError:
+        return None
+    return hashlib.sha256(f"{info.st_dev}:{info.st_ino}".encode("ascii")).hexdigest()
 
-    Cursor is the last delivered event n in this ledger and scope, not the
-    newest event. Do not reuse across scopes or restored/replaced ledgers.
-    No HTTP/MCP caller may use this without an independent read grant.
+
+def lee_pagina(canal, *, cursor=0, limite=20, max_bytes=8192,
+               conversation_id=None, expected_ledger_id=None, base=None):
+    """Internal local reader; never an authentication or export boundary.
+
+    The cursor is the last delivered n, bound by the caller to conversation_id
+    and ledger_id. A replaced ledger fails closed. No HTTP/MCP caller may use
+    this without an independent read grant.
     """
     hilo = _hilo(canal)
     if (type(cursor) is not int or not 0 <= cursor <= 2**63 - 1
             or type(limite) is not int or not 1 <= limite <= 20
             or type(max_bytes) is not int or not 1024 <= max_bytes <= 8192):
         raise CanalRechazado("invalid_page_bounds")
-    page = {"schema": ESQUEMA, "canal": hilo, "source": "eventos.db:mensaje",
+    if (conversation_id is not None and
+            (type(conversation_id) is not str or not _CONVERSATION_ID.fullmatch(conversation_id))):
+        raise CanalRechazado("invalid_conversation_id")
+    if (expected_ledger_id is not None and
+            (type(expected_ledger_id) is not str or not _SHA256.fullmatch(expected_ledger_id))):
+        raise CanalRechazado("invalid_expected_ledger_id")
+
+    page = {"schema": ESQUEMA, "canal": hilo, "conversation_id": conversation_id,
+            "ledger_id": None, "source": "eventos.db:mensaje",
             "observed_at": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "authority": "none", "estado": "MEDIDO", "causa": None,
             "cursor": cursor, "next_cursor": cursor, "complete": False, "mensajes": []}
@@ -386,22 +406,63 @@ def lee_pagina(canal, *, cursor=0, limite=20, max_bytes=8192, base=None):
                               allow_nan=False).encode("utf-8"))
 
     try:
-        # Malformed/unclassifiable messages are included as barriers, not
-        # silently skipped. Valid messages from other threads are excluded.
-        filas = _filas(base, """
-            select n, ts, actor, cuerpo_json from eventos
-             where tipo = ? and n > ?
-               and case when json_valid(cuerpo_json)
-                        then case when json_type(cuerpo_json, '$.hilo') = 'text'
-                                  then json_extract(cuerpo_json, '$.hilo') = ?
-                                  else 1 end
-                        else 1 end
-             order by n limit ?
-        """, (TIPO, cursor, hilo, limite + 1))
+        ledger_id = _ledger_identity(base)
+    except OSError:
+        return refuse("channel_identity_unavailable")
+    page["ledger_id"] = ledger_id
+    if ledger_id is None:
+        return refuse("channel_has_no_messages")
+    if expected_ledger_id is not None and expected_ledger_id != ledger_id:
+        return refuse("cursor_ledger_mismatch")
+
+    try:
+        if conversation_id is None:
+            # Legacy unscoped view; preserve existing callers.
+            filas = _filas(base, """
+                select n, ts, actor, cuerpo_json from eventos
+                 where tipo = ? and n > ?
+                   and case when json_valid(cuerpo_json)
+                            then case when json_type(cuerpo_json, '$.hilo') = 'text'
+                                      then json_extract(cuerpo_json, '$.hilo') = ?
+                                      else 1 end
+                            else 1 end
+                 order by n limit ?
+            """, (TIPO, cursor, hilo, limite + 1))
+        else:
+            # A missing conversation_id is legacy/unscoped, not a member of
+            # this private conversation. Unclassifiable rows remain barriers.
+            filas = _filas(base, """
+                select n, ts, actor, cuerpo_json from eventos
+                 where tipo = ? and n > ?
+                   and case when json_valid(cuerpo_json)
+                            then case
+                              when json_type(cuerpo_json, '$.hilo') = 'text' then
+                                case when json_extract(cuerpo_json, '$.hilo') != ? then 0
+                                  when json_type(cuerpo_json, '$.maquina') = 'object' then
+                                    case
+                                      when json_type(cuerpo_json, '$.maquina.conversation_id') is null then 0
+                                      when json_type(cuerpo_json, '$.maquina.conversation_id') = 'text'
+                                        then json_extract(cuerpo_json, '$.maquina.conversation_id') = ?
+                                      else 1
+                                    end
+                                  else 1
+                                end
+                              else 1
+                            end
+                            else 1 end
+                 order by n limit ?
+            """, (TIPO, cursor, hilo, conversation_id, limite + 1))
     except (OSError, sqlite3.Error):
         return refuse("channel_unreadable")
+
+    try:
+        if _ledger_identity(base) != ledger_id:
+            return refuse("channel_replaced_during_read")
+    except OSError:
+        return refuse("channel_identity_unavailable")
     if filas is None:
         return refuse("channel_has_no_messages")
+
     for n, ts, actor, raw in filas[:limite]:
         try:
             c = json.loads(raw)
@@ -411,11 +472,22 @@ def lee_pagina(canal, *, cursor=0, limite=20, max_bytes=8192, base=None):
                     or c.get("sello") not in SELLOS
                     or not isinstance(c.get("rol"), str)):
                 raise ValueError()
-            # Only explicit correlation fields cross this internal projection;
-            # an actor in the ledger is not an authenticated remote principal.
             m = c["maquina"]
-            machine = {k: m[k] for k in ("para", "request_id", "reply_to_request_id",
-                                          "pregunta_n", "via") if k in m}
+            if "conversation_id" in m:
+                value = m["conversation_id"]
+                if type(value) is not str or not _CONVERSATION_ID.fullmatch(value):
+                    raise ValueError()
+                if conversation_id is not None and value != conversation_id:
+                    raise ValueError()
+            elif conversation_id is not None:
+                raise ValueError()
+            if "ancla" in m and (type(m["ancla"]) is not str or not _SHA256.fullmatch(m["ancla"])):
+                raise ValueError()
+
+            # Only explicit correlation fields and shared event references
+            # cross this local projection. Payloads and authority never do.
+            machine = {k: m[k] for k in ("conversation_id", "ancla", "para", "request_id",
+                                          "reply_to_request_id", "pregunta_n", "via") if k in m}
             row = {"n": n, "t": ts, "canal": hilo, "voz": actor,
                    "identity": "DECLARED", "rol": c["rol"], "texto": c["texto"],
                    "sello": c["sello"], "maquina": machine}
@@ -432,7 +504,6 @@ def lee_pagina(canal, *, cursor=0, limite=20, max_bytes=8192, base=None):
         page = candidate
     page["complete"] = len(filas) <= limite
     return page
-
 
 def resumen(base=None):
     return [{"canal": c, "ultimo": lee(c, desde=10 ** 12, base=base)["ultimo"], "corruptas": 0}
